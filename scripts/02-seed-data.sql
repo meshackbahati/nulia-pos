@@ -1,8 +1,10 @@
--- Insert sample manager user
+-- Updated to BorderShop branding and proper auth setup
+-- Note: These users need to be created in Supabase Auth dashboard or via signup
+-- Insert sample manager user (create these in Supabase Auth first)
 INSERT INTO users (email, role, full_name) VALUES 
-('manager@supermarket.com', 'manager', 'Store Manager'),
-('salesperson1@supermarket.com', 'salesperson', 'John Doe'),
-('salesperson2@supermarket.com', 'salesperson', 'Jane Smith')
+('manager@bordershop.com', 'manager', 'Store Manager'),
+('salesperson1@bordershop.com', 'salesperson', 'John Doe'),
+('salesperson2@bordershop.com', 'salesperson', 'Jane Smith')
 ON CONFLICT (email) DO NOTHING;
 
 -- Insert sample products with barcodes
@@ -16,3 +18,4 @@ INSERT INTO products (name, category, price, quantity, barcode, expiry_date, low
 ('Tomatoes (per kg)', 'Vegetables', 3.50, 80, '7890123456789', '2024-02-08', 15),
 ('Shampoo 400ml', 'Personal Care', 6.75, 25, '8901234567890', '2025-06-30', 5)
 ON CONFLICT (barcode) DO NOTHING;
+</sql>

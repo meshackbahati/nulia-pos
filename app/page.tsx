@@ -11,7 +11,7 @@ export default async function Home() {
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-4 text-gray-900">Connect Supabase to get started</h1>
-          <p className="text-gray-600">Please configure your Supabase integration to use the supermarket system.</p>
+          <p className="text-gray-600">Please configure your Supabase integration to use BorderShop.</p>
         </div>
       </div>
     )
@@ -42,7 +42,7 @@ export default async function Home() {
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-2">
               <ShoppingCart className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">SuperMarket Pro</h1>
+              <h1 className="text-2xl font-bold text-gray-900">BorderShop</h1>
             </div>
             <Link href="/auth/login">
               <Button className="bg-blue-600 hover:bg-blue-700">Sign In</Button>
@@ -54,9 +54,9 @@ export default async function Home() {
       {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center">
-          <h2 className="text-4xl font-bold text-gray-900 mb-6">Complete Supermarket Management System</h2>
+          <h2 className="text-4xl font-bold text-gray-900 mb-6">Complete BorderShop Management System</h2>
           <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto">
-            Streamline your supermarket operations with IoT barcode scanning, inventory management, sales tracking, and
+            Streamline your retail operations with IoT barcode scanning, inventory management, sales tracking, and
             comprehensive reporting - all in one powerful platform.
           </p>
 

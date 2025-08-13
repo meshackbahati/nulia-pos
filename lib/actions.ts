@@ -1,10 +1,8 @@
 "use server"
 
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 
-// Simplified sign in function that works with the demo data
 export async function signIn(prevState: any, formData: FormData) {
   if (!formData) {
     return { error: "Form data is missing" }
@@ -17,24 +15,49 @@ export async function signIn(prevState: any, formData: FormData) {
     return { error: "Email and password are required" }
   }
 
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createClient()
 
   try {
-    const { error } = await supabase.auth.signInWithPassword({
+    // Authenticate with Supabase
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: email.toString(),
       password: password.toString(),
     })
 
-    if (error) {
-      return { error: error.message }
+    if (authError) {
+      return { error: authError.message }
     }
 
-    const emailStr = email.toString()
-    if (emailStr.includes("manager")) {
-      redirect("/dashboard/manager")
+    // Query the users table to get the role
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("role")
+      .eq("email", email.toString())
+      .single()
+
+    if (userError || !userData) {
+      // If user doesn't exist in users table, create a default entry
+      const role = email.toString().includes("manager") ? "manager" : "salesperson"
+
+      await supabase.from("users").insert({
+        email: email.toString(),
+        role: role,
+        full_name: role === "manager" ? "Store Manager" : "Sales Person",
+      })
+
+      // Redirect based on email pattern as fallback
+      if (role === "manager") {
+        redirect("/dashboard/manager")
+      } else {
+        redirect("/dashboard/salesperson")
+      }
     } else {
-      redirect("/dashboard/salesperson")
+      // Redirect based on actual role from database
+      if (userData.role === "manager") {
+        redirect("/dashboard/manager")
+      } else {
+        redirect("/dashboard/salesperson")
+      }
     }
 
     return { success: true }
@@ -59,8 +82,7 @@ export async function signUp(prevState: any, formData: FormData) {
     return { error: "All fields are required" }
   }
 
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createClient()
 
   try {
     // Create auth user
@@ -77,6 +99,15 @@ export async function signUp(prevState: any, formData: FormData) {
       return { error: authError.message }
     }
 
+    // Add user to users table
+    if (authData.user) {
+      await supabase.from("users").insert({
+        email: email.toString(),
+        role: role.toString(),
+        full_name: fullName.toString(),
+      })
+    }
+
     return { success: "User account created successfully. Check email to confirm account." }
   } catch (error) {
     console.error("Sign up error:", error)
@@ -85,9 +116,7 @@ export async function signUp(prevState: any, formData: FormData) {
 }
 
 export async function signOut() {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
-
+  const supabase = createClient()
   await supabase.auth.signOut()
   redirect("/auth/login")
 }

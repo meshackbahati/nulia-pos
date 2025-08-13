@@ -49,7 +49,7 @@ export default function LoginForm() {
         <div className="flex justify-center mb-4">
           <ShoppingCart className="h-12 w-12 text-blue-600" />
         </div>
-        <CardTitle className="text-3xl font-bold">SuperMarket Pro</CardTitle>
+        <CardTitle className="text-3xl font-bold">BorderShop</CardTitle>
         <CardDescription className="text-lg">Sign in to your account</CardDescription>
       </CardHeader>
       <CardContent>
@@ -67,7 +67,7 @@ export default function LoginForm() {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="manager@supermarket.com"
+                placeholder="manager@bordershop.com"
                 required
                 className="h-12"
               />
@@ -86,9 +86,11 @@ export default function LoginForm() {
             <p className="text-sm">
               Demo Accounts:
               <br />
-              <strong>Manager:</strong> manager@supermarket.com
+              <strong>Manager:</strong> manager@bordershop.com
               <br />
-              <strong>Salesperson:</strong> salesperson1@supermarket.com
+              <strong>Salesperson:</strong> salesperson1@bordershop.com
+              <br />
+              <strong>Password:</strong> password123
             </p>
           </div>
         </form>
