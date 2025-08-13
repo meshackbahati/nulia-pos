@@ -52,16 +52,7 @@ export async function requireSalesperson(): Promise<UserProfile> {
   return user
 }
 
-export function hasPermission(userRole: string, requiredRole: string): boolean {
-  const roleHierarchy = {
-    manager: 2,
-    salesperson: 1,
-  }
-
-  return (
-    roleHierarchy[userRole as keyof typeof roleHierarchy] >= roleHierarchy[requiredRole as keyof typeof roleHierarchy]
-  )
-}
+// Removed hasPermission function - moved to lib/utils.ts to avoid server action error
 
 export async function logAuditEvent(
   action: string,

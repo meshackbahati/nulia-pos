@@ -3,7 +3,8 @@
 import type React from "react"
 
 import { useEffect, useState } from "react"
-import { getCurrentUser, hasPermission } from "@/lib/auth-utils"
+import { getCurrentUser } from "@/lib/auth-utils"
+import { hasPermission } from "@/lib/utils"
 
 interface RoleGuardProps {
   children: React.ReactNode
