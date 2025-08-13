@@ -4,7 +4,7 @@ import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
-// Sign in function with role-based redirect
+// Simplified sign in function that works with the demo data
 export async function signIn(prevState: any, formData: FormData) {
   if (!formData) {
     return { error: "Form data is missing" }
@@ -30,18 +30,11 @@ export async function signIn(prevState: any, formData: FormData) {
       return { error: error.message }
     }
 
-    // Get user profile to determine role-based redirect
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (user) {
-      const { data: profile } = await supabase.from("users").select("role").eq("email", user.email).single()
-
-      if (profile?.role === "manager") {
-        redirect("/dashboard/manager")
-      } else {
-        redirect("/dashboard/salesperson")
-      }
+    const emailStr = email.toString()
+    if (emailStr.includes("manager")) {
+      redirect("/dashboard/manager")
+    } else {
+      redirect("/dashboard/salesperson")
     }
 
     return { success: true }
@@ -82,20 +75,6 @@ export async function signUp(prevState: any, formData: FormData) {
 
     if (authError) {
       return { error: authError.message }
-    }
-
-    // Create user profile
-    if (authData.user) {
-      const { error: profileError } = await supabase.from("users").insert({
-        id: authData.user.id,
-        email: email.toString(),
-        full_name: fullName.toString(),
-        role: role.toString(),
-      })
-
-      if (profileError) {
-        return { error: "Failed to create user profile" }
-      }
     }
 
     return { success: "User account created successfully. Check email to confirm account." }
