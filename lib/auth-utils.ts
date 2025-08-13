@@ -1,11 +1,11 @@
 "use server"
 
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 
 export interface UserProfile {
   id: string
+  auth_user_id: string
   email: string
   full_name: string
   role: "manager" | "salesperson"
@@ -14,8 +14,7 @@ export interface UserProfile {
 }
 
 export async function getCurrentUser(): Promise<UserProfile | null> {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createClient()
 
   const {
     data: { user },
@@ -23,7 +22,7 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
 
   if (!user) return null
 
-  const { data: profile } = await supabase.from("users").select("*").eq("email", user.email).single()
+  const { data: profile } = await supabase.from("users").select("*").eq("auth_user_id", user.id).single()
 
   return profile
 }
@@ -52,8 +51,6 @@ export async function requireSalesperson(): Promise<UserProfile> {
   return user
 }
 
-// Removed hasPermission function - moved to lib/utils.ts to avoid server action error
-
 export async function logAuditEvent(
   action: string,
   tableName: string,
@@ -64,8 +61,7 @@ export async function logAuditEvent(
   const user = await getCurrentUser()
   if (!user) return
 
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createClient()
 
   await supabase.from("audit_logs").insert({
     user_id: user.id,

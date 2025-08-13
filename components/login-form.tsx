@@ -5,9 +5,10 @@ import { useFormStatus } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, ShoppingCart } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { signIn } from "@/lib/actions"
 
 function SubmitButton() {
@@ -34,11 +35,11 @@ function SubmitButton() {
 export default function LoginForm() {
   const router = useRouter()
   const [state, formAction] = useActionState(signIn, null)
+  const [selectedRole, setSelectedRole] = useState<string>("")
 
   // Handle successful login by redirecting
   useEffect(() => {
     if (state?.success) {
-      // Redirect will be handled by the server action
       router.refresh()
     }
   }, [state, router])
@@ -50,14 +51,32 @@ export default function LoginForm() {
           <ShoppingCart className="h-12 w-12 text-blue-600" />
         </div>
         <CardTitle className="text-3xl font-bold">BorderShop</CardTitle>
+        <p className="text-sm text-gray-600 mt-2">Management System</p>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-6">
           {state?.error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{state.error}</div>
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              {state.error}
+            </div>
           )}
 
           <div className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+                Login As
+              </label>
+              <Select name="role" value={selectedRole} onValueChange={setSelectedRole} required>
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Select your role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="salesperson">Salesperson</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email Address
@@ -66,7 +85,7 @@ export default function LoginForm() {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="bordershop@bordernet.co.ke"
+                placeholder={selectedRole === "manager" ? "manager@bordernet.co.ke" : "salesperson@bordernet.co.ke"}
                 required
                 className="h-12"
               />

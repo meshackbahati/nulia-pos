@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { requireManager, logAuditEvent } from "./auth-utils"
+import bcrypt from "bcryptjs"
 
 export async function createUser(prevState: any, formData: FormData) {
   try {
@@ -22,6 +23,10 @@ export async function createUser(prevState: any, formData: FormData) {
       return { error: "Invalid role specified" }
     }
 
+    if (password.length < 6) {
+      return { error: "Password must be at least 6 characters long" }
+    }
+
     const supabase = createClient()
 
     // Check if user already exists
@@ -31,32 +36,57 @@ export async function createUser(prevState: any, formData: FormData) {
       return { error: "User with this email already exists" }
     }
 
-    // Create auth user
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-    })
-
-    if (authError) {
-      return { error: authError.message }
-    }
-
-    // Create user profile
-    if (authData.user) {
-      const { error: profileError } = await supabase.from("users").insert({
-        id: authData.user.id,
+    if (role === "manager") {
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email,
-        full_name: fullName,
-        role,
+        password,
+        email_confirm: true,
       })
 
-      if (profileError) {
-        return { error: "Failed to create user profile" }
+      if (authError) {
+        return { error: authError.message }
       }
 
-      // Log audit event
-      await logAuditEvent("USER_CREATED", "users", authData.user.id, null, {
+      // Create manager profile
+      if (authData.user) {
+        const { error: profileError } = await supabase.from("users").insert({
+          auth_user_id: authData.user.id,
+          email,
+          full_name: fullName,
+          role,
+          is_active: true,
+        })
+
+        if (profileError) {
+          return { error: "Failed to create manager profile" }
+        }
+
+        await logAuditEvent("MANAGER_CREATED", "users", authData.user.id, null, {
+          email,
+          full_name: fullName,
+          role,
+        })
+      }
+    } else {
+      const passwordHash = await bcrypt.hash(password, 12)
+
+      const { data: userData, error: profileError } = await supabase
+        .from("users")
+        .insert({
+          email,
+          full_name: fullName,
+          role,
+          password_hash: passwordHash,
+          is_active: true,
+        })
+        .select()
+        .single()
+
+      if (profileError) {
+        return { error: "Failed to create salesperson account" }
+      }
+
+      await logAuditEvent("SALESPERSON_CREATED", "users", userData.id, null, {
         email,
         full_name: fullName,
         role,
@@ -64,10 +94,10 @@ export async function createUser(prevState: any, formData: FormData) {
     }
 
     revalidatePath("/dashboard/manager")
-    return { success: "User created successfully" }
+    return { success: `${role === "manager" ? "Manager" : "Salesperson"} account created successfully` }
   } catch (error) {
     console.error("Create user error:", error)
-    return { error: "Failed to create user" }
+    return { error: "Failed to create user account" }
   }
 }
 
@@ -165,15 +195,35 @@ export async function resetUserPassword(userId: string, newPassword: string) {
     // Verify manager permissions
     await requireManager()
 
+    if (newPassword.length < 6) {
+      throw new Error("Password must be at least 6 characters long")
+    }
+
     const supabase = createClient()
 
-    // Update user password
-    const { error } = await supabase.auth.admin.updateUserById(userId, {
-      password: newPassword,
-    })
+    // Get user info to determine auth type
+    const { data: userData } = await supabase.from("users").select("role, auth_user_id").eq("id", userId).single()
 
-    if (error) {
-      throw new Error(error.message)
+    if (!userData) {
+      throw new Error("User not found")
+    }
+
+    if (userData.role === "manager" && userData.auth_user_id) {
+      const { error } = await supabase.auth.admin.updateUserById(userData.auth_user_id, {
+        password: newPassword,
+      })
+
+      if (error) {
+        throw new Error(error.message)
+      }
+    } else {
+      const passwordHash = await bcrypt.hash(newPassword, 12)
+
+      const { error } = await supabase.from("users").update({ password_hash: passwordHash }).eq("id", userId)
+
+      if (error) {
+        throw new Error(error.message)
+      }
     }
 
     // Log audit event

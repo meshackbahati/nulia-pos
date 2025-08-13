@@ -1,7 +1,6 @@
 "use server"
 
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
 interface SaleItem {
@@ -19,11 +18,10 @@ interface SaleData {
 }
 
 export async function processSale(saleData: SaleData) {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createClient()
 
   // Generate receipt number
-  const receiptNumber = `RCP${Date.now()}`
+  const receiptNumber = `BS-${Date.now()}`
 
   try {
     // Start transaction
@@ -32,9 +30,9 @@ export async function processSale(saleData: SaleData) {
       .insert({
         salesperson_id: saleData.salesperson_id,
         total_amount: saleData.total_amount,
+        currency: "UGX", // Set currency to UGX
         payment_method: saleData.payment_method,
         receipt_number: receiptNumber,
-        transaction_date: new Date().toISOString(),
       })
       .select()
       .single()
@@ -49,7 +47,7 @@ export async function processSale(saleData: SaleData) {
       product_id: item.product_id,
       quantity: item.quantity,
       unit_price: item.unit_price,
-      subtotal: item.subtotal,
+      total_price: item.subtotal, // Use total_price instead of subtotal
     }))
 
     const { error: itemsError } = await supabase.from("sale_items").insert(saleItems)
@@ -58,32 +56,19 @@ export async function processSale(saleData: SaleData) {
       throw new Error(`Failed to create sale items: ${itemsError.message}`)
     }
 
-    // Update product quantities
+    // Update product quantities manually since the trigger should handle this
     for (const item of saleData.items) {
-      const { error: updateError } = await supabase.rpc("update_product_quantity", {
-        product_id: item.product_id,
-        quantity_sold: item.quantity,
-      })
+      const { error: updateError } = await supabase
+        .from("products")
+        .update({
+          quantity: supabase.raw(`quantity - ${item.quantity}`),
+        })
+        .eq("id", item.product_id)
 
       if (updateError) {
         console.error(`Failed to update quantity for product ${item.product_id}:`, updateError)
-        // Continue with other products even if one fails
       }
     }
-
-    // Create audit log
-    await supabase.from("audit_logs").insert({
-      user_id: saleData.salesperson_id,
-      action: "SALE_COMPLETED",
-      table_name: "sales",
-      record_id: sale.id,
-      new_values: {
-        receipt_number: receiptNumber,
-        total_amount: saleData.total_amount,
-        payment_method: saleData.payment_method,
-        items_count: saleData.items.length,
-      },
-    })
 
     revalidatePath("/dashboard/salesperson")
 
@@ -91,7 +76,7 @@ export async function processSale(saleData: SaleData) {
       id: sale.id,
       receipt_number: receiptNumber,
       total_amount: saleData.total_amount,
-      transaction_date: sale.transaction_date,
+      transaction_date: sale.created_at,
     }
   } catch (error) {
     console.error("Sale processing error:", error)

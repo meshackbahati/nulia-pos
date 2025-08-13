@@ -1,7 +1,6 @@
 "use server"
 
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
 export async function addProduct(productData: {
@@ -13,12 +12,12 @@ export async function addProduct(productData: {
   expiry_date?: string
   low_stock_threshold: number
 }) {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createClient()
 
   const { error } = await supabase.from("products").insert({
     ...productData,
     expiry_date: productData.expiry_date || null,
+    currency: "UGX", // Set default currency to UGX
   })
 
   if (error) {
@@ -39,8 +38,7 @@ export async function updateProduct(
     low_stock_threshold: number
   },
 ) {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createClient()
 
   const { error } = await supabase
     .from("products")
@@ -59,8 +57,7 @@ export async function updateProduct(
 }
 
 export async function deleteProduct(productId: string) {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createClient()
 
   const { error } = await supabase.from("products").delete().eq("id", productId)
 
