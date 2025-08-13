@@ -1,7 +1,6 @@
 "use server"
 
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { requireManager, logAuditEvent } from "./auth-utils"
 
@@ -23,8 +22,7 @@ export async function createUser(prevState: any, formData: FormData) {
       return { error: "Invalid role specified" }
     }
 
-    const cookieStore = cookies()
-    const supabase = createServerActionClient({ cookies: () => cookieStore })
+    const supabase = createClient()
 
     // Check if user already exists
     const { data: existingUser } = await supabase.from("users").select("email").eq("email", email).single()
@@ -78,8 +76,7 @@ export async function updateUser(userId: string, userData: { full_name: string; 
     // Verify manager permissions
     await requireManager()
 
-    const cookieStore = cookies()
-    const supabase = createServerActionClient({ cookies: () => cookieStore })
+    const supabase = createClient()
 
     // Get old values for audit
     const { data: oldUser } = await supabase.from("users").select("*").eq("id", userId).single()
@@ -113,8 +110,7 @@ export async function deleteUser(userId: string) {
     // Verify manager permissions
     await requireManager()
 
-    const cookieStore = cookies()
-    const supabase = createServerActionClient({ cookies: () => cookieStore })
+    const supabase = createClient()
 
     // Get user data for audit
     const { data: userData } = await supabase.from("users").select("*").eq("id", userId).single()
@@ -149,8 +145,7 @@ export async function getAllUsers() {
     // Verify manager permissions
     await requireManager()
 
-    const cookieStore = cookies()
-    const supabase = createServerActionClient({ cookies: () => cookieStore })
+    const supabase = createClient()
 
     const { data: users, error } = await supabase.from("users").select("*").order("created_at", { ascending: false })
 
@@ -170,8 +165,7 @@ export async function resetUserPassword(userId: string, newPassword: string) {
     // Verify manager permissions
     await requireManager()
 
-    const cookieStore = cookies()
-    const supabase = createServerActionClient({ cookies: () => cookieStore })
+    const supabase = createClient()
 
     // Update user password
     const { error } = await supabase.auth.admin.updateUserById(userId, {

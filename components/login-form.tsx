@@ -4,7 +4,7 @@ import { useActionState } from "react"
 import { useFormStatus } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, ShoppingCart } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
@@ -50,7 +50,6 @@ export default function LoginForm() {
           <ShoppingCart className="h-12 w-12 text-blue-600" />
         </div>
         <CardTitle className="text-3xl font-bold">BorderShop</CardTitle>
-        <CardDescription className="text-lg">Sign in to your account</CardDescription>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-6">
@@ -67,7 +66,7 @@ export default function LoginForm() {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="manager@bordershop.com"
+                placeholder="bordershop@bordernet.co.ke"
                 required
                 className="h-12"
               />
@@ -81,18 +80,6 @@ export default function LoginForm() {
           </div>
 
           <SubmitButton />
-
-          <div className="text-center text-gray-600">
-            <p className="text-sm">
-              Demo Accounts:
-              <br />
-              <strong>Manager:</strong> manager@bordershop.com
-              <br />
-              <strong>Salesperson:</strong> salesperson1@bordershop.com
-              <br />
-              <strong>Password:</strong> password123
-            </p>
-          </div>
         </form>
       </CardContent>
     </Card>

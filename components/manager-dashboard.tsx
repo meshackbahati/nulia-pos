@@ -134,7 +134,13 @@ export default function ManagerDashboard({ user, products, lowStockProducts, rec
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${totalValue.toFixed(2)}</div>
+              <div className="text-2xl font-bold">
+                {new Intl.NumberFormat("en-UG", {
+                  style: "currency",
+                  currency: "UGX",
+                  minimumFractionDigits: 0,
+                }).format(totalValue)}
+              </div>
               <p className="text-xs text-muted-foreground">Total stock value</p>
             </CardContent>
           </Card>
@@ -240,7 +246,13 @@ export default function ManagerDashboard({ user, products, lowStockProducts, rec
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold">${sale.total_amount}</p>
+                          <p className="font-bold">
+                            {new Intl.NumberFormat("en-UG", {
+                              style: "currency",
+                              currency: sale.currency || "UGX",
+                              minimumFractionDigits: 0,
+                            }).format(sale.total_amount)}
+                          </p>
                           <Badge variant="outline">{sale.payment_method}</Badge>
                         </div>
                       </div>
