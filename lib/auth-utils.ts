@@ -22,7 +22,12 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
 
   if (!user) return null
 
-  const { data: profile } = await supabase.from("users").select("*").eq("auth_user_id", user.id).single()
+  const { data: profile, error } = await supabase.from("users").select("*").eq("auth_user_id", user.id).maybeSingle()
+
+  if (error) {
+    console.error("[v0] Error fetching user profile:", error)
+    return null
+  }
 
   return profile
 }
