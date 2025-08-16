@@ -25,29 +25,38 @@ export async function signIn(prevState: any, formData: FormData) {
 
   try {
     if (role === "manager") {
+      console.log("[v0] Attempting manager login for:", email)
+
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (authError) {
+        console.log("[v0] Supabase auth error:", authError)
         return { error: "Invalid manager credentials" }
       }
 
-      // Verify manager role in database
+      console.log("[v0] Supabase auth successful, user ID:", authData.user.id)
+
       const { data: userData, error: userError } = await supabase
         .from("users")
-        .select("role, full_name, is_active")
+        .select("role, full_name, is_active, auth_user_id")
         .eq("auth_user_id", authData.user.id)
         .eq("role", "manager")
         .eq("is_active", true)
         .single()
 
+      console.log("[v0] Database query result:", { userData, userError })
+      console.log("[v0] Looking for auth_user_id:", authData.user.id)
+
       if (userError || !userData) {
+        console.log("[v0] Manager account lookup failed:", userError)
         await supabase.auth.signOut()
         return { error: "Manager account not found or inactive" }
       }
 
+      console.log("[v0] Manager login successful, redirecting to dashboard")
       redirect("/dashboard/manager")
     } else {
       const { data: userData, error: userError } = await supabase
