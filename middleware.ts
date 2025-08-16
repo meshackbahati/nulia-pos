@@ -1,22 +1,35 @@
 import { updateSession } from "@/lib/supabase/middleware"
 import type { NextRequest } from "next/server"
+import { NextResponse } from "next/server"
 
 export async function middleware(request: NextRequest) {
-  // Handle Supabase session updates
   const response = await updateSession(request)
-
-  // Additional role-based access control
   const pathname = request.nextUrl.pathname
 
-  // Manager-only routes
-  if (pathname.startsWith("/dashboard/manager")) {
-    // This will be handled by the page components using requireManager()
+  // Skip middleware for static files and API routes
+  if (pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname.includes(".")) {
     return response
   }
 
-  // Salesperson-only routes
-  if (pathname.startsWith("/dashboard/salesperson")) {
-    // This will be handled by the page components using requireSalesperson()
+  // Redirect root to login
+  if (pathname === "/") {
+    return NextResponse.redirect(new URL("/auth/login", request.url))
+  }
+
+  // Protected dashboard routes - let page components handle detailed auth
+  if (pathname.startsWith("/dashboard")) {
+    // Check if user is trying to access wrong dashboard
+    if (pathname.startsWith("/dashboard/manager")) {
+      // Manager dashboard access will be verified by requireManager() in the page
+      console.log("[v0] Manager dashboard access attempt")
+    } else if (pathname.startsWith("/dashboard/salesperson")) {
+      // Salesperson dashboard access will be verified by requireSalesperson() in the page
+      console.log("[v0] Salesperson dashboard access attempt")
+    }
+  }
+
+  // Allow auth routes
+  if (pathname.startsWith("/auth")) {
     return response
   }
 
@@ -30,8 +43,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
+     * - API routes
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 }
