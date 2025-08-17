@@ -1,25 +1,11 @@
 import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
+import { requireManager } from "@/lib/auth-utils"
 import ReportsAnalyticsDashboard from "@/components/reports-analytics-dashboard"
 
 export default async function ReportsPage() {
+  // Use the standard manager authentication utility
+  const user = await requireManager()
   const supabase = createClient()
-
-  // Check authentication
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
-  }
-
-  // Verify manager role
-  const { data: profile } = await supabase.from("users").select("role, full_name").eq("email", user.email).single()
-
-  if (!profile || profile.role !== "manager") {
-    redirect("/auth/login")
-  }
 
   // Get analytics data
   const today = new Date()
@@ -55,11 +41,11 @@ export default async function ReportsPage() {
   const { data: lowStockProducts } = await supabase
     .from("products")
     .select("*")
-    .lt("quantity", supabase.raw("low_stock_threshold"))
+    .lt("quantity", "low_stock_threshold")
 
   return (
     <ReportsAnalyticsDashboard
-      user={profile}
+      user={user}
       salesData={salesData || []}
       productPerformance={productPerformance || []}
       inventoryData={inventoryData || []}

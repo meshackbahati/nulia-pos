@@ -4,8 +4,10 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Edit, Trash2, AlertTriangle } from "lucide-react"
+import { Edit, Trash2, AlertTriangle, Printer } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import EditProductDialog from "@/components/edit-product-dialog"
+import BarcodeDisplay from "@/components/barcode-display"
 import { deleteProduct } from "@/lib/product-actions"
 
 interface Product {
@@ -25,6 +27,7 @@ interface ProductsTableProps {
 
 export default function ProductsTable({ products }: ProductsTableProps) {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [printingProduct, setPrintingProduct] = useState<Product | null>(null)
 
   const handleDelete = async (productId: string) => {
     if (confirm("Are you sure you want to delete this product?")) {
@@ -100,6 +103,9 @@ export default function ProductsTable({ products }: ProductsTableProps) {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setPrintingProduct(product)}>
+                        <Printer className="h-4 w-4" />
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => setEditingProduct(product)}>
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -126,6 +132,13 @@ export default function ProductsTable({ products }: ProductsTableProps) {
         open={!!editingProduct}
         onOpenChange={(open) => !open && setEditingProduct(null)}
       />
+
+      {/* Print Barcode Dialog */}
+      <Dialog open={!!printingProduct} onOpenChange={(open) => !open && setPrintingProduct(null)}>
+        <DialogContent className="max-w-4xl">
+          {printingProduct && <BarcodeDisplay product={printingProduct} />}
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
