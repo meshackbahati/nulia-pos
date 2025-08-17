@@ -62,9 +62,12 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname === "/auth/callback"
 
   const isPublicRoute = request.nextUrl.pathname === "/"
+  const isSalespersonDashboard = request.nextUrl.pathname.startsWith("/dashboard/salesperson")
 
   if (!isAuthRoute && !isPublicRoute) {
-    if (!session) {
+    // The salesperson dashboard uses a custom token auth system handled by the page itself.
+    // All other protected routes require a valid Supabase session.
+    if (!session && !isSalespersonDashboard) {
       const redirectUrl = new URL("/auth/login", request.url)
       return NextResponse.redirect(redirectUrl)
     }
