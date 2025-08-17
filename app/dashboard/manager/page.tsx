@@ -4,45 +4,39 @@ import ManagerDashboard from "@/components/manager-dashboard"
 import RoleGuard from "@/components/role-guard"
 
 export default async function ManagerDashboardPage() {
+  let user, products, lowStockProducts, recentSales;
+
   try {
-    // Require manager role
-    const user = await requireManager()
+    // Step 1: Authenticate and get user
+    console.log("Attempting to authenticate manager...");
+    user = await requireManager();
+    console.log("Manager authenticated successfully:", user.email);
 
-    const supabase = createClient()
+    const supabase = createClient();
 
-    // Get inventory data with error handling
-    const { data: products, error: productsError } = await supabase
-      .from("products")
-      .select("*")
-      .order("created_at", { ascending: false })
+    // Step 2: Get inventory data
+    console.log("Fetching products...");
+    const productsQuery = supabase.from("products").select("*").order("created_at", { ascending: false });
+    const { data: productsData, error: productsError } = await productsQuery;
+    if (productsError) throw new Error(`Products fetch error: ${JSON.stringify(productsError)}`);
+    products = productsData;
+    console.log("Products fetched successfully.");
 
-    if (productsError) {
-      console.error("[v0] Products fetch error:", productsError)
-    }
+    // Step 3: Get low stock alerts
+    console.log("Fetching low stock products...");
+    const lowStockQuery = supabase.from("products").select("*").lt("quantity", supabase.raw("low_stock_threshold"));
+    const { data: lowStockData, error: lowStockError } = await lowStockQuery;
+    if (lowStockError) throw new Error(`Low stock fetch error: ${JSON.stringify(lowStockError)}`);
+    lowStockProducts = lowStockData;
+    console.log("Low stock products fetched successfully.");
 
-    // Get low stock alerts
-    const { data: lowStockProducts, error: lowStockError } = await supabase
-      .from("products")
-      .select("*")
-      .lt("quantity", supabase.raw("low_stock_threshold"))
-
-    if (lowStockError) {
-      console.error("[v0] Low stock fetch error:", lowStockError)
-    }
-
-    // Get recent sales data with proper join
-    const { data: recentSales, error: salesError } = await supabase
-      .from("sales")
-      .select(`
-        *,
-        users!sales_salesperson_id_fkey(full_name, email)
-      `)
-      .order("created_at", { ascending: false })
-      .limit(10)
-
-    if (salesError) {
-      console.error("[v0] Sales fetch error:", salesError)
-    }
+    // Step 4: Get recent sales data
+    console.log("Fetching recent sales...");
+    const recentSalesQuery = supabase.from("sales").select(`*, users(full_name, email)`).order("created_at", { ascending: false }).limit(10);
+    const { data: recentSalesData, error: salesError } = await recentSalesQuery;
+    if (salesError) throw new Error(`Sales fetch error: ${JSON.stringify(salesError)}`);
+    recentSales = recentSalesData;
+    console.log("Recent sales fetched successfully.");
 
     return (
       <RoleGuard requiredRole="manager">
@@ -53,16 +47,22 @@ export default async function ManagerDashboardPage() {
           recentSales={recentSales || []}
         />
       </RoleGuard>
-    )
-  } catch (error) {
-    console.error("[v0] Manager dashboard error:", error)
+    );
+  } catch (error: any) {
+    console.error("!!! Critical error in ManagerDashboardPage !!!");
+    console.error(`Error occurred: ${error.message}`);
+
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
+        <div className="text-center p-4 bg-white rounded-lg shadow-md">
           <h1 className="text-2xl font-bold text-red-600 mb-2">Access Error</h1>
-          <p className="text-gray-600">Unable to load manager dashboard. Please try again.</p>
+          <p className="text-gray-600 mb-4">Unable to load manager dashboard. Please try again.</p>
+          <div className="bg-red-50 text-red-700 p-3 rounded text-left text-sm">
+            <p className="font-bold">Error Details:</p>
+            <pre className="whitespace-pre-wrap break-all">{error.message}</pre>
+          </div>
         </div>
       </div>
-    )
+    );
   }
 }
