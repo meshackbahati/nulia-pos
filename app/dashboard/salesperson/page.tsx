@@ -1,12 +1,12 @@
 import { createClient } from "@/lib/supabase/server"
-import { requireSalesperson } from "@/lib/auth-utils"
+import { validateSalespersonSession } from "@/lib/auth-utils"
 import SalespersonDashboard from "@/components/salesperson-dashboard"
 import RoleGuard from "@/components/role-guard"
 
-export default async function SalespersonDashboardPage() {
+export default async function SalespersonDashboardPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
   try {
-    // Require salesperson role (handles both Supabase auth and custom auth)
-    const user = await requireSalesperson()
+    // Validate the custom salesperson session from URL params
+    const user = await validateSalespersonSession(searchParams)
 
     const supabase = createClient()
 

@@ -9,6 +9,7 @@ export interface UserProfile {
   email: string
   full_name: string
   role: "manager" | "salesperson"
+  is_active: boolean
   created_at: string
   updated_at: string
 }
@@ -78,4 +79,41 @@ export async function logAuditEvent(
     old_values: oldValues,
     new_values: newValues,
   })
+}
+
+// This is for the custom salesperson session, not Supabase Auth
+export async function validateSalespersonSession(searchParams: { [key: string]: string | string[] | undefined }): Promise<UserProfile> {
+  const sessionToken = searchParams?.session;
+
+  if (!sessionToken || typeof sessionToken !== 'string') {
+    redirect("/auth/login?error=session_missing");
+  }
+
+  try {
+    const decodedToken = Buffer.from(sessionToken, 'base64').toString('utf-8');
+    const sessionData = JSON.parse(decodedToken);
+
+    // Basic validation
+    if (sessionData.role !== 'salesperson' || !sessionData.userId) {
+      throw new Error("Invalid session data");
+    }
+
+    // This is a simplified user object, but it should match the UserProfile shape
+    // as much as possible for compatibility with the dashboard component.
+    const user: UserProfile = {
+      id: sessionData.userId,
+      email: sessionData.email,
+      full_name: sessionData.fullName,
+      role: 'salesperson',
+      // These fields are not in the token, so we can fill them with placeholders
+      auth_user_id: '', // Salespersons don't have a Supabase auth_user_id
+      is_active: true, // Assume active if they have a valid token
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    return user;
+  } catch (error) {
+    redirect("/auth/login?error=session_invalid");
+  }
 }
