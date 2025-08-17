@@ -1,8 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { validateSalespersonSession } from "@/lib/auth-utils"
 import SalespersonDashboard from "@/components/salesperson-dashboard"
-import RoleGuard from "@/components/role-guard"
-
 export default async function SalespersonDashboardPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
   try {
     // Validate the custom salesperson session from URL params
@@ -42,14 +40,12 @@ export default async function SalespersonDashboardPage({ searchParams }: { searc
     const todayTotal = todaySales?.reduce((sum, sale) => sum + Number.parseFloat(sale.total_amount || "0"), 0) || 0
 
     return (
-      <RoleGuard requiredRole="salesperson">
-        <SalespersonDashboard
-          user={user}
-          products={products || []}
-          todaySales={todaySales || []}
-          todayTotal={todayTotal}
-        />
-      </RoleGuard>
+      <SalespersonDashboard
+        user={user}
+        products={products || []}
+        todaySales={todaySales || []}
+        todayTotal={todayTotal}
+      />
     )
   } catch (error) {
     console.error("[v0] Salesperson dashboard error:", error)
