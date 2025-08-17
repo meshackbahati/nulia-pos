@@ -33,19 +33,18 @@ export async function signIn(prevState: any, formData: FormData) {
       return { error: "Invalid manager credentials" }
     }
 
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("role, full_name, is_active, auth_user_id")
-      .eq("auth_user_id", authData.user.id)
-      .eq("role", "manager")
-      .maybeSingle()
+    const { data: users, error: userError } = await supabase.rpc("get_user_for_auth", {
+      user_auth_id: authData.user.id,
+    })
 
     if (userError) {
       await supabase.auth.signOut()
       return { error: "Database query failed: " + userError.message }
     }
 
-    if (!userData) {
+    const userData = users && users.length > 0 ? users[0] : null
+
+    if (!userData || userData.role !== "manager") {
       await supabase.auth.signOut()
       return { error: "Manager account not found or inactive" }
     }
