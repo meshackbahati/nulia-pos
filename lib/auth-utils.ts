@@ -31,7 +31,7 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
     return null
   }
 
-  return profile
+  return profile && profile.length > 0 ? profile[0] : null
 }
 
 export async function requireAuth(): Promise<UserProfile> {
