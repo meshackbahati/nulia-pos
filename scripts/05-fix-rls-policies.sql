@@ -66,9 +66,6 @@ CREATE POLICY "Allow authentication queries" ON users
   FOR SELECT USING (true);
 
 -- Temporarily disable RLS for the users table during authentication
--- We'll handle security in the application layer for auth queries
-ALTER TABLE users DISABLE ROW LEVEL SECURITY;
-
 -- Success message
 DO $$
 BEGIN
