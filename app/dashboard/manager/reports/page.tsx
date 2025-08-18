@@ -1,58 +1,115 @@
 import { createClient } from "@/lib/supabase/server"
 import { requireManager } from "@/lib/auth-utils"
 import ReportsAnalyticsDashboard from "@/components/reports-analytics-dashboard"
+import { Suspense } from "react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ErrorBoundary } from "@/components/error-boundary"
 
-export default async function ReportsPage() {
-  // Use the standard manager authentication utility
+// Loading component for Suspense fallback
+function ReportsLoading() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-12 w-1/2" />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <Skeleton key={i} className="h-32 rounded-xl" />
+        ))}
+      </div>
+      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
+        <Skeleton className="h-96" />
+        <Skeleton className="h-96" />
+      </div>
+    </div>
+  )
+}
+
+async function ReportsContent() {
+  // This will throw and be caught by the error boundary if user is not authorized
   const user = await requireManager()
+  
   const supabase = createClient()
+  
+  // Get date range for reports (last 30 days by default)
+  const endDate = new Date()
+  const startDate = new Date()
+  startDate.setDate(startDate.getDate() - 30)
 
-  // Get analytics data
-  const today = new Date()
-  const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-  const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-
-  // Sales data
-  const { data: salesData } = await supabase
+  // Get sales data with detailed information
+  const { data: salesData, error: salesError } = await supabase
     .from("sales")
     .select(`
-      *,
-      users!sales_salesperson_id_fkey(full_name),
-      sale_items(*, products(name, category))
+      id,
+      total_amount,
+      payment_method,
+      created_at,
+      status,
+      currency,
+      salesperson_id,
+      users!sales_salesperson_id_fkey(full_name, email),
+      sale_items(
+        id,
+        quantity,
+        unit_price,
+        total_price,
+        products(id, name, category, barcode)
+      )
     `)
-    .gte("transaction_date", thirtyDaysAgo.toISOString())
-    .order("transaction_date", { ascending: false })
+    .gte('created_at', startDate.toISOString())
+    .lte('created_at', endDate.toISOString())
+    .neq('status', 'voided')
+    .order('created_at', { ascending: false })
 
-  // Product performance
-  const { data: productPerformance } = await supabase
-    .from("sale_items")
-    .select(`
-      quantity,
-      subtotal,
-      products(id, name, category, price),
-      sales!inner(transaction_date)
-    `)
-    .gte("sales.transaction_date", thirtyDaysAgo.toISOString())
+  // Get products data for inventory analysis
+  const { data: productsData, error: productsError } = await supabase
+    .from("products")
+    .select("*")
+    .eq("is_active", true)
 
-  // Inventory data
-  const { data: inventoryData } = await supabase.from("products").select("*").order("quantity", { ascending: true })
+  // Get all users for performance analysis
+  const { data: usersData, error: usersError } = await supabase
+    .from("users")
+    .select("*")
+    .eq("role", "salesperson")
+    .eq("is_active", true)
 
-  // Low stock products - fetch all and filter in JavaScript for complex conditions
-  const { data: allProducts } = await supabase.from("products").select("*")
+  // Get low stock products
+  const lowStockProducts = productsData?.filter(product => 
+    product.quantity <= (product.low_stock_threshold || 10)
+  ) || []
+
+  // Log any errors but don't fail the entire page
+  if (salesError) console.error("[v0] Sales fetch error:", salesError)
+  if (productsError) console.error("[v0] Products fetch error:", productsError)
+  if (usersError) console.error("[v0] Users fetch error:", usersError)
   
-  // Filter for low stock products (quantity > 0 and quantity <= low_stock_threshold)
-  const lowStockProducts = allProducts?.filter(product => {
-    const threshold = product.low_stock_threshold ?? 5 // Default threshold of 5 if not set
-    return product.quantity > 0 && product.quantity <= threshold
-  }) || []
-
   return (
     <ReportsAnalyticsDashboard
       user={user}
       salesData={salesData || []}
-      productPerformance={productPerformance || []}
-      inventoryData={inventoryData || []}
-      lowStockProducts={lowStockProducts || []}
+      productsData={productsData || []}
+      usersData={usersData || []}
+      lowStockProducts={lowStockProducts}
+      startDate={startDate}
+      endDate={endDate}
     />
+  )
+}
+
+export default function ReportsPage() {
+  return (
+    <ErrorBoundary 
+      fallback={
+        <div className="p-6">
+          <h1 className="text-2xl font-bold text-destructive">Error Loading Reports</h1>
+          <p className="mt-2 text-muted-foreground">
+            We couldn't load the reports dashboard. Please try refreshing the page or contact support if the issue persists.
+          </p>
+        </div>
+      }
+    >
+      <Suspense fallback={<ReportsLoading />}>
+        <ReportsContent />
+      </Suspense>
+    </ErrorBoundary>
   )
 }
