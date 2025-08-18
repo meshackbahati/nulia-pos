@@ -185,10 +185,14 @@ export default function ManagerDashboard({ user, products, lowStockProducts, rec
                     <CardTitle>Product Inventory</CardTitle>
                     <CardDescription>Manage your product catalog and stock levels</CardDescription>
                   </div>
-                  <Button onClick={() => setShowAddProduct(true)} className="bg-blue-600 hover:bg-blue-700">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Product
-                  </Button>
+                  <div className="flex gap-2">
+                    <BulkProductManager onProductsUpdated={() => window.location.reload()} />
+                    <BarcodeGenerator />
+                    <Button onClick={() => setShowAddProduct(true)} className="bg-blue-600 hover:bg-blue-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Product
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
