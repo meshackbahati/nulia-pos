@@ -24,6 +24,7 @@ import {
 import { BarChart3, TrendingUp, DollarSign, Download, ArrowLeft, AlertTriangle } from "lucide-react"
 import { format } from "date-fns"
 import Link from "next/link"
+import { formatCurrency } from "@/lib/utils/currency"
 
 interface ReportsAnalyticsDashboardProps {
   user: {
@@ -220,7 +221,7 @@ export default function ReportsAnalyticsDashboard({
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">${analytics.totalRevenue.toFixed(2)}</div>
+              <div className="text-2xl font-bold text-green-600">{formatCurrency(analytics.totalRevenue)}</div>
               <p className="text-xs text-muted-foreground">
                 {format(dateRange.from, "MMM dd")} - {format(dateRange.to, "MMM dd")}
               </p>
@@ -244,7 +245,7 @@ export default function ReportsAnalyticsDashboard({
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${analytics.averageOrderValue.toFixed(2)}</div>
+              <div className="text-2xl font-bold">{formatCurrency(analytics.averageOrderValue)}</div>
               <p className="text-xs text-muted-foreground">Per transaction</p>
             </CardContent>
           </Card>
@@ -287,7 +288,7 @@ export default function ReportsAnalyticsDashboard({
                       <YAxis yAxisId="right" orientation="right" />
                       <Tooltip />
                       <Legend />
-                      <Bar yAxisId="left" dataKey="revenue" fill="#8884d8" name="Revenue ($)" />
+                      <Bar yAxisId="left" dataKey="revenue" fill="#8884d8" name="Revenue (KES)" />
                       <Line
                         yAxisId="right"
                         type="monotone"
@@ -378,7 +379,7 @@ export default function ReportsAnalyticsDashboard({
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-green-600">${product.totalRevenue.toFixed(2)}</p>
+                          <p className="font-bold text-green-600">{formatCurrency(product.totalRevenue)}</p>
                           <p className="text-xs text-gray-600">{product.totalQuantity} sold</p>
                         </div>
                       </div>
@@ -456,7 +457,7 @@ export default function ReportsAnalyticsDashboard({
                       </div>
                       <div className="text-center p-4 bg-green-50 rounded-lg">
                         <p className="text-2xl font-bold text-green-600">
-                          ${inventoryData.reduce((sum, p) => sum + p.price * p.quantity, 0).toFixed(2)}
+                          {formatCurrency(inventoryData.reduce((sum, p) => sum + p.price * p.quantity, 0))}
                         </p>
                         <p className="text-sm text-gray-600">Total Value</p>
                       </div>
@@ -505,9 +506,9 @@ export default function ReportsAnalyticsDashboard({
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-green-600">${person.revenue.toFixed(2)}</p>
+                          <p className="font-bold text-green-600">{formatCurrency(person.revenue)}</p>
                           <p className="text-xs text-gray-600">
-                            Avg: ${(person.revenue / person.transactions).toFixed(2)}
+                            Avg: {formatCurrency(person.revenue / person.transactions)}
                           </p>
                         </div>
                       </div>

@@ -37,11 +37,14 @@ export default async function ReportsPage() {
   // Inventory data
   const { data: inventoryData } = await supabase.from("products").select("*").order("quantity", { ascending: true })
 
-  // Low stock products
-  const { data: lowStockProducts } = await supabase
-    .from("products")
-    .select("*")
-    .lt("quantity", "low_stock_threshold")
+  // Low stock products - fetch all and filter in JavaScript for complex conditions
+  const { data: allProducts } = await supabase.from("products").select("*")
+  
+  // Filter for low stock products (quantity > 0 and quantity <= low_stock_threshold)
+  const lowStockProducts = allProducts?.filter(product => {
+    const threshold = product.low_stock_threshold ?? 5 // Default threshold of 5 if not set
+    return product.quantity > 0 && product.quantity <= threshold
+  }) || []
 
   return (
     <ReportsAnalyticsDashboard

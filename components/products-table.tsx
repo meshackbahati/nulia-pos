@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import EditProductDialog from "@/components/edit-product-dialog"
 import BarcodeDisplay from "@/components/barcode-display"
 import { deleteProduct } from "@/lib/product-actions"
+import { formatPrice, formatInventoryValue } from "@/lib/utils/currency"
 
 interface Product {
   id: string
@@ -54,7 +55,8 @@ export default function ProductsTable({ products }: ProductsTableProps) {
               <TableHead>Product</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Price</TableHead>
-              <TableHead>Stock</TableHead>
+              <TableHead>Quantity</TableHead>
+              <TableHead>Total Value</TableHead>
               <TableHead>Barcode</TableHead>
               <TableHead>Expiry</TableHead>
               <TableHead>Status</TableHead>
@@ -75,14 +77,17 @@ export default function ProductsTable({ products }: ProductsTableProps) {
                   <TableCell>
                     <Badge variant="secondary">{product.category}</Badge>
                   </TableCell>
-                  <TableCell>${product.price.toFixed(2)}</TableCell>
+                  <TableCell>{formatPrice(product.price)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span className={isLowStock(product) ? "text-orange-600 font-medium" : ""}>
-                        {product.quantity}
+                        {product.quantity.toLocaleString()}
                       </span>
                       {isLowStock(product) && <AlertTriangle className="h-4 w-4 text-orange-600" />}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {formatInventoryValue(product.price * product.quantity)}
                   </TableCell>
                   <TableCell className="font-mono text-sm">{product.barcode}</TableCell>
                   <TableCell>

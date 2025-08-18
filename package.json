@@ -40,13 +40,16 @@
     "@supabase/auth-helpers-nextjs": "latest",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
+    "@types/uuid": "^10.0.0",
     "autoprefixer": "^10.4.20",
+    "axios": "^1.11.0",
     "bcryptjs": "latest",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
     "date-fns": "latest",
     "embla-carousel-react": "8.5.1",
+    "framer-motion": "^12.23.12",
     "geist": "latest",
     "input-otp": "1.4.1",
     "jsbarcode": "^3.12.1",
@@ -62,8 +65,10 @@
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.1.0",
     "vaul": "^1.1.2",
-    "zod": "3.25.67"
+    "zod": "3.25.67",
+    "zustand": "^5.0.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",

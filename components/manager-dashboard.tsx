@@ -25,6 +25,8 @@ import UserManagement from "@/components/user-management"
 import { Input } from "@/components/ui/input"
 import { getAllUsers } from "@/lib/user-actions"
 import Link from "next/link"
+import { LowStockProducts } from "@/components/inventory/LowStockProducts"
+import { formatCurrency } from "@/lib/utils/currency"
 
 interface ManagerDashboardProps {
   user: {
@@ -46,7 +48,7 @@ export default function ManagerDashboard({ user, products, lowStockProducts, rec
 
   // Calculate dashboard stats
   const totalProducts = products.length
-  const totalValue = products.reduce((sum, product) => sum + product.price * product.quantity, 0)
+  const totalValue = products.reduce((sum, product) => sum + (product.price || 0) * (product.quantity || 0), 0)
   const lowStockCount = lowStockProducts.length
   const categories = [...new Set(products.map((p) => p.category))]
 
@@ -135,11 +137,7 @@ export default function ManagerDashboard({ user, products, lowStockProducts, rec
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {new Intl.NumberFormat("en-UG", {
-                  style: "currency",
-                  currency: "UGX",
-                  minimumFractionDigits: 0,
-                }).format(totalValue)}
+                {formatCurrency(totalValue)}
               </div>
               <p className="text-xs text-muted-foreground">Total stock value</p>
             </CardContent>
@@ -227,6 +225,9 @@ export default function ManagerDashboard({ user, products, lowStockProducts, rec
           </TabsContent>
 
           <TabsContent value="sales" className="space-y-6">
+            <div className="grid gap-6">
+              <LowStockProducts />
+            </div>
             <Card>
               <CardHeader>
                 <CardTitle>Recent Sales</CardTitle>

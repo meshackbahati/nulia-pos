@@ -44,11 +44,29 @@ export async function requireAuth(): Promise<UserProfile> {
 }
 
 export async function requireManager(): Promise<UserProfile> {
-  const user = await requireAuth()
-  if (user.role !== "manager") {
-    redirect("/auth/login")
+  try {
+    const user = await requireAuth()
+    
+    // If requireAuth redirected, this code won't be reached
+    if (!user) {
+      throw new Error('Authentication required')
+    }
+    
+    if (user.role !== "manager") {
+      console.error(`Access denied: User ${user.email} does not have manager role`)
+      // Redirect to unauthorized page or dashboard based on role
+      if (user.role === 'salesperson') {
+        redirect('/dashboard/sales')
+      }
+      redirect('/auth/login?error=unauthorized')
+    }
+    
+    return user
+  } catch (error) {
+    console.error('Error in requireManager:', error)
+    // Ensure we always redirect to login on error
+    redirect(`/auth/login?error=${error instanceof Error ? error.message : 'authentication_failed'}`)
   }
-  return user
 }
 
 export async function requireSalesperson(): Promise<UserProfile> {
