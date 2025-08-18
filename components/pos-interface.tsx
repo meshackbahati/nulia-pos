@@ -120,16 +120,27 @@ export default function POSInterface({ products, salespersonId }: POSInterfacePr
         payment_method: paymentMethod,
         items: cart.map((item) => ({
           product_id: item.id,
+          product_name: item.name,
           quantity: item.cartQuantity,
           unit_price: item.price,
           subtotal: item.price * item.cartQuantity,
+          barcode: item.barcode
         })),
       }
 
-      const receipt = await processSale(saleData)
-      setLastReceipt({ ...receipt, items: cart, payment_method: paymentMethod })
-      setShowReceipt(true)
-      clearCart()
+      const result = await SalesService.processSale(saleData)
+      
+      if (result.success) {
+        setLastReceipt({
+          ...result.receipt_data,
+          items: cart,
+          payment_method: paymentMethod
+        })
+        setShowReceipt(true)
+        clearCart()
+      } else {
+        alert(`Failed to process sale: ${result.error}`)
+      }
     } catch (error) {
       console.error("Checkout error:", error)
       alert("Failed to process sale. Please try again.")
