@@ -51,15 +51,22 @@ export default function POSInterface({ products, salespersonId }: POSInterfacePr
       const suggestions = await SalesService.suggestProducts(barcode)
       
       if (suggestions.length > 0) {
-        // Show suggestion dialog (implement this UI)
-        const suggested = suggestions[0] // For now, just use first suggestion
-        const confirmed = confirm(`Product not found for barcode: ${barcode}. Did you mean: ${suggested.name}?`)
-        if (confirmed) {
-          addToCart(suggested)
-        }
+        setSearchTerm(barcode)
+        setSuggestedProducts(suggestions)
+        setShowSuggestions(true)
       } else {
         alert(`Product not found for barcode: ${barcode}. No suggestions available.`)
       }
+    }
+  }
+
+  const handleSuggestionSearch = async (search: string) => {
+    setSearchTerm(search)
+    if (search.trim().length > 2) {
+      const suggestions = await SalesService.suggestProducts(search)
+      setSuggestedProducts(suggestions)
+    } else {
+      setSuggestedProducts([])
     }
   }
 
