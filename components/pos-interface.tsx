@@ -315,6 +315,16 @@ export default function POSInterface({ products, salespersonId }: POSInterfacePr
 
       {/* Receipt Dialog */}
       <EnhancedReceiptDialog receipt={lastReceipt} open={showReceipt} onOpenChange={setShowReceipt} />
+      
+      {/* Product Suggestion Dialog */}
+      <ProductSuggestionDialog 
+        open={showSuggestions}
+        onOpenChange={setShowSuggestions}
+        searchTerm={searchTerm}
+        suggestions={suggestedProducts}
+        onSelectProduct={addToCart}
+        onSearchChange={handleSuggestionSearch}
+      />
     </div>
   )
 }
