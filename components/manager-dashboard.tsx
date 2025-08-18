@@ -26,7 +26,8 @@ import { Input } from "@/components/ui/input"
 import { getAllUsers } from "@/lib/user-actions"
 import Link from "next/link"
 import { LowStockProducts } from "@/components/inventory/LowStockProducts"
-import { formatCurrency } from "@/lib/utils/currency"
+import BulkProductManager from "@/components/bulk-product-manager"
+import BarcodeGenerator from "@/components/barcode-generator"
 
 interface ManagerDashboardProps {
   user: {
