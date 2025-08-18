@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Minus, Trash2, ShoppingCart, CreditCard, Smartphone, Banknote } from "lucide-react"
 import { SalesService } from "@/lib/services/sales-service"
 import EnhancedReceiptDialog from "@/components/enhanced-receipt-dialog"
-import BarcodeScanner from "@/components/barcode-scanner"
+import ProductSuggestionDialog from "@/components/product-suggestion-dialog"
 
 interface Product {
   id: string
