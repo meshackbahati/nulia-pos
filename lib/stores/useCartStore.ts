@@ -24,7 +24,7 @@ export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: {},
-      isOffline: !navigator.onLine,
+      isOffline: typeof window !== 'undefined' ? !navigator.onLine : false,
       pendingSync: false,
       
       addItem: (product, quantity = 1) => {
