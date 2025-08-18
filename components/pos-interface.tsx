@@ -303,7 +303,7 @@ export default function POSInterface({ products, salespersonId }: POSInterfacePr
       </div>
 
       {/* Receipt Dialog */}
-      <ReceiptDialog receipt={lastReceipt} open={showReceipt} onOpenChange={setShowReceipt} />
+      <EnhancedReceiptDialog receipt={lastReceipt} open={showReceipt} onOpenChange={setShowReceipt} />
     </div>
   )
 }
