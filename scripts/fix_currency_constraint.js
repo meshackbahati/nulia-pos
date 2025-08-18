@@ -3,7 +3,7 @@ const { createClient } = require('@supabase/supabase-js')
 const supabaseUrl = 'https://kwjhjayrqaazdzuyefxv.supabase.co'
 const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3amhqYXlycWFhemR6dXllZnh2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTA1Nzg1NSwiZXhwIjoyMDcwNjMzODU1fQ.NLBLf2j_OSgoTkr_rcYMoT9HeKuBw5caKY50wgkZcMw'
 
-const supabase = createClient supabaseUrl, supabaseServiceKey)
+const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 async function fixProducts() {
   console.log('🔧 Fixing product currencies...')
