@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Minus, Trash2, ShoppingCart, CreditCard, Smartphone, Banknote } from "lucide-react"
 import { SalesService } from "@/lib/services/sales-service"
-import ReceiptDialog from "@/components/receipt-dialog"
+import EnhancedReceiptDialog from "@/components/enhanced-receipt-dialog"
 import BarcodeScanner from "@/components/barcode-scanner"
 
 interface Product {
