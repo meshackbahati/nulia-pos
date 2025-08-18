@@ -36,12 +36,26 @@ export default function POSInterface({ products, salespersonId }: POSInterfacePr
   const [lastReceipt, setLastReceipt] = useState<any>(null)
   const [showReceipt, setShowReceipt] = useState(false)
 
-  const handleBarcodeScanned = (barcode: string) => {
-    const product = products.find((p) => p.barcode === barcode)
+  const handleBarcodeScanned = async (barcode: string) => {
+    // First try to find product by barcode
+    const product = await SalesService.findProductByBarcode(barcode)
+    
     if (product) {
       addToCart(product)
     } else {
-      alert(`Product not found for barcode: ${barcode}`)
+      // If not found, show AI suggestions
+      const suggestions = await SalesService.suggestProducts(barcode)
+      
+      if (suggestions.length > 0) {
+        // Show suggestion dialog (implement this UI)
+        const suggested = suggestions[0] // For now, just use first suggestion
+        const confirmed = confirm(`Product not found for barcode: ${barcode}. Did you mean: ${suggested.name}?`)
+        if (confirmed) {
+          addToCart(suggested)
+        }
+      } else {
+        alert(`Product not found for barcode: ${barcode}. No suggestions available.`)
+      }
     }
   }
 
