@@ -36,6 +36,9 @@ export default function POSInterface({ products, salespersonId }: POSInterfacePr
   const [processing, setProcessing] = useState(false)
   const [lastReceipt, setLastReceipt] = useState<any>(null)
   const [showReceipt, setShowReceipt] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
 
   const handleBarcodeScanned = async (barcode: string) => {
     // First try to find product by barcode
