@@ -101,7 +101,7 @@ export default function ProductsTable({ products }: ProductsTableProps) {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      {isLowStock(product) && <Badge variant="destructive">Low Stock</Badge>}
+                      {isLowStock(product) && <Badge variant="warning">Low Stock</Badge>}
                       {isExpiringSoon(product) && <Badge variant="destructive">Expiring</Badge>}
                       {!isLowStock(product) && !isExpiringSoon(product) && <Badge variant="success">Good</Badge>}
                     </div>
