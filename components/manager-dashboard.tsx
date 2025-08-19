@@ -23,6 +23,7 @@ import ProductsTable from "@/components/products-table"
 import AddProductDialog from "@/components/add-product-dialog"
 import UserManagement from "@/components/user-management"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getAllUsers } from "@/lib/user-actions"
 import Link from "next/link"
 import { LowStockProducts } from "@/components/inventory/LowStockProducts"
@@ -83,49 +84,40 @@ export default function ManagerDashboard({ user, products, lowStockProducts, rec
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <ShoppingCart className="h-8 w-8 text-blue-600" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Manager Dashboard</h1>
-                <p className="text-sm text-gray-600">Welcome back, {user.full_name}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link href="/dashboard/manager/reports">
-                <Button variant="outline" className="bg-blue-50 hover:bg-blue-100">
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  Reports & Analytics
-                </Button>
-              </Link>
-              <form action={signOut}>
-                <Button type="submit" variant="outline" size="sm">
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sign Out
-                </Button>
-              </form>
-            </div>
+    <div className="flex min-h-screen w-full flex-col bg-muted/40">
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+        <div className="flex items-center gap-4">
+          <ShoppingCart className="h-8 w-8 text-primary" />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Manager Dashboard</h1>
+            <p className="text-sm text-muted-foreground">Welcome back, {user.full_name}</p>
           </div>
         </div>
+        <div className="ml-auto flex items-center gap-2">
+          <Link href="/dashboard/manager/reports">
+            <Button variant="outline" size="sm">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Reports & Analytics
+            </Button>
+          </Link>
+          <form action={signOut}>
+            <Button type="submit" variant="ghost" size="sm">
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </form>
+        </div>
       </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Low Stock Alerts */}
+      <main className="flex-1 p-4 sm:px-6 sm:py-0">
         {lowStockCount > 0 && (
-          <Alert className="mb-6 border-orange-200 bg-orange-50">
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
-            <AlertDescription className="text-orange-800">
+          <Alert variant="warning" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
               <strong>{lowStockCount} products</strong> are running low on stock and need restocking.
             </AlertDescription>
           </Alert>
         )}
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Products</CardTitle>
@@ -136,31 +128,26 @@ export default function ManagerDashboard({ user, products, lowStockProducts, rec
               <p className="text-xs text-muted-foreground">Active inventory items</p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Inventory Value</CardTitle>
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(totalValue)}
-              </div>
+              <div className="text-2xl font-bold">{formatCurrency(totalValue)}</div>
               <p className="text-xs text-muted-foreground">Total stock value</p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              <AlertTriangle className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{lowStockCount}</div>
+              <div className="text-2xl font-bold text-warning">{lowStockCount}</div>
               <p className="text-xs text-muted-foreground">Need restocking</p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Categories</CardTitle>
@@ -172,100 +159,81 @@ export default function ManagerDashboard({ user, products, lowStockProducts, rec
             </CardContent>
           </Card>
         </div>
-
-        {/* Main Content Tabs */}
-        <Tabs defaultValue="inventory" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="inventory">Inventory Management</TabsTrigger>
+        <Tabs defaultValue="inventory" className="mt-4">
+          <TabsList>
+            <TabsTrigger value="inventory">Inventory</TabsTrigger>
             <TabsTrigger value="sales">Recent Sales</TabsTrigger>
-            <TabsTrigger value="users" onClick={loadUsers}>
-              User Management
-            </TabsTrigger>
+            <TabsTrigger value="users" onClick={loadUsers}>Users</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="inventory" className="space-y-6">
+          <TabsContent value="inventory">
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Product Inventory</CardTitle>
-                    <CardDescription>Manage your product catalog and stock levels</CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <BulkProductManager onProductsUpdated={() => window.location.reload()} />
-                    <BarcodeGenerator />
-                    <Button onClick={() => setShowAddProduct(true)} className="bg-blue-600 hover:bg-blue-700">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Product
-                    </Button>
-                  </div>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <CardTitle>Product Inventory</CardTitle>
+                        <CardDescription>Manage your product catalog and stock levels.</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <BulkProductManager onProductsUpdated={() => window.location.reload()} />
+                        <BarcodeGenerator />
+                        <Button onClick={() => setShowAddProduct(true)}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Product
+                        </Button>
+                    </div>
                 </div>
               </CardHeader>
               <CardContent>
-                {/* Search and Filter Controls */}
-                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="flex items-center gap-4 mb-4">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search products by name or barcode..."
+                      placeholder="Search products..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10"
                     />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-gray-400" />
-                    <select
-                      value={selectedCategory}
-                      onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="all">All Categories</option>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
                       {categories.map((category) => (
-                        <option key={category} value={category}>
+                        <SelectItem key={category} value={category}>
                           {category}
-                        </option>
+                        </SelectItem>
                       ))}
-                    </select>
-                  </div>
+                    </SelectContent>
+                  </Select>
                 </div>
-
                 <ProductsTable products={filteredProducts} />
               </CardContent>
             </Card>
           </TabsContent>
-
-          <TabsContent value="sales" className="space-y-6">
-            <div className="grid gap-6">
-              <LowStockProducts />
-            </div>
+          <TabsContent value="sales">
             <Card>
               <CardHeader>
                 <CardTitle>Recent Sales</CardTitle>
-                <CardDescription>Latest transactions and sales activity</CardDescription>
+                <CardDescription>A log of the most recent sales.</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {recentSales.length === 0 ? (
-                    <p className="text-gray-500 text-center py-8">No recent sales found</p>
+                    <p className="text-muted-foreground text-center py-8">No recent sales.</p>
                   ) : (
                     recentSales.map((sale) => (
-                      <div key={sale.id} className="flex justify-between items-center p-4 border rounded-lg">
+                      <div key={sale.id} className="flex items-center justify-between p-3 border rounded-lg">
                         <div>
-                          <p className="font-medium">Receipt #{sale.receipt_number}</p>
-                          <p className="text-sm text-gray-600">
-                            {sale.users?.full_name} • {new Date(sale.transaction_date).toLocaleDateString()}
+                          <p className="font-medium">#{sale.receipt_number}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {sale.users?.full_name} &bull; {new Date(sale.transaction_date).toLocaleDateString()}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold">
-                            {new Intl.NumberFormat("en-UG", {
-                              style: "currency",
-                              currency: sale.currency || "UGX",
-                              minimumFractionDigits: 0,
-                            }).format(sale.total_amount)}
-                          </p>
-                          <Badge variant="outline">{sale.payment_method}</Badge>
+                          <p className="font-semibold">{formatCurrency(sale.total_amount, sale.currency)}</p>
+                          <Badge variant="secondary">{sale.payment_method}</Badge>
                         </div>
                       </div>
                     ))
@@ -274,22 +242,15 @@ export default function ManagerDashboard({ user, products, lowStockProducts, rec
               </CardContent>
             </Card>
           </TabsContent>
-
-          <TabsContent value="users" className="space-y-6">
+          <TabsContent value="users">
             {loadingUsers ? (
-              <Card>
-                <CardContent className="flex items-center justify-center py-8">
-                  <p className="text-gray-500">Loading users...</p>
-                </CardContent>
-              </Card>
+                <p className="text-muted-foreground text-center py-8">Loading users...</p>
             ) : (
               <UserManagement users={users} currentUser={user} />
             )}
           </TabsContent>
         </Tabs>
       </main>
-
-      {/* Add Product Dialog */}
       <AddProductDialog open={showAddProduct} onOpenChange={setShowAddProduct} />
     </div>
   )

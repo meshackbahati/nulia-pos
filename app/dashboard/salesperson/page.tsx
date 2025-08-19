@@ -97,11 +97,11 @@ export default async function SalespersonDashboardPage({
     }
     
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center p-6 max-w-md mx-auto bg-white rounded-lg shadow-md">
-          <h1 className="text-2xl font-bold text-red-600 mb-2">Access Error</h1>
-          <p className="text-gray-600 mb-4">Unable to load salesperson dashboard. Please try again.</p>
-          <p className="text-sm text-gray-500">
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-center p-6 max-w-md mx-auto bg-card rounded-lg shadow-lg border">
+          <h1 className="text-2xl font-bold text-destructive mb-2">Access Error</h1>
+          <p className="text-muted-foreground mb-4">Unable to load salesperson dashboard. Please try again.</p>
+          <p className="text-sm text-muted-foreground">
             If the problem persists, please contact support with error details.
           </p>
         </div>

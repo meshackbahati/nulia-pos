@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, ShoppingCart, Eye, EyeOff } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -18,7 +19,8 @@ function SubmitButton() {
     <Button
       type="submit"
       disabled={pending}
-      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-lg font-medium rounded-lg h-[60px]"
+      className="w-full"
+      size="lg"
     >
       {pending ? (
         <>
@@ -49,24 +51,22 @@ export default function LoginForm() {
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
         <div className="flex justify-center mb-4">
-          <ShoppingCart className="h-12 w-12 text-blue-600" />
+          <ShoppingCart className="h-12 w-12 text-primary" />
         </div>
         <CardTitle className="text-3xl font-bold">BorderShop</CardTitle>
-        <p className="text-sm text-gray-600 mt-2">Management System</p>
+        <p className="text-sm text-muted-foreground mt-2">Management System</p>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-6">
           {state?.error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm">
               {state.error}
             </div>
           )}
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-                Login As
-              </label>
+              <Label htmlFor="role">Login As</Label>
               <Select name="role" value={selectedRole} onValueChange={setSelectedRole} required>
                 <SelectTrigger className="h-12">
                   <SelectValue placeholder="Select your role" />
@@ -79,9 +79,7 @@ export default function LoginForm() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email Address
-              </label>
+              <Label htmlFor="email">Email Address</Label>
               <Input
                 id="email"
                 name="email"
@@ -92,9 +90,7 @@ export default function LoginForm() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
+              <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -106,7 +102,7 @@ export default function LoginForm() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>

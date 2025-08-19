@@ -41,13 +41,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
-      <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Roboto+Mono:wght@400;500;600&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="min-h-screen bg-background text-foreground">
+      <head />
+      <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         <ErrorBoundary>
           <AppProviders>
             <ClientProviders>

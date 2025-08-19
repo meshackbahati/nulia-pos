@@ -6,8 +6,8 @@ export default async function LoginPage() {
   // If Supabase is not configured, show setup message
   if (!isSupabaseConfigured) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <h1 className="text-2xl font-bold mb-4 text-gray-900">Connect Supabase to get started</h1>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <h1 className="text-2xl font-bold mb-4 text-foreground">Connect Supabase to get started</h1>
       </div>
     )
   }
@@ -30,7 +30,7 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
       <LoginForm />
     </div>
   )
