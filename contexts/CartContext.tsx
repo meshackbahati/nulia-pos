@@ -5,6 +5,7 @@ import { useScanner } from '@/hooks/useScanner';
 import { toast } from '@/components/ui/use-toast';
 import { BarcodeScanResult } from '@/lib/barcode-utils';
 import { captureError } from '@/lib/error-handling/errorTracker';
+import { findProductByBarcode } from '@/lib/services/sales-service';
 
 // Types
 type Product = {
@@ -210,17 +211,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // Set up barcode scanner integration
   const handleBarcodeScan = useCallback(async (result: BarcodeScanResult) => {
     try {
-      // In a real app, you would fetch the product details from your API
-      // For now, we'll create a mock product
-      const mockProduct: Product = {
-        id: `product-${Date.now()}`,
-        barcode: result.code,
-        name: `Product ${result.code}`,
-        price: Math.floor(Math.random() * 1000) + 100, // Random price between 100-1100
-        category: 'General',
-      };
+      const product = await findProductByBarcode(result.code);
       
-      addItem(mockProduct, 1);
+      if (product) {
+        addItem(product, 1);
+      } else {
+        toast({
+          title: 'Product Not Found',
+          description: `No product found with barcode: ${result.code}`,
+          variant: 'destructive',
+        });
+      }
     } catch (error) {
       captureError(error as Error, { context: 'handleBarcodeScan' });
       toast({
