@@ -21,10 +21,10 @@ export async function middleware(request: NextRequest) {
     // Check if user is trying to access wrong dashboard
     if (pathname.startsWith("/dashboard/manager")) {
       // Manager dashboard access will be verified by requireManager() in the page
-      console.log("[v0] Manager dashboard access attempt")
+      console.log("[ATHENA] Manager dashboard access attempt")
     } else if (pathname.startsWith("/dashboard/salesperson")) {
       // Salesperson dashboard access will be verified by requireSalesperson() in the page
-      console.log("[v0] Salesperson dashboard access attempt")
+      console.log("[ATHENA] Salesperson dashboard access attempt")
     }
   }
 

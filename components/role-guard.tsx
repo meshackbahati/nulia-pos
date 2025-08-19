@@ -32,7 +32,7 @@ export default function RoleGuard({ children, requiredRole, fallback }: RoleGuar
           setHasAccess(false)
         }
       } catch (error) {
-        console.error("[v0] Role check failed:", error)
+        console.error("[ATHENA] Role check failed:", error)
         setHasAccess(false)
       }
     }

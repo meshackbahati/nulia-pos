@@ -1,62 +1,108 @@
 "use client"
 
 import { useState } from "react"
+import type { ReceiptData } from "./enhanced-receipt-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { formatCurrency } from "@/lib/utils/currency"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Minus, Trash2, ShoppingCart, CreditCard, Smartphone, Banknote } from "lucide-react"
-import { SalesService } from "@/lib/services/sales-service"
+import { Plus, Minus, Trash2, ShoppingCart, CreditCard, Smartphone, Banknote, Loader2 } from "lucide-react"
+import { findProductByBarcode, suggestProducts, processSale } from "@/lib/services/sales-service"
 import EnhancedReceiptDialog from "@/components/enhanced-receipt-dialog"
 import BarcodeScanner from "@/components/barcode-scanner"
 import ProductSuggestionDialog from "@/components/product-suggestion-dialog"
 
-interface Product {
-  id: string
-  name: string
-  category: string
-  price: number
-  quantity: number
-  barcode: string
+// Import the Product type from the database
+import type { Database } from "@/lib/database.types"
+
+// Base product type from database
+type DatabaseProduct = Database['public']['Tables']['products']['Row']
+
+// Minimal product interface for the UI
+export interface ProductUI {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  category: string | null;
+  barcode: string | null;
+  cartQuantity?: number;
+  [key: string]: any; // For any other properties that might be needed
 }
 
-interface CartItem extends Product {
-  cartQuantity: number
+// Cart item type that extends the product with cart-specific properties
+interface CartItem extends ProductUI {
+  cartQuantity: number;
+}
+
+// Type guard to check if an object is a ProductUI
+function isProductUI(product: any): product is ProductUI {
+  return (
+    product &&
+    typeof product.id === 'string' &&
+    typeof product.name === 'string' &&
+    typeof product.price === 'number' &&
+    typeof product.quantity === 'number' &&
+    (product.category === null || typeof product.category === 'string') &&
+    (product.barcode === null || typeof product.barcode === 'string')
+  );
+}
+
+// Convert database product to UI product
+function toUIProduct(dbProduct: DatabaseProduct): ProductUI {
+  return {
+    id: dbProduct.id,
+    name: dbProduct.name,
+    price: dbProduct.price,
+    quantity: dbProduct.quantity,
+    category: dbProduct.category,
+    barcode: dbProduct.barcode,
+    // Add any other necessary fields here
+  };
 }
 
 interface POSInterfaceProps {
-  products: Product[]
+  products: DatabaseProduct[]
   salespersonId: string
 }
 
-export default function POSInterface({ products, salespersonId }: POSInterfaceProps) {
+export default function POSInterface({ products: dbProducts, salespersonId }: POSInterfaceProps) {
+  // Convert database products to UI products
+  const products = dbProducts.map(toUIProduct);
   const [cart, setCart] = useState<CartItem[]>([])
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "mobile_money">("cash")
   const [processing, setProcessing] = useState(false)
-  const [lastReceipt, setLastReceipt] = useState<any>(null)
+  const [lastReceipt, setLastReceipt] = useState<ReceiptData | null>(null)
   const [showReceipt, setShowReceipt] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([])
+  const [suggestedProducts, setSuggestedProducts] = useState<ProductUI[]>([])
   const [searchTerm, setSearchTerm] = useState("")
 
   const handleBarcodeScanned = async (barcode: string) => {
-    // First try to find product by barcode
-    const product = await SalesService.findProductByBarcode(barcode)
-    
-    if (product) {
-      addToCart(product)
-    } else {
-      // If not found, show AI suggestions
-      const suggestions = await SalesService.suggestProducts(barcode)
+    try {
+      // First try to find product by barcode
+      const dbProduct = await findProductByBarcode(barcode)
       
-      if (suggestions.length > 0) {
-        setSearchTerm(barcode)
-        setSuggestedProducts(suggestions)
-        setShowSuggestions(true)
+      if (dbProduct) {
+        const product = toUIProduct(dbProduct)
+        addToCart(product)
       } else {
-        alert(`Product not found for barcode: ${barcode}. No suggestions available.`)
+        // If not found, show AI suggestions
+        const suggestions = await suggestProducts(barcode)
+        
+        if (suggestions && suggestions.length > 0) {
+          setSearchTerm(barcode)
+          setSuggestedProducts(suggestions)
+          setShowSuggestions(true)
+        } else {
+          alert(`Product not found for barcode: ${barcode}. No suggestions available.`)
+        }
       }
+    } catch (error) {
+      console.error('Error in handleBarcodeScanned:', error)
+      alert('Error processing barcode. Please try again.')
     }
   }
 
@@ -70,7 +116,7 @@ export default function POSInterface({ products, salespersonId }: POSInterfacePr
     }
   }
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: ProductUI) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.id === product.id)
       if (existingItem) {
@@ -114,41 +160,77 @@ export default function POSInterface({ products, salespersonId }: POSInterfacePr
   }
 
   const calculateTotal = () => {
-    return cart.reduce((total, item) => total + item.price * item.cartQuantity, 0)
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.cartQuantity), 0);
+    const tax = subtotal * 0.16; // 16% tax rate
+    const total = subtotal + tax;
+    return total;
   }
 
   const handleCheckout = async () => {
     if (cart.length === 0) {
-      alert("Cart is empty!")
+      alert("Your cart is empty!")
       return
     }
 
     setProcessing(true)
     try {
+      const subtotal = cart.reduce((sum, item) => sum + (item.price * item.cartQuantity), 0);
+      const tax = subtotal * 0.16; // 16% tax rate
+      const total = subtotal + tax;
+      
       const saleData = {
         salesperson_id: salespersonId,
-        total_amount: calculateTotal(),
+        total_amount: total,
         payment_method: paymentMethod,
-        items: cart.map((item) => ({
+        items: cart.map(item => ({
           product_id: item.id,
           product_name: item.name,
           quantity: item.cartQuantity,
           unit_price: item.price,
           subtotal: item.price * item.cartQuantity,
-          barcode: item.barcode
-        })),
+          barcode: item.barcode || undefined
+        }))
       }
 
-      const result = await SalesService.processSale(saleData)
-      
+      const result = await processSale(saleData)
+
       if (result.success) {
-        setLastReceipt({
-          ...result.receipt_data,
-          items: cart,
-          payment_method: paymentMethod
-        })
-        setShowReceipt(true)
-        clearCart()
+        // Format receipt data with enhanced details
+        const currentDate = new Date();
+        const formattedReceipt: ReceiptData = {
+          receipt_number: result.receipt_number || `RCPT-${Date.now()}`,
+          sale_id: result.sale_id || '',
+          salesperson_id: salespersonId,
+          cashier_name: `Cashier #${salespersonId.slice(-4)}`, // Simple cashier ID display
+          items: cart.map(item => {
+            const product = products.find(p => p.id === item.id);
+            return {
+              ...item,
+              product_id: item.id,
+              name: product?.name || 'Unknown Product',
+              unit_price: item.price,
+              subtotal: item.price * item.cartQuantity,
+              quantity: item.cartQuantity,
+              barcode: item.barcode || ''
+            };
+          }),
+          payment_method: paymentMethod,
+          timestamp: result.receipt_data?.timestamp || currentDate.toISOString(),
+          subtotal: subtotal,
+          total: total,
+          tax: tax,
+          discount: 0,
+          amount_tendered: total, // Assuming full payment for now
+          change_due: 0,
+          // Add business information
+          business_name: "Bordershop",
+          business_address: "123 Business St, Nairobi, Kenya",
+          business_phone: "+254 700 000000"
+        };
+        
+        setLastReceipt(formattedReceipt);
+        setShowReceipt(true);
+        clearCart();
       } else {
         alert(`Failed to process sale: ${result.error}`)
       }
@@ -183,7 +265,7 @@ export default function POSInterface({ products, salespersonId }: POSInterfacePr
                 >
                   <div className="font-medium text-sm truncate w-full">{product.name}</div>
                   <div className="text-xs text-gray-500">{product.category}</div>
-                  <div className="font-bold text-green-600">${product.price.toFixed(2)}</div>
+                  <div className="font-bold text-green-600">{formatCurrency(product.price)}</div>
                   <Badge variant="secondary" className="text-xs">
                     Stock: {product.quantity}
                   </Badge>
@@ -194,126 +276,44 @@ export default function POSInterface({ products, salespersonId }: POSInterfacePr
         </Card>
       </div>
 
-      {/* Shopping Cart */}
-      <div className="space-y-6">
+      {/* Right side - Checkout */}
+      <div className="flex-1">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                Shopping Cart
-              </span>
-              {cart.length > 0 && (
-                <Button variant="outline" size="sm" onClick={clearCart}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-            </CardTitle>
+            <CardTitle>Checkout</CardTitle>
           </CardHeader>
-          <CardContent>
-            {cart.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">Cart is empty</p>
-            ) : (
-              <div className="space-y-3">
-                {cart.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{item.name}</p>
-                      <p className="text-xs text-gray-500">${item.price.toFixed(2)} each</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => updateCartQuantity(item.id, item.cartQuantity - 1)}
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="w-8 text-center text-sm">{item.cartQuantity}</span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => updateCartQuantity(item.id, item.cartQuantity + 1)}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeFromCart(item.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Subtotal:</span>
+                <span>{formatCurrency(calculateTotal())}</span>
               </div>
-            )}
+              <Separator />
+              <div className="flex justify-between font-bold">
+                <span>Total:</span>
+                <span className="text-lg">{formatCurrency(calculateTotal())}</span>
+              </div>
+            </div>
+
+            <Button
+              variant="default"
+              size="lg"
+              onClick={handleCheckout}
+              disabled={processing}
+              className="w-full bg-primary hover:bg-primary/90"
+            >
+              {processing ? (
+                <div className="flex items-center justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="ml-2">Processing...</span>
+                </div>
+              ) : (
+                <span>Checkout</span>
+              )}
+            </Button>
           </CardContent>
         </Card>
-
-        {/* Checkout */}
-        {cart.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Checkout</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Subtotal:</span>
-                  <span>${calculateTotal().toFixed(2)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between font-bold">
-                  <span>Total:</span>
-                  <span className="text-lg">${calculateTotal().toFixed(2)}</span>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Payment Method</label>
-                <Select value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cash">
-                      <div className="flex items-center gap-2">
-                        <Banknote className="h-4 w-4" />
-                        Cash
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="card">
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="h-4 w-4" />
-                        Card
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="mobile_money">
-                      <div className="flex items-center gap-2">
-                        <Smartphone className="h-4 w-4" />
-                        Mobile Money
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button
-                onClick={handleCheckout}
-                disabled={processing}
-                className="w-full bg-green-600 hover:bg-green-700 h-12 text-lg"
-              >
-                {processing ? "Processing..." : `Complete Sale - $${calculateTotal().toFixed(2)}`}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
       </div>
-
-      {/* Receipt Dialog */}
       <EnhancedReceiptDialog receipt={lastReceipt} open={showReceipt} onOpenChange={setShowReceipt} />
       
       {/* Product Suggestion Dialog */}

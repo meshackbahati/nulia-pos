@@ -28,7 +28,7 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
   })
 
   if (error) {
-    console.error("[v0] Error fetching user profile:", error)
+    console.error("[ATHENA] Error fetching user profile:", error)
     return null
   }
 
@@ -101,37 +101,52 @@ export async function logAuditEvent(
 
 // This is for the custom salesperson session, not Supabase Auth
 export async function validateSalespersonSession(searchParams: { [key: string]: string | string[] | undefined }): Promise<UserProfile> {
-  const sessionToken = searchParams?.session;
-
-  if (!sessionToken || typeof sessionToken !== 'string') {
-    redirect("/auth/login?error=session_missing");
-  }
-
   try {
-    const decodedToken = Buffer.from(sessionToken, 'base64').toString('utf-8');
-    const sessionData = JSON.parse(decodedToken);
+    const sessionToken = Array.isArray(searchParams?.session) 
+      ? searchParams.session[0] 
+      : searchParams?.session;
 
-    // Basic validation
-    if (sessionData.role !== 'salesperson' || !sessionData.userId) {
-      throw new Error("Invalid session data");
+    if (!sessionToken || typeof sessionToken !== 'string') {
+      console.error('[ATHENA] Missing session token in URL parameters');
+      redirect("/auth/login?error=session_missing");
+      // This return is needed for TypeScript to know the function won't continue after redirect
+      throw new Error('Redirecting to login');
     }
 
-    // This is a simplified user object, but it should match the UserProfile shape
-    // as much as possible for compatibility with the dashboard component.
-    const user: UserProfile = {
-      id: sessionData.userId,
-      email: sessionData.email,
-      full_name: sessionData.fullName,
-      role: 'salesperson',
-      // These fields are not in the token, so we can fill them with placeholders
-      auth_user_id: '', // Salespersons don't have a Supabase auth_user_id
-      is_active: true, // Assume active if they have a valid token
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    try {
+      const decodedToken = Buffer.from(sessionToken, 'base64').toString('utf-8');
+      const sessionData = JSON.parse(decodedToken);
 
-    return user;
+      // Basic validation
+      if (sessionData.role !== 'salesperson' || !sessionData.userId) {
+        console.error('[ATHENA] Invalid session data:', { role: sessionData.role, userId: sessionData.userId });
+        throw new Error("Invalid session data");
+      }
+
+      // This is a simplified user object, but it should match the UserProfile shape
+      // as much as possible for compatibility with the dashboard component.
+      const user: UserProfile = {
+        id: sessionData.userId,
+        email: sessionData.email || `salesperson-${sessionData.userId}@example.com`,
+        full_name: sessionData.fullName || `Salesperson ${sessionData.userId}`,
+        role: 'salesperson',
+        // These fields are not in the token, so we can fill them with placeholders
+        auth_user_id: sessionData.userId, // Use the same ID for simplicity
+        is_active: true, // Assume active if they have a valid token
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      return user;
+    } catch (error) {
+      console.error('[ATHENA] Error validating salesperson session:', error);
+      redirect("/auth/login?error=session_invalid");
+      throw error; // This will be caught by the outer catch
+    }
   } catch (error) {
-    redirect("/auth/login?error=session_invalid");
+    // This will only be reached if there's an error in the outer try block
+    console.error('[ATHENA] Unexpected error in validateSalespersonSession:', error);
+    redirect("/auth/login?error=unexpected_error");
+    throw error; // This ensures the function has a proper return type
   }
 }

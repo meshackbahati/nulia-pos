@@ -72,11 +72,27 @@ export async function processSale(saleData: SaleData) {
 
     revalidatePath("/dashboard/salesperson")
 
+    // Return receipt data in the format expected by EnhancedReceiptDialog
     return {
-      id: sale.id,
-      receipt_number: receiptNumber,
-      total_amount: saleData.total_amount,
-      transaction_date: sale.created_at,
+      success: true,
+      receipt_data: {
+        receipt_number: receiptNumber,
+        sale_id: sale.id,
+        timestamp: new Date().toISOString(),
+        salesperson_id: saleData.salesperson_id,
+        items: saleData.items.map(item => ({
+          product_id: item.product_id,
+          name: '', // This will be filled in by the POS interface
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          subtotal: item.subtotal
+        })),
+        subtotal: saleData.total_amount,
+        total: saleData.total_amount,
+        payment_method: saleData.payment_method,
+        transaction_date: sale.created_at
+      },
+      id: sale.id
     }
   } catch (error) {
     console.error("Sale processing error:", error)

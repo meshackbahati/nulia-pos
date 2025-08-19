@@ -28,13 +28,19 @@ import Link from "next/link"
 import { LowStockProducts } from "@/components/inventory/LowStockProducts"
 import BulkProductManager from "@/components/bulk-product-manager"
 import BarcodeGenerator from "@/components/barcode-generator"
+import { formatCurrency } from "@/lib/utils/currency"
+
+interface User {
+  id: string
+  email: string
+  full_name: string
+  role: "manager" | "salesperson"
+  created_at: string
+  updated_at: string
+}
 
 interface ManagerDashboardProps {
-  user: {
-    id: string
-    full_name: string
-    role: string
-  }
+  user: User
   products: any[]
   lowStockProducts: any[]
   recentSales: any[]

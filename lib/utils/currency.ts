@@ -13,7 +13,10 @@ const formatter = new Intl.NumberFormat('en-KE', {
 
 // Format currency with KES symbol
 export const formatCurrency = (amount: number): string => {
-  return formatter.format(amount);
+  return `KES ${amount.toLocaleString('en-KE', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}`;
 };
 
 // Format currency without symbol (just the number)
@@ -33,41 +36,41 @@ export const parseCurrency = (currencyString: string): number => {
 
 /**
  * Format a price with KES symbol
- * Example: KSh 1,234.56
+ * Example: KES 1,234.56
  */
 export const formatPrice = (amount: number): string => {
-  return `KSh ${formatAmount(amount)}`;
+  return `KES ${formatAmount(amount)}`;
 };
 
 /**
  * Format a range of prices (e.g., for price filters)
  */
 export const formatPriceRange = (min: number, max: number): string => {
-  return `KSh ${formatAmount(min)} - KSh ${formatAmount(max)}`;
+  return `KES ${formatAmount(min)} - KES ${formatAmount(max)}`;
 };
 
 /**
  * Get the currency symbol (KES)
  */
-export const getCurrencySymbol = (): string => 'KSh';
+export const getCurrencySymbol = (): string => 'KES';
 
 /**
  * Format inventory value with KES
  */
 export const formatInventoryValue = (value: number): string => {
-  return `KSh ${formatAmount(value)}`;
+  return `KES ${formatAmount(value)}`;
 };
 
 /**
  * Format revenue with KES
  */
 export const formatRevenue = (amount: number): string => {
-  return `KSh ${formatAmount(amount)}`;
+  return `KES ${formatAmount(amount)}`;
 };
 
 /**
  * Format order total with KES
  */
 export const formatOrderTotal = (amount: number): string => {
-  return `Total: KSh ${formatAmount(amount)}`;
+  return `KES ${formatAmount(amount)}`;
 };

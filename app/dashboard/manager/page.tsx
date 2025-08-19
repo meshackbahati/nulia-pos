@@ -59,8 +59,8 @@ async function DashboardContent() {
   }
   
   // Log any errors but don't fail the entire page
-  if (productsError) console.error("[v0] Products fetch error:", productsError)
-  if (salesError) console.error("[v0] Sales fetch error:", salesError)
+  if (productsError) console.error("[ATHENA] Products fetch error:", productsError)
+  if (salesError) console.error("[ATHENA] Sales fetch error:", salesError)
   
   return (
     <ManagerDashboard

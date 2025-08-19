@@ -50,89 +50,176 @@ export default function ReportsAnalyticsDashboard({
   })
   const [selectedPeriod, setSelectedPeriod] = useState("30days")
 
+  // Define types for our analytics data
+  interface ProductSale {
+    id: string;
+    name: string;
+    category: string;
+    totalQuantity: number;
+    totalRevenue: number;
+    price: number;
+  }
+
+  interface CategoryPerformance {
+    category: string;
+    revenue: number;
+    quantity: number;
+  }
+
+  interface SalespersonPerformance {
+    name: string;
+    revenue: number;
+    transactions: number;
+  }
+
   // Calculate analytics data
   const analytics = useMemo(() => {
-    const filteredSales = salesData.filter((sale) => {
-      const saleDate = new Date(sale.transaction_date)
-      return saleDate >= dateRange.from && saleDate <= dateRange.to
-    })
+    if (!salesData || !Array.isArray(salesData)) {
+      console.error('Invalid sales data:', salesData);
+      return {
+        totalRevenue: 0,
+        totalTransactions: 0,
+        averageOrderValue: 0,
+        dailySalesArray: [],
+        topProducts: [],
+        categoryData: [],
+        salespersonData: [],
+      };
+    }
+    
+    console.log('Processing analytics with data:', {
+      salesCount: salesData.length,
+      productPerformanceCount: productPerformance?.length || 0
+    });
 
-    const totalRevenue = filteredSales.reduce((sum, sale) => sum + Number.parseFloat(sale.total_amount), 0)
-    const totalTransactions = filteredSales.length
-    const averageOrderValue = totalTransactions > 0 ? totalRevenue / totalTransactions : 0
+    const filteredSales = salesData.filter((sale) => {
+      try {
+        const saleDate = new Date(sale.created_at || sale.transaction_date || Date.now());
+        return saleDate >= dateRange.from && saleDate <= dateRange.to;
+      } catch (error) {
+        console.error('Error processing sale date:', error, sale);
+        return false;
+      }
+    });
+
+    const totalRevenue = filteredSales.reduce((sum, sale) => {
+      const amount = Number.parseFloat(sale.total_amount || '0');
+      return isNaN(amount) ? sum : sum + amount;
+    }, 0);
+    
+    const totalTransactions = filteredSales.length;
+    const averageOrderValue = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
 
     // Daily sales data
-    const dailySales = filteredSales.reduce(
-      (acc, sale) => {
-        const date = format(new Date(sale.transaction_date), "yyyy-MM-dd")
+    const dailySales = filteredSales.reduce((acc, sale) => {
+      try {
+        const date = format(new Date(sale.created_at || sale.transaction_date), "yyyy-MM-dd");
         if (!acc[date]) {
-          acc[date] = { date, revenue: 0, transactions: 0 }
+          acc[date] = { date, revenue: 0, transactions: 0 };
         }
-        acc[date].revenue += Number.parseFloat(sale.total_amount)
-        acc[date].transactions += 1
-        return acc
-      },
-      {} as Record<string, any>,
-    )
+        const amount = Number.parseFloat(sale.total_amount || '0');
+        if (!isNaN(amount)) {
+          acc[date].revenue += amount;
+          acc[date].transactions += 1;
+        }
+      } catch (error) {
+        console.error('Error processing sale for daily sales:', error, sale);
+      }
+      return acc;
+    }, {} as Record<string, any>);
 
-    const dailySalesArray = Object.values(dailySales).sort((a: any, b: any) => a.date.localeCompare(b.date))
+    const dailySalesArray = Object.values(dailySales).sort((a: any, b: any) => a.date.localeCompare(b.date));
 
-    // Top products
-    const productSales = productPerformance.reduce(
-      (acc, item) => {
-        const productId = item.products.id
+    // Process product performance
+    const productSales = (productPerformance || []).reduce((acc, item) => {
+      try {
+        if (!item) return acc;
+        
+        // Handle both direct product data and nested products object
+        const product = item.products || item;
+        if (!product) return acc;
+        
+        const productId = product.id || 'unknown';
+        const productName = product.name || 'Unknown Product';
+        const productCategory = product.category || 'Uncategorized';
+        const productPrice = product.price || item.unit_price || 0;
+        
         if (!acc[productId]) {
           acc[productId] = {
             id: productId,
-            name: item.products.name,
-            category: item.products.category,
+            name: productName,
+            category: productCategory,
             totalQuantity: 0,
             totalRevenue: 0,
-            price: item.products.price,
-          }
+            price: productPrice,
+          };
         }
-        acc[productId].totalQuantity += item.quantity
-        acc[productId].totalRevenue += Number.parseFloat(item.subtotal)
-        return acc
-      },
-      {} as Record<string, any>,
-    )
+        
+        const quantity = Number(item.quantity) || 0;
+        const revenue = Number(item.total_price || (item.unit_price * quantity) || 0);
+        
+        acc[productId].totalQuantity += quantity;
+        acc[productId].totalRevenue += revenue;
+        
+      } catch (error) {
+        console.error('Error processing product performance item:', error, item);
+      }
+      return acc;
+    }, {} as Record<string, any>);
 
-    const topProducts = Object.values(productSales)
-      .sort((a: any, b: any) => b.totalRevenue - a.totalRevenue)
-      .slice(0, 10)
+    const topProducts = (Object.values(productSales) as ProductSale[])
+      .sort((a, b) => (b.totalRevenue || 0) - (a.totalRevenue || 0))
+      .slice(0, 10);
 
     // Category performance
-    const categoryPerformance = productPerformance.reduce(
-      (acc, item) => {
-        const category = item.products.category
+    const categoryPerformance = (productPerformance || []).reduce((acc, item) => {
+      try {
+        if (!item) return acc;
+        
+        // Handle both direct product data and nested products object
+        const product = item.products || item;
+        if (!product) return acc;
+        
+        const category = product.category || 'Uncategorized';
         if (!acc[category]) {
-          acc[category] = { category, revenue: 0, quantity: 0 }
+          acc[category] = { category, revenue: 0, quantity: 0 };
         }
-        acc[category].revenue += Number.parseFloat(item.subtotal)
-        acc[category].quantity += item.quantity
-        return acc
-      },
-      {} as Record<string, any>,
-    )
+        
+        const quantity = Number(item.quantity) || 0;
+        const revenue = Number(item.total_price || (item.unit_price * quantity) || 0);
+        
+        acc[category].revenue += revenue;
+        acc[category].quantity += quantity;
+        
+      } catch (error) {
+        console.error('Error processing category performance item:', error, item);
+      }
+      return acc;
+    }, {} as Record<string, any>);
 
-    const categoryData = Object.values(categoryPerformance).sort((a: any, b: any) => b.revenue - a.revenue)
+    const categoryData = (Object.values(categoryPerformance) as CategoryPerformance[])
+      .sort((a, b) => (b.revenue || 0) - (a.revenue || 0));
 
     // Salesperson performance
-    const salespersonPerformance = filteredSales.reduce(
-      (acc, sale) => {
-        const salesperson = sale.users?.full_name || "Unknown"
+    const salespersonPerformance = filteredSales.reduce((acc, sale) => {
+      try {
+        const salesperson = sale.users?.full_name || "Unknown";
         if (!acc[salesperson]) {
-          acc[salesperson] = { name: salesperson, revenue: 0, transactions: 0 }
+          acc[salesperson] = { name: salesperson, revenue: 0, transactions: 0 };
         }
-        acc[salesperson].revenue += Number.parseFloat(sale.total_amount)
-        acc[salesperson].transactions += 1
-        return acc
-      },
-      {} as Record<string, any>,
-    )
+        const amount = Number.parseFloat(sale.total_amount || '0');
+        if (!isNaN(amount)) {
+          acc[salesperson].revenue += amount;
+          acc[salesperson].transactions += 1;
+        }
+      } catch (error) {
+        console.error('Error processing salesperson performance:', error, sale);
+      }
+      return acc;
+    }, {} as Record<string, any>);
 
-    const salespersonData = Object.values(salespersonPerformance).sort((a: any, b: any) => b.revenue - a.revenue)
+    const salespersonData = (Object.values(salespersonPerformance) as SalespersonPerformance[])
+      .sort((a, b) => (b.revenue || 0) - (a.revenue || 0));
 
     return {
       totalRevenue,
@@ -142,7 +229,7 @@ export default function ReportsAnalyticsDashboard({
       topProducts,
       categoryData,
       salespersonData,
-    }
+    };
   }, [salesData, productPerformance, dateRange])
 
   const handlePeriodChange = (period: string) => {
@@ -173,6 +260,58 @@ export default function ReportsAnalyticsDashboard({
   }
 
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D", "#FFC658", "#FF7C7C"]
+
+  const renderCategoryPerformance = () => {
+    if (!analytics.categoryData || !analytics.categoryData.length) {
+      return <p className="text-muted-foreground text-sm p-4">No category performance data available for the selected period</p>;
+    }
+    return (
+      <ResponsiveContainer width="100%" height={300}>
+        <PieChart>
+          <Pie
+            data={analytics.categoryData}
+            cx="50%"
+            cy="50%"
+            labelLine={false}
+            label={({ category, percent }) => `${category} ${(percent * 100).toFixed(0)}%`}
+            outerRadius={80}
+            fill="#8884d8"
+            dataKey="revenue"
+          >
+            {analytics.categoryData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip />
+        </PieChart>
+      </ResponsiveContainer>
+    );
+  };
+
+  const renderProductPerformance = () => {
+    if (!analytics.topProducts || !analytics.topProducts.length) {
+      return <p className="text-muted-foreground text-sm p-4">No product performance data available for the selected period</p>;
+    }
+    return (
+      <div className="space-y-3">
+        {analytics.topProducts.slice(0, 8).map((product, index) => (
+          <div key={product.id} className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex items-center gap-3">
+              <Badge variant="outline">#{index + 1}</Badge>
+              <div>
+                <p className="font-medium text-sm">{product.name}</p>
+                <p className="text-xs text-gray-600">{product.category}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="font-bold text-green-600">{formatCurrency(product.totalRevenue)}</p>
+              <p className="text-xs text-gray-600">{product.totalQuantity} sold</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -1,59 +1,109 @@
 import { createClient } from "@/lib/supabase/server"
 import { validateSalespersonSession } from "@/lib/auth-utils"
 import SalespersonDashboard from "@/components/salesperson-dashboard"
-export default async function SalespersonDashboardPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
+import { redirect } from "next/navigation"
+
+export default async function SalespersonDashboardPage({ 
+  searchParams 
+}: { 
+  searchParams: { [key: string]: string | string[] | undefined } 
+}) {
   try {
     // Validate the custom salesperson session from URL params
     const user = await validateSalespersonSession(searchParams)
-
+    
+    // If we get here, we have a valid user
     const supabase = createClient()
 
-    // Get products for POS with better filtering
-    const { data: products, error: productsError } = await supabase
-      .from("products")
-      .select("*")
-      .gt("quantity", 0)
-      .eq("is_active", true)
-      .order("name")
-
-    if (productsError) {
-      console.error("[v0] Products fetch error:", productsError)
+    // Get products for POS with better error handling
+    let products = []
+    let productsError = null
+    
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .gt("quantity", 0)
+        .eq("is_active", true)
+        .order("name")
+      
+      if (error) throw error
+      products = data || []
+    } catch (err) {
+      console.error("[ATHENA] Products fetch error:", err)
+      productsError = err
+      // We'll continue with an empty products array rather than failing
     }
 
-    // Get today's sales for this salesperson with UGX currency
+    // Get today's sales for this salesperson
     const today = new Date().toISOString().split("T")[0]
-    const { data: todaySales, error: salesError } = await supabase
-      .from("sales")
-      .select(`
-        *,
-        sale_items(*)
-      `)
-      .eq("salesperson_id", user.id)
-      .gte("created_at", `${today}T00:00:00`)
-      .order("created_at", { ascending: false })
-
-    if (salesError) {
-      console.error("[v0] Sales fetch error:", salesError)
+    let todaySales = []
+    let todayTotal = 0
+    let salesError = null
+    
+    try {
+      const { data, error } = await supabase
+        .from("sales")
+        .select(`
+          *,
+          sale_items(*)
+        `)
+        .eq("salesperson_id", user.id)
+        .gte("created_at", `${today}T00:00:00`)
+        .order("created_at", { ascending: false })
+      
+      if (error) throw error
+      
+      todaySales = data || [];
+      todayTotal = todaySales.reduce((sum: number, sale: { total_amount?: string | number | null }) => {
+        try {
+          const amount = sale.total_amount === null || sale.total_amount === undefined 
+            ? 0 
+            : typeof sale.total_amount === 'string' 
+              ? parseFloat(sale.total_amount) || 0 
+              : sale.total_amount;
+          return sum + amount;
+        } catch (e) {
+          console.error("Error parsing sale amount:", sale.total_amount, e);
+          return sum;
+        }
+      }, 0);
+    } catch (err) {
+      console.error("[ATHENA] Sales fetch error:", err)
+      salesError = err
+      // Continue with empty sales data
     }
 
-    // Calculate today's total sales in UGX
-    const todayTotal = todaySales?.reduce((sum, sale) => sum + Number.parseFloat(sale.total_amount || "0"), 0) || 0
+    // If we have any critical errors, show an error page
+    if (productsError && salesError) {
+      throw new Error("Failed to load dashboard data")
+    }
 
     return (
       <SalespersonDashboard
         user={user}
-        products={products || []}
-        todaySales={todaySales || []}
+        products={products}
+        todaySales={todaySales}
         todayTotal={todayTotal}
+        error={productsError || salesError ? "Some data may be incomplete" : undefined}
       />
     )
   } catch (error) {
-    console.error("[v0] Salesperson dashboard error:", error)
+    console.error("[ATHENA] Salesperson dashboard error:", error)
+    
+    // If this is a redirect (from validateSalespersonSession), let it happen
+    if (error instanceof Error && error.message.includes('Redirecting to login')) {
+      return null
+    }
+    
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
+        <div className="text-center p-6 max-w-md mx-auto bg-white rounded-lg shadow-md">
           <h1 className="text-2xl font-bold text-red-600 mb-2">Access Error</h1>
-          <p className="text-gray-600">Unable to load salesperson dashboard. Please try again.</p>
+          <p className="text-gray-600 mb-4">Unable to load salesperson dashboard. Please try again.</p>
+          <p className="text-sm text-gray-500">
+            If the problem persists, please contact support with error details.
+          </p>
         </div>
       </div>
     )

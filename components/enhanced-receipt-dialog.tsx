@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { PrinterIcon, Download, Mail, MessageSquare } from "lucide-react"
 
-interface ReceiptItem {
+export interface ReceiptItem {
   product_id: string
   product_name?: string
   name?: string
@@ -17,20 +17,38 @@ interface ReceiptItem {
   barcode?: string
 }
 
-interface ReceiptData {
+export interface ReceiptData {
+  // Core receipt information
   receipt_number: string
   sale_id: string
   timestamp: string
+  
+  // Salesperson information
   salesperson_id: string
+  cashier_name?: string
+  
+  // Items in the sale
   items: ReceiptItem[]
+  
+  // Financial details
   subtotal: number
   tax?: number
   discount?: number
   total: number
   payment_method: string
-  customer_phone?: string
-  change_due?: number
   amount_tendered?: number
+  change_due?: number
+  
+  // Customer information
+  customer_phone?: string
+  
+  // Business information
+  business_name?: string
+  business_address?: string
+  business_phone?: string
+  
+  // Additional metadata
+  [key: string]: any
 }
 
 interface EnhancedReceiptDialogProps {
@@ -40,7 +58,23 @@ interface EnhancedReceiptDialogProps {
 }
 
 export default function EnhancedReceiptDialog({ receipt, open, onOpenChange }: EnhancedReceiptDialogProps) {
-  if (!receipt) return null
+  if (!receipt) return null;
+  
+  // Ensure we have valid receipt data
+  const safeReceipt = {
+    ...receipt,
+    receipt_number: receipt.receipt_number || 'N/A',
+    timestamp: receipt.timestamp || new Date().toISOString(),
+    payment_method: receipt.payment_method || 'cash',
+    items: receipt.items || [],
+    subtotal: receipt.subtotal || 0,
+    total: receipt.total || 0,
+    tax: receipt.tax || 0,
+    discount: receipt.discount || 0,
+    tax_rate: 0, // Default tax rate if not provided
+    amount_tendered: receipt.amount_tendered || 0,
+    change_due: receipt.change_due || 0
+  };
 
   const handlePrint = () => {
     // Create print-friendly content
@@ -174,155 +208,152 @@ export default function EnhancedReceiptDialog({ receipt, open, onOpenChange }: E
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
             <PrinterIcon className="h-5 w-5" />
             Sale Receipt
           </DialogTitle>
         </DialogHeader>
 
-        <div id="receipt-content" className="space-y-4">
+        <div id="receipt-content" className="space-y-4 p-4 bg-white dark:bg-gray-900">
           {/* Receipt Header */}
-          <div className="receipt-header text-center border-b-2 border-gray-900 pb-4">
-            <div className="receipt-title text-xl font-bold">BORDERSHOP</div>
-            <div className="text-sm text-gray-600">Point of Sale System</div>
-            <div className="text-sm text-gray-600">Thank you for your business!</div>
+          <div className="text-center border-b-2 border-gray-300 dark:border-gray-700 pb-4">
+            <div className="text-xl font-bold text-gray-900 dark:text-white">BORDERSHOP</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Point of Sale System</div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Thank you for your business!</p>
           </div>
 
           {/* Receipt Info */}
-          <div className="receipt-info space-y-2 text-sm">
+          <div className="space-y-2 text-sm text-gray-800 dark:text-gray-200">
             <div className="flex justify-between">
               <span>Receipt #:</span>
-              <span className="font-mono">{receipt.receipt_number}</span>
+              <span className="font-mono">{safeReceipt.receipt_number}</span>
             </div>
             <div className="flex justify-between">
               <span>Date:</span>
-              <span>{formatDateTime(receipt.timestamp)}</span>
+              <span>{formatDateTime(safeReceipt.timestamp)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Payment:</span>
+              <span className="capitalize">{(safeReceipt.payment_method || '').replace('_', ' ')}</span>
             </div>
             <div className="flex justify-between">
               <span>Cashier:</span>
-              <span>{receipt.salesperson_id}</span>
+              <span>{safeReceipt.cashier_name || (safeReceipt.salesperson_id ? `#${String(safeReceipt.salesperson_id).slice(-4)}` : 'N/A')}</span>
             </div>
-            {receipt.customer_phone && (
+            {safeReceipt.customer_phone && (
               <div className="flex justify-between">
                 <span>Customer:</span>
-                <span>{receipt.customer_phone}</span>
+                <span>{safeReceipt.customer_phone}</span>
               </div>
             )}
           </div>
 
-          <Separator />
+          <Separator className="my-2" />
 
-          {/* Items */}
-          <div className="space-y-3">
-            <h4 className="font-semibold">Items Purchased:</h4>
-            {receipt.items.map((item, index) => (
-              <div key={index} className="item-line space-y-1 pb-2 border-b border-dotted border-gray-400">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">
-                      {item.product_name || item.name}
-                    </div>
-                    {item.barcode && (
-                      <div className="text-xs text-gray-500 font-mono">
-                        {item.barcode}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>{item.quantity} x {formatCurrency(item.unit_price)}</span>
-                  <span className="font-medium">{formatCurrency(item.subtotal)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <Separator />
-
-          {/* Totals */}
-          <div className="totals-section space-y-2">
-            <div className="flex justify-between">
-              <span>Subtotal:</span>
-              <span>{formatCurrency(receipt.subtotal)}</span>
-            </div>
-            
-            {receipt.tax && receipt.tax > 0 && (
-              <div className="flex justify-between">
-                <span>Tax:</span>
-                <span>{formatCurrency(receipt.tax)}</span>
-              </div>
-            )}
-            
-            {receipt.discount && receipt.discount > 0 && (
-              <div className="flex justify-between text-green-600">
-                <span>Discount:</span>
-                <span>-{formatCurrency(receipt.discount)}</span>
-              </div>
-            )}
-            
-            <div className="flex justify-between font-bold text-lg final-total border-t pt-2">
-              <span>Total:</span>
-              <span>{formatCurrency(receipt.total)}</span>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Payment Info */}
+          {/* Items Table */}
           <div className="space-y-2">
+            <h4 className="font-semibold text-gray-900 dark:text-white">Items Purchased:</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left pb-2 text-gray-900 dark:text-gray-100">Item</th>
+                    <th className="text-right pb-2 text-gray-900 dark:text-gray-100">Qty</th>
+                    <th className="text-right pb-2 text-gray-900 dark:text-gray-100">Price</th>
+                    <th className="text-right pb-2 text-gray-900 dark:text-gray-100">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {safeReceipt.items.map((item, index) => (
+                    <tr key={index} className="border-b border-gray-100 dark:border-gray-800">
+                      <td className="py-2">
+                        <div className="font-medium text-gray-900 dark:text-white">{item.name || item.product_name || 'Unnamed Item'}</div>
+                        {item.barcode && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400">#{item.barcode}</div>
+                        )}
+                      </td>
+                      <td className="text-right text-gray-900 dark:text-gray-100">{item.quantity}</td>
+                      <td className="text-right text-gray-900 dark:text-gray-100">{formatCurrency(item.unit_price)}</td>
+                      <td className="text-right font-medium text-gray-900 dark:text-white">{formatCurrency(item.subtotal)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          {/* Totals Section */}
+          <div className="space-y-2 pt-2">
             <div className="flex justify-between">
-              <span>Payment Method:</span>
-              <Badge variant="outline" className="capitalize">
-                {receipt.payment_method.replace('_', ' ')}
-              </Badge>
+              <span className="text-gray-700 dark:text-gray-300">Subtotal:</span>
+              <span className="text-gray-900 dark:text-white">{formatCurrency(safeReceipt.subtotal || 0)}</span>
             </div>
             
-            {receipt.amount_tendered && (
-              <>
-                <div className="flex justify-between">
-                  <span>Amount Tendered:</span>
-                  <span>{formatCurrency(receipt.amount_tendered)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Change Due:</span>
-                  <span>{formatCurrency(receipt.change_due || 0)}</span>
-                </div>
-              </>
+            {(safeReceipt.tax || 0) > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-700 dark:text-gray-300">Tax ({(safeReceipt.tax_rate || 0)}%):</span>
+                <span className="text-gray-900 dark:text-white">{formatCurrency(safeReceipt.tax || 0)}</span>
+              </div>
+            )}
+            
+            {(safeReceipt.discount || 0) > 0 && (
+              <div className="flex justify-between text-red-600 dark:text-red-400">
+                <span>Discount:</span>
+                <span>-{formatCurrency(safeReceipt.discount || 0)}</span>
+              </div>
+            )}
+            
+            <div className="flex justify-between font-bold text-lg border-t border-gray-300 dark:border-gray-700 pt-2 mt-2">
+              <span className="text-gray-900 dark:text-white">Total:</span>
+              <span className="text-gray-900 dark:text-white">{formatCurrency(safeReceipt.total || 0)}</span>
+            </div>
+            
+            {(safeReceipt.amount_tendered || 0) > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-700 dark:text-gray-300">Amount Tendered:</span>
+                <span className="text-gray-900 dark:text-white">{formatCurrency(safeReceipt.amount_tendered || 0)}</span>
+              </div>
+            )}
+            
+            {(safeReceipt.change_due || 0) > 0 && (
+              <div className="flex justify-between text-green-600 dark:text-green-400 font-medium">
+                <span>Change Due:</span>
+                <span>{formatCurrency(safeReceipt.change_due || 0)}</span>
+              </div>
             )}
           </div>
-
+          
           {/* Footer */}
-          <div className="receipt-footer text-center text-xs text-gray-600 border-t pt-4 space-y-1">
-            <div>No returns without receipt</div>
-            <div>Valid for 30 days</div>
-            <div>Visit us again!</div>
+          <div className="text-center text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-800 pt-4 mt-4">
+            <p className="mb-1">Thank you for shopping with us!</p>
+            <p className="mb-1">This receipt serves as your official invoice</p>
+            <p>For inquiries, please call {safeReceipt.business_phone || 'our customer service'}</p>
           </div>
         </div>
-
+        
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-2 pt-4 border-t">
-          <Button onClick={handlePrint} className="flex items-center gap-2">
-            <PrinterIcon className="h-4 w-4" />
-            Print Receipt
+        <div className="bg-gray-50 dark:bg-gray-800 px-6 py-4 flex flex-wrap justify-end gap-2 border-t border-gray-200 dark:border-gray-700">
+          <Button variant="outline" size="sm" onClick={handlePrint} className="bg-white dark:bg-gray-800">
+            <PrinterIcon className="h-4 w-4 mr-2" />
+            Print
           </Button>
-          
-          <Button variant="outline" onClick={handleDownloadPDF} className="flex items-center gap-2">
-            <Download className="h-4 w-4" />
-            Download PDF
+          <Button variant="outline" size="sm" onClick={handleDownloadPDF} className="bg-white dark:bg-gray-800">
+            <Download className="h-4 w-4 mr-2" />
+            Save as PDF
           </Button>
-          
-          <Button variant="outline" onClick={handleSendEmail} className="flex items-center gap-2">
-            <Mail className="h-4 w-4" />
-            Email
-          </Button>
-          
-          {receipt.customer_phone && (
-            <Button variant="outline" onClick={handleSendSMS} className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              SMS
-            </Button>
+          {safeReceipt.customer_phone && (
+            <>
+              <Button variant="outline" size="sm" onClick={handleSendEmail} className="bg-white dark:bg-gray-800">
+                <Mail className="h-4 w-4 mr-2" />
+                Email
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSendSMS} className="bg-white dark:bg-gray-800">
+                <MessageSquare className="h-4 w-4 mr-2" />
+                SMS
+              </Button>
+            </>
           )}
         </div>
       </DialogContent>

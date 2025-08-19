@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
+import { formatCurrency } from "@/lib/utils/currency"
 import { Receipt, Printer } from "lucide-react"
 
 interface ReceiptDialogProps {
@@ -62,11 +63,11 @@ export default function ReceiptDialog({ receipt, open, onOpenChange }: ReceiptDi
               <div key={index} className="space-y-1">
                 <div className="flex justify-between">
                   <span className="truncate pr-2">{item.name}</span>
-                  <span>${(item.price * item.cartQuantity).toFixed(2)}</span>
+                  <span>{formatCurrency(item.price * item.cartQuantity)}</span>
                 </div>
                 <div className="flex justify-between text-xs text-gray-600 pl-2">
                   <span>
-                    {item.cartQuantity} x ${item.price.toFixed(2)}
+                    {item.cartQuantity} x {formatCurrency(item.price)}
                   </span>
                 </div>
               </div>
@@ -79,7 +80,7 @@ export default function ReceiptDialog({ receipt, open, onOpenChange }: ReceiptDi
           <div className="space-y-1">
             <div className="flex justify-between font-bold">
               <span>TOTAL:</span>
-              <span>${receipt.total_amount.toFixed(2)}</span>
+              <span>{formatCurrency(receipt.total_amount)}</span>
             </div>
           </div>
 

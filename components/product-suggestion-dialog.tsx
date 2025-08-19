@@ -6,23 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Search, Package, Barcode, ShoppingCart } from "lucide-react"
-
-interface Product {
-  id: string
-  name: string
-  category: string
-  price: number
-  quantity: number
-  barcode: string
-  currency: string
-}
+import type { ProductUI } from "./pos-interface"
 
 interface ProductSuggestionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   searchTerm: string
-  suggestions: Product[]
-  onSelectProduct: (product: Product) => void
+  suggestions: ProductUI[]
+  onSelectProduct: (product: ProductUI) => void
   onSearchChange: (search: string) => void
 }
 
@@ -35,7 +26,7 @@ export default function ProductSuggestionDialog({
   onSearchChange
 }: ProductSuggestionDialogProps) {
   
-  const formatCurrency = (amount: number, currency: string = 'KES') => {
+  const formatPrice = (amount: number, currency: string = 'KES') => {
     return new Intl.NumberFormat('en-KE', {
       style: 'currency',
       currency: currency,
@@ -43,7 +34,7 @@ export default function ProductSuggestionDialog({
     }).format(amount)
   }
 
-  const handleProductSelect = (product: Product) => {
+  const handleProductSelect = (product: ProductUI) => {
     onSelectProduct(product)
     onOpenChange(false)
   }
@@ -157,7 +148,7 @@ export default function ProductSuggestionDialog({
                       
                       <div className="text-right ml-4">
                         <div className="text-2xl font-bold text-green-600 mb-2">
-                          {formatCurrency(product.price, product.currency)}
+                          {formatPrice(product.price, 'KES')}
                         </div>
                         
                         <Button 
@@ -177,10 +168,10 @@ export default function ProductSuggestionDialog({
                         {product.name.toLowerCase().includes(searchTerm.toLowerCase()) && (
                           <Badge variant="secondary" className="text-xs">Name Match</Badge>
                         )}
-                        {product.category.toLowerCase().includes(searchTerm.toLowerCase()) && (
+                        {product.category && product.category.toLowerCase().includes(searchTerm.toLowerCase()) && (
                           <Badge variant="secondary" className="text-xs">Category Match</Badge>
                         )}
-                        {product.barcode.includes(searchTerm) && (
+                        {product.barcode && product.barcode.includes(searchTerm) && (
                           <Badge variant="secondary" className="text-xs">Barcode Similar</Badge>
                         )}
                       </div>
