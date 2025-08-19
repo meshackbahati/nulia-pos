@@ -66,8 +66,8 @@ export default function ProductsTable({ products }: ProductsTableProps) {
           <TableBody>
             {products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                  No products found
+                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                  No products found.
                 </TableCell>
               </TableRow>
             ) : (
@@ -75,15 +75,15 @@ export default function ProductsTable({ products }: ProductsTableProps) {
                 <TableRow key={product.id}>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{product.category}</Badge>
+                    <Badge variant="outline">{product.category}</Badge>
                   </TableCell>
                   <TableCell>{formatPrice(product.price)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <span className={isLowStock(product) ? "text-orange-600 font-medium" : ""}>
+                      <span className={isLowStock(product) ? "text-warning font-medium" : ""}>
                         {product.quantity.toLocaleString()}
                       </span>
-                      {isLowStock(product) && <AlertTriangle className="h-4 w-4 text-orange-600" />}
+                      {isLowStock(product) && <AlertTriangle className="h-4 w-4 text-warning" />}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -92,33 +92,33 @@ export default function ProductsTable({ products }: ProductsTableProps) {
                   <TableCell className="font-mono text-sm">{product.barcode}</TableCell>
                   <TableCell>
                     {product.expiry_date ? (
-                      <span className={isExpiringSoon(product) ? "text-red-600 font-medium" : ""}>
+                      <span className={isExpiringSoon(product) ? "text-destructive font-medium" : ""}>
                         {new Date(product.expiry_date).toLocaleDateString()}
                       </span>
                     ) : (
-                      <span className="text-gray-400">N/A</span>
+                      <span className="text-muted-foreground">N/A</span>
                     )}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
                       {isLowStock(product) && <Badge variant="destructive">Low Stock</Badge>}
                       {isExpiringSoon(product) && <Badge variant="destructive">Expiring</Badge>}
-                      {!isLowStock(product) && !isExpiringSoon(product) && <Badge variant="default">Good</Badge>}
+                      {!isLowStock(product) && !isExpiringSoon(product) && <Badge variant="success">Good</Badge>}
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setPrintingProduct(product)}>
+                      <Button variant="ghost" size="icon" onClick={() => setPrintingProduct(product)}>
                         <Printer className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => setEditingProduct(product)}>
+                      <Button variant="ghost" size="icon" onClick={() => setEditingProduct(product)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
-                        variant="outline"
-                        size="sm"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleDelete(product.id)}
-                        className="text-red-600 hover:text-red-700"
+                        className="text-destructive hover:text-destructive/90"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
