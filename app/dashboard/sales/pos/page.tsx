@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,7 +16,6 @@ import { toast } from '@/components/ui/use-toast';
 
 export default function PointOfSalePage() {
   const router = useRouter();
-  const supabase = createClient();
   
   // State for cart and products
   const [cart, setCart] = useState<CartItem[]>([]);
