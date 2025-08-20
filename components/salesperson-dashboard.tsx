@@ -8,6 +8,7 @@ import { signOut } from "@/lib/actions"
 import POSInterface from "@/components/pos-interface"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { formatCurrency } from "@/lib/utils/currency"
+import { CartProvider } from "@/contexts/CartContext"
 
 interface UserProfile {
   id: string
@@ -134,7 +135,9 @@ export default function SalespersonDashboard({
             <TabsTrigger value="sales">Today's Sales</TabsTrigger>
           </TabsList>
           <TabsContent value="pos">
-            <POSInterface products={products} salespersonId={user.id} />
+            <CartProvider>
+              <POSInterface products={products} salespersonId={user.id} />
+            </CartProvider>
           </TabsContent>
           <TabsContent value="sales">
             <Card>
