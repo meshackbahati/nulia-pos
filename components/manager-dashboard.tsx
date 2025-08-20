@@ -29,6 +29,7 @@ import Link from "next/link"
 import { LowStockProducts } from "@/components/inventory/LowStockProducts"
 import BulkProductManager from "@/components/bulk-product-manager"
 import BarcodeGenerator from "@/components/barcode-generator"
+import { format } from "date-fns"
 import { formatCurrency, formatDate } from "@/lib/utils"
 
 interface User {

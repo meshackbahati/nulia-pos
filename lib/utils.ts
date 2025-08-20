@@ -24,9 +24,22 @@ export function formatDate(date: string) {
   })
 }
 
-export function formatCurrency(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency,
-  }).format(amount)
+export function formatCurrency(amount: number, currency: string = 'USD') {
+  if (!currency) {
+    console.warn('No currency provided, defaulting to USD');
+    currency = 'USD';
+  }
+  
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency,
+    }).format(amount);
+  } catch (error) {
+    console.error('Error formatting currency:', error);
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: 'USD',
+    }).format(amount);
+  }
 }

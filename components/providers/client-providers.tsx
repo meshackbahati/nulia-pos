@@ -43,40 +43,26 @@ export default function ClientProviders({
   }
 
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={`${inter.variable} ${robotoMono.variable} font-sans antialiased`}
-    >
-      <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Roboto+Mono:wght@400;500;600&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="min-h-screen bg-background text-foreground">
-        <AuthProvider>
-          <ToastProvider>
-            <ScannerProvider>
-              <AlertProvider>
-                <Suspense
-                  fallback={
-                    <div className="flex h-screen w-full items-center justify-center">
-                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-                    </div>
-                  }
-                >
-                  {children}
-                </Suspense>
+    <div className={`${inter.variable} ${robotoMono.variable}`}>
+      <AuthProvider>
+        <ToastProvider>
+          <ScannerProvider>
+            <AlertProvider>
+              <Suspense
+                fallback={
+                  <div className="flex h-screen w-full items-center justify-center">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+                  </div>
+                }
+              >
+                {children}
                 <Toaster />
-                <Suspense>
-                  <div id="offline-status" />
-                </Suspense>
-              </AlertProvider>
-            </ScannerProvider>
-          </ToastProvider>
-        </AuthProvider>
-      </body>
-    </html>
+                <div id="offline-status" />
+              </Suspense>
+            </AlertProvider>
+          </ScannerProvider>
+        </ToastProvider>
+      </AuthProvider>
+    </div>
   );
 }
