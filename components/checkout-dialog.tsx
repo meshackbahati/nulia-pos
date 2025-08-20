@@ -71,7 +71,7 @@ export default function CheckoutDialog({ open, onOpenChange, salespersonId, onSa
     }
     const result = await processSale(saleData)
     if (result.success) {
-      onSaleSuccess(result.data as ReceiptData)
+      onSaleSuccess(result.receipt_data as ReceiptData)
     } else {
       throw new Error(result.error || "Failed to process cash sale.")
     }
@@ -119,7 +119,7 @@ export default function CheckoutDialog({ open, onOpenChange, salespersonId, onSa
       }
     const saleResult = await processSale(saleData)
     if (saleResult.success) {
-        onSaleSuccess(saleResult.data as ReceiptData)
+        onSaleSuccess(saleResult.receipt_data as ReceiptData)
     } else {
       throw new Error(saleResult.error || "Failed to process M-Pesa sale.")
     }
