@@ -157,8 +157,7 @@ export default async function BarcodeManagementPage() {
             </form>
           </div>
 
-          <div className="rounded-md border
-            ">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -169,10 +168,10 @@ export default async function BarcodeManagementPage() {
                     />
                   </TableHead>
                   <TableHead>Product</TableHead>
-                  <TableHead>SKU</TableHead>
+                  <TableHead className="hidden sm:table-cell">SKU</TableHead>
                   <TableHead>Barcode</TableHead>
-                  <TableHead>Format</TableHead>
-                  <TableHead>Last Updated</TableHead>
+                  <TableHead className="hidden sm:table-cell">Format</TableHead>
+                  <TableHead className="hidden sm:table-cell">Last Updated</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -188,16 +187,16 @@ export default async function BarcodeManagementPage() {
                       />
                     </TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell className="font-mono">{product.sku || 'N/A'}</TableCell>
+                    <TableCell className="font-mono hidden sm:table-cell">{product.sku || 'N/A'}</TableCell>
                     <TableCell className="font-mono">
                       {product.barcode_data || (
                         <span className="text-muted-foreground">No barcode</span>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       {product.barcode_formats?.name || 'N/A'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       {formatDate(product.updated_at, 'PP')}
                     </TableCell>
                     <TableCell className="text-right">

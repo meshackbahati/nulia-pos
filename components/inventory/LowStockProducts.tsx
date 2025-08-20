@@ -103,13 +103,13 @@ export function LowStockProducts() {
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="p-0 overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-[200px]">Product</TableHead>
-              <TableHead>Barcode</TableHead>
-              <TableHead>Supplier</TableHead>
+              <TableHead className="hidden sm:table-cell">Barcode</TableHead>
+              <TableHead className="hidden sm:table-cell">Supplier</TableHead>
               <TableHead className="text-right">Stock</TableHead>
               <TableHead className="text-right">Price (KES)</TableHead>
             </TableRow>
@@ -125,10 +125,10 @@ export function LowStockProducts() {
                     {product.name}
                   </Link>
                 </TableCell>
-                <TableCell className="text-muted-foreground">
+                <TableCell className="text-muted-foreground hidden sm:table-cell">
                   {product.barcode}
                 </TableCell>
-                <TableCell className="text-muted-foreground">
+                <TableCell className="text-muted-foreground hidden sm:table-cell">
                   {product.supplier_name || 'N/A'}
                 </TableCell>
                 <TableCell className="text-right">

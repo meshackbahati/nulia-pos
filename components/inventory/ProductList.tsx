@@ -140,17 +140,17 @@ export function ProductList({ onEdit, onView }: ProductListProps) {
         </Button>
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>SKU</TableHead>
-              <TableHead>Barcode</TableHead>
-              <TableHead>Category</TableHead>
+              <TableHead className="hidden sm:table-cell">SKU</TableHead>
+              <TableHead className="hidden sm:table-cell">Barcode</TableHead>
+              <TableHead className="hidden sm:table-cell">Category</TableHead>
               <TableHead>Stock</TableHead>
               <TableHead>Price</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead className="hidden md:table-cell">Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -174,11 +174,11 @@ export function ProductList({ onEdit, onView }: ProductListProps) {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>{product.sku || '-'}</TableCell>
-                  <TableCell className="font-mono text-sm">
+                  <TableCell className="hidden sm:table-cell">{product.sku || '-'}</TableCell>
+                  <TableCell className="font-mono text-sm hidden sm:table-cell">
                     {product.barcode_data || '-'}
                   </TableCell>
-                  <TableCell>{product.category || '-'}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{product.category || '-'}</TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <span>{product.quantity}</span>
@@ -188,7 +188,7 @@ export function ProductList({ onEdit, onView }: ProductListProps) {
                     </div>
                   </TableCell>
                   <TableCell>{formatCurrency(product.price, product.currency)}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <Badge
                       variant={product.quantity > 0 ? 'default' : 'destructive'}
                       className="capitalize"

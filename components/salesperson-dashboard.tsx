@@ -89,7 +89,7 @@ export default function SalespersonDashboard({
             <form action={signOut}>
                 <Button type="submit" variant="ghost" size="sm">
                     <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
+                    <span className="hidden sm:inline">Sign Out</span>
                 </Button>
             </form>
         </div>

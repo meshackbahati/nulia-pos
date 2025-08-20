@@ -135,15 +135,15 @@ export default function UserManagement({ users, currentUser }: UserManagementPro
         </div>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="hidden sm:table-cell">Email</TableHead>
+                <TableHead className="hidden md:table-cell">Role</TableHead>
+                <TableHead className="hidden sm:table-cell">Created</TableHead>
+                <TableHead className="hidden md:table-cell">Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -158,15 +158,15 @@ export default function UserManagement({ users, currentUser }: UserManagementPro
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">{user.email}</TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <Badge variant={user.role === "manager" ? "default" : "secondary"} className="capitalize">
                       {user.role === "manager" && <Shield className="h-3 w-3 mr-1" />}
                       {user.role}
                     </Badge>
                   </TableCell>
-                  <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <Badge variant="default">Active</Badge>
                   </TableCell>
                   <TableCell className="text-right">
