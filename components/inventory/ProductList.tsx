@@ -136,7 +136,7 @@ export function ProductList({ onEdit, onView }: ProductListProps) {
         </div>
         <Button onClick={() => router.push('/dashboard/manager/products/new')}>
           <Icons.plus className="mr-2 h-4 w-4" />
-          Add Product
+          <span className="hidden sm:inline">Add Product</span>
         </Button>
       </div>
 
@@ -197,7 +197,7 @@ export function ProductList({ onEdit, onView }: ProductListProps) {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end space-x-2">
+                    <div className="flex items-center justify-end space-x-1 sm:space-x-2">
                       <Button
                         variant="ghost"
                         size="sm"
