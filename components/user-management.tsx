@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Edit, Trash2, Key, Users, Shield } from "lucide-react"
 import { createUser, updateUser, deleteUser, resetUserPassword } from "@/lib/user-actions"
 import { useFormStatus } from "react-dom"
+import { alert, confirm } from "@/lib/utils/alert"
 
 interface User {
   id: string
@@ -66,17 +67,37 @@ export default function UserManagement({ users, currentUser }: UserManagementPro
 
   const handleDelete = async (user: User) => {
     if (user.id === currentUser.id) {
-      alert("You cannot delete your own account")
+      // Use the custom alert function
+      alert('You cannot delete your own account')
       return
     }
 
-    if (confirm(`Are you sure you want to delete ${user.full_name}?`)) {
-      try {
-        await deleteUser(user.id)
+    // Use the custom confirm function from our alert system
+    const confirmed = await confirm(`Are you sure you want to delete ${user.full_name}?`, {
+      title: 'Confirm Deletion',
+      variant: 'destructive',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    })
+    
+    if (!confirmed) return
+
+    try {
+      const result = await deleteUser(user.id)
+      if (result.success) {
+        // Show success message and reload
+        alert('User deleted successfully', { variant: 'success' })
         window.location.reload()
-      } catch (error) {
-        alert("Failed to delete user")
+      } else {
+        // Show error message from the server
+        alert(result.error || 'Failed to delete user', { variant: 'destructive' })
       }
+    } catch (error) {
+      console.error('Delete user error:', error)
+      alert('An error occurred while deleting the user. Please try again.', {
+        variant: 'destructive',
+        title: 'Error'
+      })
     }
   }
 

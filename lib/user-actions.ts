@@ -144,29 +144,41 @@ export async function deleteUser(userId: string) {
 
     // Get user data for audit
     const { data: userData } = await supabase.from("users").select("*").eq("id", userId).single()
+    
+    if (!userData) {
+      throw new Error("User not found")
+    }
+
+    // Delete auth user first if it's a manager
+    if (userData.role === 'manager') {
+      const { error: authError } = await supabase.auth.admin.deleteUser(userId)
+      if (authError) {
+        console.error("Failed to delete auth user:", authError)
+        throw new Error("Failed to delete user's authentication data")
+      }
+    }
 
     // Delete user profile
-    const { error: profileError } = await supabase.from("users").delete().eq("id", userId)
+    const { error: profileError } = await supabase
+      .from("users")
+      .delete()
+      .eq("id", userId)
+      .select()
+      .single()
 
     if (profileError) {
       throw new Error(profileError.message)
-    }
-
-    // Delete auth user
-    const { error: authError } = await supabase.auth.admin.deleteUser(userId)
-
-    if (authError) {
-      console.error("Failed to delete auth user:", authError)
-      // Continue even if auth deletion fails
     }
 
     // Log audit event
     await logAuditEvent("USER_DELETED", "users", userId, userData, null)
 
     revalidatePath("/dashboard/manager")
+    return { success: true, message: "User deleted successfully" }
   } catch (error) {
     console.error("Delete user error:", error)
-    throw error
+    const errorMessage = error instanceof Error ? error.message : "Failed to delete user"
+    return { success: false, error: errorMessage }
   }
 }
 

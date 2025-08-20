@@ -30,7 +30,8 @@ import { LowStockProducts } from "@/components/inventory/LowStockProducts"
 import BulkProductManager from "@/components/bulk-product-manager"
 import BarcodeGenerator from "@/components/barcode-generator"
 import { format } from "date-fns"
-import { formatCurrency, formatDate } from "@/lib/utils"
+import { formatDate } from "@/lib/utils"
+import { formatPrice } from "@/lib/utils/currency"
 
 interface User {
   id: string
@@ -111,7 +112,7 @@ export default function ManagerDashboard({ user, products, lowStockProducts, rec
       </header>
       <main className="flex-1 p-4 sm:px-6 sm:py-0">
         {lowStockCount > 0 && (
-          <Alert variant="warning" className="mb-4">
+          <Alert variant="destructive" className="mb-4">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               <strong>{lowStockCount} products</strong> are running low on stock and need restocking.
@@ -135,17 +136,17 @@ export default function ManagerDashboard({ user, products, lowStockProducts, rec
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(totalValue)}</div>
+              <div className="text-2xl font-bold">{formatPrice(totalValue)}</div>
               <p className="text-xs text-muted-foreground">Total stock value</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-warning" />
+              <AlertTriangle className="h-4 w-4 text-yellow-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-warning">{lowStockCount}</div>
+              <div className="text-2xl font-bold text-yellow-500">{lowStockCount}</div>
               <p className="text-xs text-muted-foreground">Need restocking</p>
             </CardContent>
           </Card>
@@ -233,7 +234,7 @@ export default function ManagerDashboard({ user, products, lowStockProducts, rec
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold">{formatCurrency(sale.total_amount, sale.currency)}</p>
+                          <p className="font-semibold">{formatPrice(sale.total_amount)}</p>
                           <Badge variant="secondary">{sale.payment_method}</Badge>
                         </div>
                       </div>
