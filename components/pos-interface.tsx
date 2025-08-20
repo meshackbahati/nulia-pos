@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import type { ReceiptData } from "./enhanced-receipt-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -74,11 +75,10 @@ interface POSInterfaceProps {
 export default function POSInterface({ products: dbProducts, salespersonId }: POSInterfaceProps) {
   // Convert database products to UI products
   const products = dbProducts.map(toUIProduct);
+  const router = useRouter();
   const { state, addItem, updateQuantity, removeItem, clearCart, getSubtotal, getTax, getTotal } = useCart()
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "mobile_money">("cash")
   const [processing, setProcessing] = useState(false)
-  const [lastReceipt, setLastReceipt] = useState<ReceiptData | null>(null)
-  const [showReceipt, setShowReceipt] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [suggestedProducts, setSuggestedProducts] = useState<ProductUI[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -107,9 +107,8 @@ export default function POSInterface({ products: dbProducts, salespersonId }: PO
   }
 
   const handleSaleSuccess = (receiptData: ReceiptData) => {
-    setLastReceipt(receiptData);
-    setShowReceipt(true);
     clearCart();
+    router.push(`/dashboard/sales/receipts/${receiptData.sale_id}`);
   };
 
   return (
@@ -151,8 +150,6 @@ export default function POSInterface({ products: dbProducts, salespersonId }: PO
         <div className="flex-1">
             <CartSidebar onCheckout={handleCheckout} />
         </div>
-
-        <EnhancedReceiptDialog receipt={lastReceipt} open={showReceipt} onOpenChange={setShowReceipt} />
 
         {/* Product Suggestion Dialog */}
         <ProductSuggestionDialog
