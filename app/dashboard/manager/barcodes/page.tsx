@@ -122,11 +122,12 @@ export default async function BarcodeManagementPage() {
               Generate and manage barcodes for your products
             </p>
           </div>
-          <div className="flex space-x-2">
-            <form action={printBarcodes}>
-              <Button type="submit" variant="outline">
+          <div className="flex flex-col sm:flex-row sm:space-y-0 sm:space-x-2">
+            <form action={printBarcodes} className="w-full sm:w-auto">
+              <Button type="submit" variant="outline" className="w-full sm:w-auto">
                 <Icons.printer className="mr-2 h-4 w-4" />
-                Print All Barcodes
+                <span className="hidden sm:inline">Print All Barcodes</span>
+                <span className="sm:hidden">Print All</span>
               </Button>
             </form>
           </div>
@@ -149,12 +150,14 @@ export default async function BarcodeManagementPage() {
                 </SelectContent>
               </Select>
             </div>
-            <form action={generateBarcodes} className="flex space-x-2">
-              <Button type="submit" variant="default">
-                <Icons.barcode className="mr-2 h-4 w-4" />
-                Generate Barcodes
-              </Button>
-            </form>
+            <div className="flex flex-col sm:flex-row sm:space-x-2">
+                <form action={generateBarcodes} className="flex space-x-2">
+                <Button type="submit" variant="default" className="w-full sm:w-auto">
+                    <Icons.barcode className="mr-2 h-4 w-4" />
+                    Generate Barcodes
+                </Button>
+                </form>
+            </div>
           </div>
 
           <div className="rounded-md border overflow-x-auto">

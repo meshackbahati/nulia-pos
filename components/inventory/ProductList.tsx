@@ -140,17 +140,59 @@ export function ProductList({ onEdit, onView }: ProductListProps) {
         </Button>
       </div>
 
-      <div className="rounded-md border overflow-x-auto">
+      <div className="md:hidden">
+        {products.map((product) => (
+          <div key={product.id} className="mb-4 rounded-lg border bg-card p-4">
+            <div className="flex items-center justify-between">
+              <div className="font-medium">{product.name}</div>
+              <div className="flex items-center justify-end space-x-1 sm:space-x-2">
+                <Button variant="ghost" size="sm" onClick={() => onView(product)}>
+                  <Icons.eye className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => onEdit(product)}>
+                  <Icons.edit className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => handleDelete(product.id)} className="text-destructive hover:text-destructive">
+                  <Icons.trash className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="text-sm text-muted-foreground">{product.category}</div>
+            <div className="mt-2 flex justify-between">
+              <div>
+                <div className="text-sm">Price</div>
+                <div>{formatCurrency(product.price, product.currency)}</div>
+              </div>
+              <div>
+                <div className="text-sm">Stock</div>
+                <div className="flex items-center space-x-2">
+                  <span>{product.quantity}</span>
+                  {product.quantity <= (product.low_stock_threshold || 0) && (
+                    <Icons.alertTriangle className="h-4 w-4 text-yellow-500" />
+                  )}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm">Status</div>
+                <Badge variant={product.quantity > 0 ? 'default' : 'destructive'} className="capitalize">
+                  {product.quantity > 0 ? 'In Stock' : 'Out of Stock'}
+                </Badge>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="hidden rounded-md border md:block">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead className="hidden sm:table-cell">SKU</TableHead>
-              <TableHead className="hidden sm:table-cell">Barcode</TableHead>
-              <TableHead className="hidden sm:table-cell">Category</TableHead>
+              <TableHead>SKU</TableHead>
+              <TableHead>Barcode</TableHead>
+              <TableHead>Category</TableHead>
               <TableHead>Stock</TableHead>
               <TableHead>Price</TableHead>
-              <TableHead className="hidden md:table-cell">Status</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -174,11 +216,9 @@ export function ProductList({ onEdit, onView }: ProductListProps) {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell">{product.sku || '-'}</TableCell>
-                  <TableCell className="font-mono text-sm hidden sm:table-cell">
-                    {product.barcode_data || '-'}
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">{product.category || '-'}</TableCell>
+                  <TableCell>{product.sku || '-'}</TableCell>
+                  <TableCell className="font-mono text-sm">{product.barcode_data || '-'}</TableCell>
+                  <TableCell>{product.category || '-'}</TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <span>{product.quantity}</span>
@@ -188,36 +228,20 @@ export function ProductList({ onEdit, onView }: ProductListProps) {
                     </div>
                   </TableCell>
                   <TableCell>{formatCurrency(product.price, product.currency)}</TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    <Badge
-                      variant={product.quantity > 0 ? 'default' : 'destructive'}
-                      className="capitalize"
-                    >
+                  <TableCell>
+                    <Badge variant={product.quantity > 0 ? 'default' : 'destructive'} className="capitalize">
                       {product.quantity > 0 ? 'In Stock' : 'Out of Stock'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end space-x-1 sm:space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onView(product)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => onView(product)}>
                         <Icons.eye className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onEdit(product)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => onEdit(product)}>
                         <Icons.edit className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(product.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(product.id)} className="text-destructive hover:text-destructive">
                         <Icons.trash className="h-4 w-4" />
                       </Button>
                     </div>
