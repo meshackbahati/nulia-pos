@@ -43,3 +43,7 @@ export function formatCurrency(amount: number, currency: string = 'USD') {
     }).format(amount);
   }
 }
+
+export function formatNumber(amount: number) {
+  return new Intl.NumberFormat("en-US").format(amount);
+}

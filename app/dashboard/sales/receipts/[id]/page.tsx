@@ -1,29 +1,48 @@
-import { createClient } from '@/lib/supabase/server';
+"use client";
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
 import { formatCurrency } from '@/lib/utils';
+import { Sale } from '@/lib/database.types';
 
-export default async function ReceiptPage({ params }: { params: { id: string } }) {
-  const supabase = createClient();
-  const { data: sale, error } = await supabase
-    .from('sales')
-    .select(`
-      *,
-      items: sale_items(
-        product_id,
-        product_name,
-        quantity,
-        unit_price,
-        total_price
-      ),
-      cashier:profiles!sales_cashier_id_fkey(
-        full_name
-      )
-    `)
-    .eq('id', params.id)
-    .single();
+export default function ReceiptPage({ params }: { params: { id: string } }) {
+  const [sale, setSale] = useState<Sale | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchSale() {
+      try {
+        const response = await fetch(`/api/sales/receipt/${params.id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch sale data');
+        }
+        const data = await response.json();
+        setSale(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchSale();
+  }, [params.id]);
+
+  useEffect(() => {
+    if (sale) {
+      window.print();
+    }
+  }, [sale]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Icons.spinner className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   if (error || !sale) {
     return (
@@ -31,7 +50,7 @@ export default async function ReceiptPage({ params }: { params: { id: string } }
         <Icons.receiptX className="h-16 w-16 text-red-500 mb-4" />
         <h1 className="text-2xl font-bold mb-2">Receipt Not Found</h1>
         <p className="text-muted-foreground mb-6">
-          The requested receipt could not be found or you don't have permission to view it.
+          {error || "The requested receipt could not be found or you don't have permission to view it."}
         </p>
         <Button onClick={() => window.history.back()}>
           <Icons.arrowLeft className="mr-2 h-4 w-4" />
@@ -41,28 +60,13 @@ export default async function ReceiptPage({ params }: { params: { id: string } }
     );
   }
 
-  // Format date and time
   const saleDate = new Date(sale.created_at);
   const formattedDate = format(saleDate, 'PPP');
   const formattedTime = format(saleDate, 'p');
 
-  // Calculate change if payment was made with cash
   const change = sale.payment_method === 'cash' && sale.amount_tendered
     ? sale.amount_tendered - sale.total
     : 0;
-
-  // Print receipt when component mounts
-  const printReceipt = `
-    window.onload = function() {
-      window.print();
-      // Return to POS after a short delay if opened in a new tab
-      setTimeout(() => {
-        if (window.opener) {
-          window.close();
-        }
-      }, 1000);
-    };
-  `;
 
   return (
     <>
@@ -269,8 +273,6 @@ export default async function ReceiptPage({ params }: { params: { id: string } }
           </div>
         </div>
       </div>
-      
-      <script dangerouslySetInnerHTML={{ __html: printReceipt }} />
     </>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, Suspense } from 'react';
 import { ThemeProvider } from 'next-themes';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useAppStore } from '@/lib/stores/useAppStore';
@@ -14,7 +14,7 @@ interface AppProvidersProps {
   initialAppState?: any;
 }
 
-export function AppProviders({ children, initialCart, initialAppState }: AppProvidersProps) {
+function AppProvidersContent({ children, initialCart, initialAppState }: AppProvidersProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { updateLastSynced } = useAppStore();
@@ -64,4 +64,12 @@ export function AppProviders({ children, initialCart, initialAppState }: AppProv
       {children}
     </ThemeProvider>
   );
+}
+
+export function AppProviders(props: AppProvidersProps) {
+    return (
+        <Suspense>
+            <AppProvidersContent {...props} />
+        </Suspense>
+    )
 }
