@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { createClient } from "@/lib/supabase/server"
 import { requireManager } from "@/lib/auth-utils"
 import ReportsAnalyticsDashboard from "@/components/reports-analytics-dashboard"

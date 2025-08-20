@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { createClient } from "@/lib/supabase/server"
 import { validateSalespersonSession } from "@/lib/auth-utils"
 import SalespersonDashboard from "@/components/salesperson-dashboard"

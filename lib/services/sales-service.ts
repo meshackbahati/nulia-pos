@@ -74,11 +74,13 @@ export async function processSale(saleData: SaleData): Promise<SaleResult> {
     revalidatePath("/dashboard");
     revalidatePath("/inventory");
 
+    const newSale = await getSaleDetails(data.sale_id);
+
     return {
       success: true,
       sale_id: data.sale_id,
       receipt_number: data.receipt_number,
-      receipt_data: data
+      receipt_data: newSale
     };
 
   } catch (error) {
