@@ -427,7 +427,13 @@ export default function ReportsAnalyticsDashboard({
                       <YAxis yAxisId="right" orientation="right" />
                       <Tooltip />
                       <Legend />
-                      <Bar yAxisId="left" dataKey="revenue" fill="#8884d8" name="Revenue (KES)" />
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="revenue"
+                        stroke="#8884d8"
+                        name="Revenue (KES)"
+                      />
                       <Line
                         yAxisId="right"
                         type="monotone"
@@ -535,12 +541,12 @@ export default function ReportsAnalyticsDashboard({
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={analytics.topProducts.slice(0, 10)} layout="horizontal">
+                    <BarChart data={analytics.topProducts.slice(0, 10)} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis dataKey="name" type="category" width={100} />
+                      <XAxis dataKey="name" type="category" />
+                      <YAxis />
                       <Tooltip />
-                      <Bar dataKey="totalQuantity" fill="#8884d8" />
+                      <Bar dataKey="totalQuantity" fill="#8884d8" name="Quantity Sold"/>
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>

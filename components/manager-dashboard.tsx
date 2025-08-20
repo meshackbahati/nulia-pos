@@ -29,7 +29,7 @@ import Link from "next/link"
 import { LowStockProducts } from "@/components/inventory/LowStockProducts"
 import BulkProductManager from "@/components/bulk-product-manager"
 import BarcodeGenerator from "@/components/barcode-generator"
-import { formatCurrency } from "@/lib/utils/currency"
+import { formatCurrency, formatDate } from "@/lib/utils"
 
 interface User {
   id: string
@@ -228,7 +228,7 @@ export default function ManagerDashboard({ user, products, lowStockProducts, rec
                         <div>
                           <p className="font-medium">#{sale.receipt_number}</p>
                           <p className="text-sm text-muted-foreground">
-                            {sale.users?.full_name} &bull; {new Date(sale.transaction_date).toLocaleDateString()}
+                            {sale.users?.full_name} &bull; {format(new Date(sale.created_at), "PPP")}
                           </p>
                         </div>
                         <div className="text-right">

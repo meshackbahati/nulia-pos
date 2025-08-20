@@ -38,10 +38,7 @@ async function DashboardContent() {
   // Get recent sales
   const { data: recentSales, error: salesError } = await supabase
     .from("sales")
-    .select(`
-      *,
-      users(full_name, email)
-    `)
+    .select(`*, users(full_name, email)`)
     .order("created_at", { ascending: false })
     .limit(10)
 
