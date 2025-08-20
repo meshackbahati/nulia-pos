@@ -23,6 +23,7 @@ MPESA_CONSUMER_SECRET=your_consumer_secret
 MPESA_BUSINESS_SHORTCODE=your_business_shortcode
 MPESA_PASSKEY=your_passkey
 MPESA_ENVIRONMENT=sandbox # or 'production' for live environment
+NEXT_PUBLIC_APP_URL=http://localhost:3000 # Your app's base URL
 MPESA_CALLBACK_URL=https://your-domain.com/api/mpesa/callback
 ```
 

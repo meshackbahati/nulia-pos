@@ -90,7 +90,18 @@ export async function POST(request: Request) {
         console.error('Error creating payment record:', paymentError);
       }
 
-      // TODO: Update order status or perform other business logic
+      // Update order status or perform other business logic
+      const { error: saleUpdateError } = await supabase
+        .from('sales')
+        .update({
+          status: 'completed',
+          notes: `Paid via M-Pesa. Receipt: ${metadataMap.get('MpesaReceiptNumber')}`,
+        })
+        .eq('receipt_number', paymentAttempt.reference);
+
+      if (saleUpdateError) {
+        console.error('Error updating sale status:', saleUpdateError);
+      }
     }
 
     return NextResponse.json({
