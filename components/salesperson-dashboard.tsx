@@ -54,6 +54,7 @@ interface SalespersonDashboardProps {
   todaySales: Sale[]
   todayTotal?: number
   error?: string
+  onSaleSuccess: () => void;
 }
 
 export default function SalespersonDashboard({ 
@@ -61,7 +62,8 @@ export default function SalespersonDashboard({
   products = [], 
   todaySales = [], 
   todayTotal: propTodayTotal = 0,
-  error 
+  error,
+  onSaleSuccess
 }: SalespersonDashboardProps) {
   // Calculate today's stats from todaySales if not provided
   const calculatedTodayTotal = todaySales.reduce((sum: number, sale: Sale) => {
@@ -136,7 +138,7 @@ export default function SalespersonDashboard({
           </TabsList>
           <TabsContent value="pos">
             <CartProvider>
-              <POSInterface products={products} salespersonId={user.id} />
+              <POSInterface products={products} salespersonId={user.id} onSaleSuccess={onSaleSuccess} />
             </CartProvider>
           </TabsContent>
           <TabsContent value="sales">
