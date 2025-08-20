@@ -63,7 +63,7 @@ const initialState: CartState = {
   total: 0,
   itemCount: 0,
   discount: 0,
-  taxRate: 0.16, // 16% tax rate as default
+  taxRate: 0.0, // 0% tax rate as default
   isOpen: false,
   lastScannedItem: null,
 };

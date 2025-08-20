@@ -23,9 +23,10 @@ interface CheckoutDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   salespersonId: string
+  onSaleSuccess: (receiptData: ReceiptData) => void;
 }
 
-export default function CheckoutDialog({ open, onOpenChange, salespersonId }: CheckoutDialogProps) {
+export default function CheckoutDialog({ open, onOpenChange, salespersonId, onSaleSuccess }: CheckoutDialogProps) {
   const { state, clearCart } = useCart()
   const { total } = useCartSummary()
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "mpesa-stk" | "mpesa-c2b">("cash")
@@ -70,8 +71,7 @@ export default function CheckoutDialog({ open, onOpenChange, salespersonId }: Ch
     }
     const result = await processSale(saleData)
     if (result.success) {
-      clearCart()
-      // We can show a success message or receipt here
+      onSaleSuccess(result.data as ReceiptData)
     } else {
       throw new Error(result.error || "Failed to process cash sale.")
     }
@@ -119,7 +119,7 @@ export default function CheckoutDialog({ open, onOpenChange, salespersonId }: Ch
       }
     const saleResult = await processSale(saleData)
     if (saleResult.success) {
-      clearCart()
+        onSaleSuccess(saleResult.data as ReceiptData)
     } else {
       throw new Error(saleResult.error || "Failed to process M-Pesa sale.")
     }

@@ -145,7 +145,7 @@ export default function PointOfSalePage() {
   
   // Calculate cart totals
   const subtotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-  const taxRate = 0.18; // 18% tax rate (adjust as needed)
+  const taxRate = 0.0; // 0% tax rate
   const tax = subtotal * taxRate;
   const total = subtotal + tax;
   
