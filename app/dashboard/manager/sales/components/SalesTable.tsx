@@ -122,7 +122,7 @@ export function SalesTable({ sales = [], showPagination = false, pageSize = 5 }:
   
   return (
     <div className="space-y-4">
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -135,11 +135,11 @@ export function SalesTable({ sales = [], showPagination = false, pageSize = 5 }:
                 />
               </TableHead>
               <TableHead>Invoice</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Customer</TableHead>
+              <TableHead className="hidden sm:table-cell">Date</TableHead>
+              <TableHead className="hidden sm:table-cell">Customer</TableHead>
               <TableHead className="text-right">Amount</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Payment</TableHead>
+              <TableHead className="hidden md:table-cell">Status</TableHead>
+              <TableHead className="hidden md:table-cell">Payment</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -162,17 +162,17 @@ export function SalesTable({ sales = [], showPagination = false, pageSize = 5 }:
                     {sale.invoice_number || `#${sale.id.slice(0, 8)}`}
                   </button>
                 </TableCell>
-                <TableCell>{formatDate(sale.created_at)}</TableCell>
-                <TableCell>{sale.customer_name || 'Walk-in Customer'}</TableCell>
+                <TableCell className="hidden sm:table-cell">{formatDate(sale.created_at)}</TableCell>
+                <TableCell className="hidden sm:table-cell">{sale.customer_name || 'Walk-in Customer'}</TableCell>
                 <TableCell className="text-right font-medium">
                   {formatCurrency(sale.total_amount, 'UGX')}
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden md:table-cell">
                   <Badge variant={statusVariantMap[sale.status] || 'outline'}>
                     {statusMap[sale.status] || sale.status}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden md:table-cell">
                   <Badge variant={paymentStatusVariantMap[sale.payment_status] || 'outline'}>
                     {paymentStatusMap[sale.payment_status] || sale.payment_status}
                   </Badge>

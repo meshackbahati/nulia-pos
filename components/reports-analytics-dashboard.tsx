@@ -351,16 +351,16 @@ export default function ReportsAnalyticsDashboard({
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
         {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-6 mb-4 sm:mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium">Total Revenue</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{formatCurrency(analytics.totalRevenue)}</div>
+              <div className="text-lg sm:text-2xl font-bold text-green-600">{formatCurrency(analytics.totalRevenue)}</div>
               <p className="text-xs text-muted-foreground">
                 {format(dateRange.from, "MMM dd")} - {format(dateRange.to, "MMM dd")}
               </p>
@@ -369,57 +369,57 @@ export default function ReportsAnalyticsDashboard({
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Transactions</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium">Transactions</CardTitle>
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analytics.totalTransactions}</div>
+              <div className="text-lg sm:text-2xl font-bold">{analytics.totalTransactions}</div>
               <p className="text-xs text-muted-foreground">Total sales completed</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Average Order</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium">Average Order</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(analytics.averageOrderValue)}</div>
+              <div className="text-lg sm:text-2xl font-bold">{formatCurrency(analytics.averageOrderValue)}</div>
               <p className="text-xs text-muted-foreground">Per transaction</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium">Low Stock Items</CardTitle>
               <AlertTriangle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{lowStockProducts.length}</div>
+              <div className="text-lg sm:text-2xl font-bold text-orange-600">{lowStockProducts.length}</div>
               <p className="text-xs text-muted-foreground">Need restocking</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Main Analytics Tabs */}
-        <Tabs defaultValue="sales" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="sales">Sales Analytics</TabsTrigger>
-            <TabsTrigger value="products">Product Performance</TabsTrigger>
-            <TabsTrigger value="inventory">Inventory Reports</TabsTrigger>
-            <TabsTrigger value="staff">Staff Performance</TabsTrigger>
+        <Tabs defaultValue="sales" className="space-y-4 sm:space-y-6">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+            <TabsTrigger value="sales">Sales</TabsTrigger>
+            <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="inventory">Inventory</TabsTrigger>
+            <TabsTrigger value="staff">Staff</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="sales" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TabsContent value="sales" className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {/* Daily Sales Trend */}
               <Card className="lg:col-span-2">
                 <CardHeader>
-                  <CardTitle>Daily Sales Trend</CardTitle>
-                  <CardDescription>Revenue and transaction volume over time</CardDescription>
+                  <CardTitle className="text-base sm:text-lg">Daily Sales Trend</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Revenue and transaction volume over time</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={250}>
                     <LineChart data={analytics.dailySalesArray}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" />
@@ -449,11 +449,11 @@ export default function ReportsAnalyticsDashboard({
               {/* Category Performance */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Sales by Category</CardTitle>
-                  <CardDescription>Revenue distribution across product categories</CardDescription>
+                  <CardTitle className="text-base sm:text-lg">Sales by Category</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Revenue distribution across product categories</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
                       <Pie
                         data={analytics.categoryData}
@@ -478,8 +478,8 @@ export default function ReportsAnalyticsDashboard({
               {/* Payment Methods */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Payment Methods</CardTitle>
-                  <CardDescription>Distribution of payment types</CardDescription>
+                  <CardTitle className="text-base sm:text-lg">Payment Methods</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Distribution of payment types</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
@@ -488,12 +488,12 @@ export default function ReportsAnalyticsDashboard({
                       const percentage = salesData.length > 0 ? (count / salesData.length) * 100 : 0
                       return (
                         <div key={method} className="flex items-center justify-between">
-                          <span className="capitalize">{method.replace("_", " ")}</span>
+                          <span className="capitalize text-xs sm:text-sm">{method.replace("_", " ")}</span>
                           <div className="flex items-center gap-2">
-                            <div className="w-24 bg-gray-200 rounded-full h-2">
+                            <div className="w-16 sm:w-24 bg-gray-200 rounded-full h-2">
                               <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${percentage}%` }} />
                             </div>
-                            <span className="text-sm text-gray-600">{percentage.toFixed(1)}%</span>
+                            <span className="text-xs sm:text-sm text-gray-600">{percentage.toFixed(1)}%</span>
                           </div>
                         </div>
                       )
@@ -504,27 +504,27 @@ export default function ReportsAnalyticsDashboard({
             </div>
           </TabsContent>
 
-          <TabsContent value="products" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TabsContent value="products" className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {/* Top Products */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Top Selling Products</CardTitle>
-                  <CardDescription>Best performing products by revenue</CardDescription>
+                  <CardTitle className="text-base sm:text-lg">Top Selling Products</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Best performing products by revenue</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {analytics.topProducts.slice(0, 8).map((product, index) => (
-                      <div key={product.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center gap-3">
+                      <div key={product.id} className="flex items-center justify-between p-2 sm:p-3 border rounded-lg">
+                        <div className="flex items-center gap-2 sm:gap-3">
                           <Badge variant="outline">#{index + 1}</Badge>
                           <div>
-                            <p className="font-medium text-sm">{product.name}</p>
+                            <p className="font-medium text-xs sm:text-sm">{product.name}</p>
                             <p className="text-xs text-gray-600">{product.category}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-green-600">{formatCurrency(product.totalRevenue)}</p>
+                          <p className="font-bold text-green-600 text-xs sm:text-sm">{formatCurrency(product.totalRevenue)}</p>
                           <p className="text-xs text-gray-600">{product.totalQuantity} sold</p>
                         </div>
                       </div>
@@ -536,11 +536,11 @@ export default function ReportsAnalyticsDashboard({
               {/* Product Performance Chart */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Product Performance</CardTitle>
-                  <CardDescription>Top 10 products by quantity sold</CardDescription>
+                  <CardTitle className="text-base sm:text-lg">Product Performance</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Top 10 products by quantity sold</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={250}>
                     <BarChart data={analytics.topProducts.slice(0, 10)} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" type="category" />
@@ -554,16 +554,16 @@ export default function ReportsAnalyticsDashboard({
             </div>
           </TabsContent>
 
-          <TabsContent value="inventory" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TabsContent value="inventory" className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {/* Low Stock Alert */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                     <AlertTriangle className="h-5 w-5 text-orange-600" />
                     Low Stock Alert
                   </CardTitle>
-                  <CardDescription>Products that need immediate restocking</CardDescription>
+                  <CardDescription className="text-xs sm:text-sm">Products that need immediate restocking</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3 max-h-80 overflow-y-auto">
@@ -571,9 +571,9 @@ export default function ReportsAnalyticsDashboard({
                       <p className="text-gray-500 text-center py-4">All products are well stocked!</p>
                     ) : (
                       lowStockProducts.map((product) => (
-                        <div key={product.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div key={product.id} className="flex items-center justify-between p-2 sm:p-3 border rounded-lg">
                           <div>
-                            <p className="font-medium text-sm">{product.name}</p>
+                            <p className="font-medium text-xs sm:text-sm">{product.name}</p>
                             <p className="text-xs text-gray-600">{product.category}</p>
                           </div>
                           <div className="text-right">
@@ -590,38 +590,38 @@ export default function ReportsAnalyticsDashboard({
               {/* Inventory Value */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Inventory Overview</CardTitle>
-                  <CardDescription>Current stock levels and values</CardDescription>
+                  <CardTitle className="text-base sm:text-lg">Inventory Overview</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Current stock levels and values</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center p-4 bg-blue-50 rounded-lg">
-                        <p className="text-2xl font-bold text-blue-600">{inventoryData.length}</p>
-                        <p className="text-sm text-gray-600">Total Products</p>
+                      <div className="text-center p-2 sm:p-4 bg-blue-50 rounded-lg">
+                        <p className="text-lg sm:text-2xl font-bold text-blue-600">{inventoryData.length}</p>
+                        <p className="text-xs sm:text-sm text-gray-600">Total Products</p>
                       </div>
-                      <div className="text-center p-4 bg-green-50 rounded-lg">
-                        <p className="text-2xl font-bold text-green-600">
+                      <div className="text-center p-2 sm:p-4 bg-green-50 rounded-lg">
+                        <p className="text-lg sm:text-2xl font-bold text-green-600">
                           {formatCurrency(inventoryData.reduce((sum, p) => sum + p.price * p.quantity, 0))}
                         </p>
-                        <p className="text-sm text-gray-600">Total Value</p>
+                        <p className="text-xs sm:text-sm text-gray-600">Total Value</p>
                       </div>
                     </div>
                     <div className="space-y-2">
                       <h4 className="font-medium">Stock Status</h4>
                       <div className="space-y-2">
                         <div className="flex justify-between">
-                          <span className="text-sm">Well Stocked</span>
+                          <span className="text-xs sm:text-sm">Well Stocked</span>
                           <Badge variant="default">
                             {inventoryData.filter((p) => p.quantity > p.low_stock_threshold).length}
                           </Badge>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-sm">Low Stock</span>
+                          <span className="text-xs sm:text-sm">Low Stock</span>
                           <Badge variant="destructive">{lowStockProducts.length}</Badge>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-sm">Out of Stock</span>
+                          <span className="text-xs sm:text-sm">Out of Stock</span>
                           <Badge variant="secondary">{inventoryData.filter((p) => p.quantity === 0).length}</Badge>
                         </div>
                       </div>
@@ -632,26 +632,26 @@ export default function ReportsAnalyticsDashboard({
             </div>
           </TabsContent>
 
-          <TabsContent value="staff" className="space-y-6">
+          <TabsContent value="staff" className="space-y-4 sm:space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Salesperson Performance</CardTitle>
-                <CardDescription>Individual performance metrics and rankings</CardDescription>
+                <CardTitle className="text-base sm:text-lg">Salesperson Performance</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Individual performance metrics and rankings</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-3">
                     {analytics.salespersonData.map((person, index) => (
-                      <div key={person.name} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-3">
+                      <div key={person.name} className="flex items-center justify-between p-2 sm:p-4 border rounded-lg">
+                        <div className="flex items-center gap-2 sm:gap-3">
                           <Badge variant="outline">#{index + 1}</Badge>
                           <div>
-                            <p className="font-medium">{person.name}</p>
-                            <p className="text-sm text-gray-600">{person.transactions} transactions</p>
+                            <p className="font-medium text-xs sm:text-sm">{person.name}</p>
+                            <p className="text-xs text-gray-600">{person.transactions} transactions</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-green-600">{formatCurrency(person.revenue)}</p>
+                          <p className="font-bold text-green-600 text-xs sm:text-sm">{formatCurrency(person.revenue)}</p>
                           <p className="text-xs text-gray-600">
                             Avg: {formatCurrency(person.revenue / person.transactions)}
                           </p>
@@ -659,7 +659,7 @@ export default function ReportsAnalyticsDashboard({
                       </div>
                     ))}
                   </div>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={250}>
                     <BarChart data={analytics.salespersonData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" />

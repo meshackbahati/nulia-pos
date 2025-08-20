@@ -110,7 +110,8 @@ export function TopProductsChart({ products }: { products: ProductData[] }) {
             stroke={axisColor}
             tickLine={false}
             axisLine={false}
-            width={120}
+            width={80}
+            className="sm:w-120"
             tick={{ fill: isDark ? '#9CA3AF' : '#6B7280', fontSize: 12 }}
             tickFormatter={formatXAxis}
           />

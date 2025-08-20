@@ -48,18 +48,18 @@ export default function ProductsTable({ products }: ProductsTableProps) {
 
   return (
     <>
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Product</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Total Value</TableHead>
-              <TableHead>Barcode</TableHead>
-              <TableHead>Expiry</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead className="hidden sm:table-cell">Category</TableHead>
+              <TableHead className="hidden sm:table-cell">Price</TableHead>
+              <TableHead className="hidden sm:table-cell">Quantity</TableHead>
+              <TableHead className="hidden md:table-cell">Total Value</TableHead>
+              <TableHead className="hidden md:table-cell">Barcode</TableHead>
+              <TableHead className="hidden md:table-cell">Expiry</TableHead>
+              <TableHead className="hidden md:table-cell">Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -74,11 +74,11 @@ export default function ProductsTable({ products }: ProductsTableProps) {
               products.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">
                     <Badge variant="outline">{product.category}</Badge>
                   </TableCell>
-                  <TableCell>{formatPrice(product.price)}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">{formatPrice(product.price)}</TableCell>
+                  <TableCell className="hidden sm:table-cell">
                     <div className="flex items-center gap-2">
                       <span className={isLowStock(product) ? "text-warning font-medium" : ""}>
                         {product.quantity.toLocaleString()}
@@ -86,11 +86,11 @@ export default function ProductsTable({ products }: ProductsTableProps) {
                       {isLowStock(product) && <AlertTriangle className="h-4 w-4 text-warning" />}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     {formatInventoryValue(product.price * product.quantity)}
                   </TableCell>
-                  <TableCell className="font-mono text-sm">{product.barcode}</TableCell>
-                  <TableCell>
+                  <TableCell className="font-mono text-sm hidden md:table-cell">{product.barcode}</TableCell>
+                  <TableCell className="hidden md:table-cell">
                     {product.expiry_date ? (
                       <span className={isExpiringSoon(product) ? "text-destructive font-medium" : ""}>
                         {new Date(product.expiry_date).toLocaleDateString()}
@@ -99,7 +99,7 @@ export default function ProductsTable({ products }: ProductsTableProps) {
                       <span className="text-muted-foreground">N/A</span>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <div className="flex gap-1">
                       {isLowStock(product) && <Badge variant="warning">Low Stock</Badge>}
                       {isExpiringSoon(product) && <Badge variant="destructive">Expiring</Badge>}
