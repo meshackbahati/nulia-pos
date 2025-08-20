@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import type { ReceiptData } from "./enhanced-receipt-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -70,15 +69,17 @@ function toUIProduct(dbProduct: DatabaseProduct): ProductUI {
 interface POSInterfaceProps {
   products: DatabaseProduct[]
   salespersonId: string
+  onSaleSuccess: () => void;
 }
 
-export default function POSInterface({ products: dbProducts, salespersonId }: POSInterfaceProps) {
+export default function POSInterface({ products: dbProducts, salespersonId, onSaleSuccess }: POSInterfaceProps) {
   // Convert database products to UI products
   const products = dbProducts.map(toUIProduct);
-  const router = useRouter();
   const { state, addItem, updateQuantity, removeItem, clearCart, getSubtotal, getTax, getTotal } = useCart()
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "mobile_money">("cash")
   const [processing, setProcessing] = useState(false)
+  const [lastReceipt, setLastReceipt] = useState<ReceiptData | null>(null)
+  const [showReceipt, setShowReceipt] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [suggestedProducts, setSuggestedProducts] = useState<ProductUI[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -106,9 +107,10 @@ export default function POSInterface({ products: dbProducts, salespersonId }: PO
     setShowCheckout(true)
   }
 
-  const handleSaleSuccess = (receiptData: ReceiptData) => {
-    clearCart();
-    router.push(`/dashboard/sales/receipts/${receiptData.sale_id}`);
+  const handleSaleSuccessLocal = (receiptData: ReceiptData) => {
+    setLastReceipt(receiptData);
+    setShowReceipt(true);
+    onSaleSuccess();
   };
 
   return (
@@ -151,6 +153,8 @@ export default function POSInterface({ products: dbProducts, salespersonId }: PO
             <CartSidebar onCheckout={handleCheckout} />
         </div>
 
+        <EnhancedReceiptDialog receipt={lastReceipt} open={showReceipt} onOpenChange={setShowReceipt} />
+
         {/* Product Suggestion Dialog */}
         <ProductSuggestionDialog
             open={showSuggestions}
@@ -165,7 +169,7 @@ export default function POSInterface({ products: dbProducts, salespersonId }: PO
             open={showCheckout}
             onOpenChange={setShowCheckout}
             salespersonId={salespersonId}
-            onSaleSuccess={handleSaleSuccess}
+            onSaleSuccess={handleSaleSuccessLocal}
         />
     </>
   )
