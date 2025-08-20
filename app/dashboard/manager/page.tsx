@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { createClient } from "@/lib/supabase/server"
 import { requireManager } from "@/lib/auth-utils"
 import ManagerDashboard from "@/components/manager-dashboard"

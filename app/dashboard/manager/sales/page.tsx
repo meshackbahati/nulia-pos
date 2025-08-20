@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   description: 'View and analyze sales performance',
 };
 
-export const revalidate = 300; // Revalidate every 5 minutes
+export const dynamic = 'force-dynamic';
 
 export default async function SalesDashboardPage() {
   await requireManager();

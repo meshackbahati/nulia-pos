@@ -13,7 +13,7 @@ interface CartSidebarProps {
 
 export default function CartSidebar({ onCheckout }: CartSidebarProps) {
   const { state, updateQuantity, removeItem, clearCart } = useCart()
-  const { subtotal, tax, total, itemCount, isEmpty } = useCartSummary()
+  const { subtotal, tax, total, itemCount, isEmpty, taxRate } = useCartSummary()
 
   return (
     <Card className="flex flex-col h-full">
@@ -23,7 +23,7 @@ export default function CartSidebar({ onCheckout }: CartSidebarProps) {
           <span>Cart ({itemCount})</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 overflow-y-auto p-4">
+      <CardContent className="flex-1 overflow-y-auto p-2 sm:p-4">
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
             <ShoppingCart className="h-12 w-12 mb-4" />
@@ -33,15 +33,15 @@ export default function CartSidebar({ onCheckout }: CartSidebarProps) {
         ) : (
           <div className="space-y-4">
             {state.items.map((item) => (
-              <div key={item.product.id} className="flex items-start gap-4">
+              <div key={item.product.id} className="flex items-start gap-2 sm:gap-4">
                 <div className="flex-1">
-                  <p className="font-medium">{item.product.name}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="font-medium text-sm sm:text-base">{item.product.name}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     {formatCurrency(item.product.price)} x {item.quantity}
                   </p>
                 </div>
                 <div className="flex flex-col items-end">
-                    <p className="font-semibold">{formatCurrency(item.product.price * item.quantity)}</p>
+                    <p className="font-semibold text-sm sm:text-base">{formatCurrency(item.product.price * item.quantity)}</p>
                     <div className="flex items-center gap-1 mt-1">
                         <Button
                             variant="ghost"
@@ -76,18 +76,18 @@ export default function CartSidebar({ onCheckout }: CartSidebarProps) {
         )}
       </CardContent>
       {!isEmpty && (
-        <CardFooter className="flex flex-col gap-4 mt-auto p-4 border-t">
+        <CardFooter className="flex flex-col gap-2 sm:gap-4 mt-auto p-2 sm:p-4 border-t">
           <div className="w-full space-y-2">
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between text-xs sm:text-sm">
               <span className="text-muted-foreground">Subtotal</span>
               <span>{formatCurrency(subtotal)}</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Tax (16%)</span>
+            <div className="flex justify-between text-xs sm:text-sm">
+              <span className="text-muted-foreground">Tax ({taxRate * 100}%)</span>
               <span>{formatCurrency(tax)}</span>
             </div>
             <Separator />
-            <div className="flex justify-between font-bold text-lg">
+            <div className="flex justify-between font-bold text-base sm:text-lg">
               <span>Total</span>
               <span>{formatCurrency(total)}</span>
             </div>
