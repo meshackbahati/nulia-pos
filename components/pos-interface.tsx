@@ -106,6 +106,12 @@ export default function POSInterface({ products: dbProducts, salespersonId }: PO
     setShowCheckout(true)
   }
 
+  const handleSaleSuccess = (receiptData: ReceiptData) => {
+    setLastReceipt(receiptData);
+    setShowReceipt(true);
+    clearCart();
+  };
+
   return (
     <>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
@@ -162,6 +168,7 @@ export default function POSInterface({ products: dbProducts, salespersonId }: PO
             open={showCheckout}
             onOpenChange={setShowCheckout}
             salespersonId={salespersonId}
+            onSaleSuccess={handleSaleSuccess}
         />
     </>
   )
