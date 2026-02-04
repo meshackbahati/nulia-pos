@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, CreditCard, DollarSign, Smartphone } from 'lucide-react';
+import { X, CreditCard, DollarSign, Smartphone, ShieldCheck } from 'lucide-react';
 
 interface PaymentModalProps {
     total: number;
@@ -52,23 +52,28 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-md w-full p-8 border border-slate-200 dark:border-slate-800">
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
+            <div className="bg-card rounded-2xl shadow-xl max-w-md w-full p-8 border border-border ring-1 ring-border/50">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Complete Payment</h2>
-                        <p className="text-xs text-slate-500 mt-1 uppercase font-bold tracking-wider">Checkout Terminal</p>
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary shadow-sm ring-1 ring-inset ring-primary/20">
+                            <ShieldCheck className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-foreground">Complete Payment</h2>
+                            <p className="text-xs text-muted-foreground font-medium">Secure Transaction</p>
+                        </div>
                     </div>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+                    <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors p-2 hover:bg-muted rounded-full">
                         <X className="w-6 h-6" />
                     </button>
                 </div>
 
                 {/* Total Display */}
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-6 mb-8 text-center border border-slate-100 dark:border-slate-700">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">Payable Total</p>
-                    <p className="text-4xl font-extrabold text-blue-600">${total.toFixed(2)}</p>
+                <div className="bg-muted/30 rounded-xl p-6 mb-8 text-center border border-border/50">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-1">Payable Total</p>
+                    <p className="text-4xl font-extrabold text-primary">${total.toFixed(2)}</p>
                 </div>
 
                 {/* Payment Options */}
@@ -82,8 +87,8 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
                             key={opt.id}
                             onClick={() => setPaymentMethod(opt.id)}
                             className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${paymentMethod === opt.id
-                                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-600'
-                                    : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 hover:border-slate-200 dark:hover:border-slate-700'
+                                ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                                : 'border-muted bg-card text-muted-foreground hover:border-primary/30 hover:bg-muted/50'
                                 }`}
                         >
                             <opt.icon className="w-6 h-6" />
@@ -96,20 +101,23 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
                 <div className="space-y-6 mb-8">
                     {paymentMethod === 'cash' && (
                         <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Cash Received</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                className="modern-input h-12 text-lg font-bold"
-                                value={amountReceived}
-                                onChange={(e) => setAmountReceived(e.target.value)}
-                                placeholder="0.00"
-                                autoFocus
-                            />
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Cash Received</label>
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">$</span>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    className="w-full h-14 rounded-xl border border-input bg-background pl-8 pr-4 text-xl font-bold text-foreground placeholder-muted-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
+                                    value={amountReceived}
+                                    onChange={(e) => setAmountReceived(e.target.value)}
+                                    placeholder="0.00"
+                                    autoFocus
+                                />
+                            </div>
                             {amountReceived && parseFloat(amountReceived) >= total && (
-                                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg flex justify-between items-center animate-in">
-                                    <span className="text-[10px] font-bold text-green-600 uppercase">Change Due</span>
-                                    <span className="text-sm font-bold text-green-600">${(parseFloat(amountReceived) - total).toFixed(2)}</span>
+                                <div className="p-3 bg-emerald-500/10 rounded-lg flex justify-between items-center animate-in fade-in slide-in-from-top-2 border border-emerald-500/20">
+                                    <span className="text-[10px] font-bold text-emerald-500 uppercase">Change Due</span>
+                                    <span className="text-sm font-bold text-emerald-500">${(parseFloat(amountReceived) - total).toFixed(2)}</span>
                                 </div>
                             )}
                         </div>
@@ -118,10 +126,10 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
                     {paymentMethod === 'mpesa' && (
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">STK Push Destination</label>
+                                <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">STK Push Destination</label>
                                 <input
                                     type="tel"
-                                    className="modern-input h-12"
+                                    className="w-full h-12 rounded-lg border border-input bg-background px-4 text-base text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
                                     value={customerPhone}
                                     onChange={(e) => setCustomerPhone(e.target.value)}
                                     placeholder="07XXXXXXXX"
@@ -129,9 +137,9 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
                                 />
                             </div>
                             {branchConfig?.secondaryCurrency === 'KES' && (
-                                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-900/40">
-                                    <p className="text-[10px] font-bold text-blue-600 uppercase mb-1">Exchange Logic</p>
-                                    <p className="text-xs font-medium text-blue-800 dark:text-blue-300">
+                                <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
+                                    <p className="text-[10px] font-bold text-primary uppercase mb-1">Exchange Logic</p>
+                                    <p className="text-xs font-bold text-foreground">
                                         Amount: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'KES' }).format(total * branchConfig.exchangeRate)}
                                     </p>
                                 </div>
@@ -142,11 +150,11 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
 
                 {/* Confirm */}
                 <div className="flex gap-4">
-                    <button onClick={onClose} className="flex-1 h-12 modern-button bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold">CANCEL</button>
+                    <button onClick={onClose} className="flex-1 h-12 bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground rounded-lg font-bold uppercase text-xs transition-colors">CANCEL</button>
                     <button
                         onClick={handleSubmit}
                         disabled={processing}
-                        className="flex-1 h-12 modern-button bg-blue-600 text-white font-bold disabled:opacity-50 shadow-lg shadow-blue-600/20"
+                        className="flex-1 h-12 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg font-bold uppercase text-xs shadow-lg shadow-primary/25 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:shadow-none"
                     >
                         {processing ? 'EXECUTING...' : `AUTHORIZE $${total.toFixed(2)}`}
                     </button>

@@ -49,30 +49,30 @@ export default function BranchSelector() {
     if (branches.length <= 1) return null;
 
     return (
-        <div className="relative">
+        <div className="relative font-body">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-xs font-bold"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card text-foreground hover:bg-secondary/20 transition-all text-xs font-bold shadow-sm"
             >
-                <div className="w-4 h-4 text-blue-600">
+                <div className="w-4 h-4 text-primary">
                     <MapPin className="w-full h-full" />
                 </div>
                 <span className="uppercase tracking-tight">{selectedBranch?.name || 'Select Hub'}</span>
-                <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isOpen && (
                 <>
                     <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 py-2 z-20 animate-in">
-                        <p className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800 mb-1">Switch Hub</p>
+                    <div className="absolute right-0 mt-2 w-48 bg-popover rounded-xl shadow-xl border border-border py-2 z-20 animate-in fade-in zoom-in-95 duration-200">
+                        <p className="px-4 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/50 mb-1">Switch Hub</p>
                         {branches.map((branch) => (
                             <button
                                 key={branch.id}
                                 onClick={() => handleSelectBranch(branch)}
                                 className={`w-full text-left px-4 py-2 text-xs font-medium transition-colors ${selectedBranch?.id === branch.id
-                                        ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/40'
-                                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                    ? 'text-primary bg-primary/10'
+                                    : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
                                     }`}
                             >
                                 {branch.name}

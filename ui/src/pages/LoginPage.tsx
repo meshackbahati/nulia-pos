@@ -41,89 +41,85 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen gradient-bg flex items-center justify-center p-6 font-sans">
-            <div className="w-full max-w-md animate-in">
-                <div className="text-center mb-10">
-                    <div className="w-20 h-20 bg-primary/10 soft-ui-out rounded-3xl flex items-center justify-center mx-auto mb-6">
-                        <Lock className="w-10 h-10 text-primary" />
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden font-body">
+            {/* Ambient Background Glow */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] pointer-events-none opacity-40"></div>
+
+            <div className="w-full max-w-md relative z-10 animate-in">
+                <div className="text-center mb-8">
+                    <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-primary/30">
+                        <Lock className="w-8 h-8 text-primary-foreground" />
                     </div>
-                    <h1 className="text-4xl font-black text-gray-800 dark:text-gray-100 uppercase tracking-tighter mb-2">
-                        Welcome <span className="text-primary">Back</span>
+                    <h1 className="text-3xl font-display font-bold text-foreground mb-2">
+                        Welcome Back
                     </h1>
-                    <p className="text-gray-500 dark:text-gray-400 font-medium">Secure Terminal Login</p>
+                    <p className="text-muted-foreground font-medium">Secure Terminal Access</p>
                 </div>
 
-                <div className="soft-ui-out rounded-[2.5rem] bg-white dark:bg-gray-900 border-none p-8 md:p-10">
+                <div className="glass-card bg-card/80 backdrop-blur-xl border border-border p-8 shadow-2xl">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {error && (
-                            <div className="p-4 text-sm text-red-500 soft-ui-in bg-red-50/50 dark:bg-red-900/10 rounded-2xl border border-red-100 dark:border-red-900/20 flex items-center gap-3 animate-in">
-                                <span className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]"></span>
+                            <div className="p-4 bg-destructive/10 text-destructive text-sm rounded-xl border border-destructive/20 flex items-center gap-3 animate-in">
+                                <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse"></span>
                                 {error}
                             </div>
                         )}
 
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">
-                                Terminal ID / Email
+                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">
+                                Email
                             </label>
                             <div className="relative group">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                 <input
                                     type="email"
-                                    placeholder="admin@bordershop.com"
+                                    placeholder="user@example.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
-                                    className="modern-input w-full pl-11 pr-4 py-4"
+                                    className="w-full h-12 bg-background/50 border border-input rounded-xl pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-muted-foreground/50"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">
-                                Access Password
+                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">
+                                Password
                             </label>
                             <div className="relative group">
-                                <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
+                                <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                 <input
                                     type="password"
                                     placeholder="••••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
-                                    className="modern-input w-full pl-11 pr-4 py-4"
+                                    className="w-full h-12 bg-background/50 border border-input rounded-xl pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-muted-foreground/50"
                                 />
                             </div>
                         </div>
 
-                        <div className="pt-2">
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full modern-button py-5 text-gray-100 flex items-center justify-center gap-3 font-black text-lg group bg-primary"
-                            >
-                                {loading ? (
-                                    <Loader2 className="w-6 h-6 animate-spin" />
-                                ) : (
-                                    <>
-                                        Sign In to Terminal
-                                        <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                                    </>
-                                )}
-                            </button>
-                        </div>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full h-12 bg-primary text-primary-foreground rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/25 hover:bg-primary/90 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 disabled:hover:translate-y-0 disabled:shadow-none"
+                        >
+                            {loading ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                                <>
+                                    Sign In
+                                    <ArrowRight className="w-5 h-5" />
+                                </>
+                            )}
+                        </button>
                     </form>
                 </div>
 
-                <div className="mt-8 flex items-center justify-center gap-6 opacity-30 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
+                <div className="mt-8 flex items-center justify-center gap-6 opacity-40 hover:opacity-100 transition-opacity duration-300">
                     <div className="flex items-center gap-2">
                         <Store className="w-4 h-4" />
-                        <span className="text-xs font-bold uppercase tracking-widest">Multi-Branch</span>
-                    </div>
-                    <div className="w-1 h-1 rounded-full bg-gray-400"></div>
-                    <div className="flex items-center gap-2">
-                        <Shield className="w-4 h-4" />
-                        <span className="text-xs font-bold uppercase tracking-widest">Secure POS</span>
+                        <span className="text-xs font-bold uppercase tracking-widest">BorderShop OS</span>
                     </div>
                 </div>
             </div>

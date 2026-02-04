@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from 'react-hot-toast';
+import Layout from './components/Layout';
 import './index.css';
 
 // Pages
@@ -62,14 +63,14 @@ function App() {
             <Route path="/auth/login" element={<LoginPage />} />
 
             {/* Manager Routes */}
-            <Route path="/dashboard" element={<ManagerDashboard />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/users" element={<UsersPage />} />
-            <Route path="/manager/settings" element={<SettingsPage />} />
-            <Route path="/manager/analytics" element={<AnalyticsPage />} />
-            <Route path="/manager/branches" element={<BranchesPage />} />
-            <Route path="/manager/suppliers" element={<SuppliersPage />} />
-            <Route path="/manager/purchase-orders" element={<PurchaseOrdersPage />} />
+            <Route path="/dashboard" element={<Layout><ManagerDashboard /></Layout>} />
+            <Route path="/products" element={<Layout><ProductsPage /></Layout>} />
+            <Route path="/users" element={<Layout><UsersPage /></Layout>} />
+            <Route path="/manager/settings" element={<Layout><SettingsPage /></Layout>} />
+            <Route path="/manager/analytics" element={<Layout><AnalyticsPage /></Layout>} />
+            <Route path="/manager/branches" element={<Layout><BranchesPage /></Layout>} />
+            <Route path="/manager/suppliers" element={<Layout><SuppliersPage /></Layout>} />
+            <Route path="/manager/purchase-orders" element={<Layout><PurchaseOrdersPage /></Layout>} />
 
             {/* Sales Person Routes */}
             <Route path="/sales-dashboard" element={<SalesDashboard />} />

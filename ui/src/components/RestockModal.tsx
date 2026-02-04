@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Save, AlertCircle } from 'lucide-react';
+import { X, Save, AlertCircle, Package } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 
@@ -50,31 +50,36 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-md w-full p-8 border border-slate-200 dark:border-slate-800">
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
+            <div className="bg-card rounded-2xl shadow-xl max-w-md w-full p-8 border border-border ring-1 ring-border/50">
                 <div className="flex items-center justify-between mb-8">
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">Restock Inventory</h2>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary shadow-sm ring-1 ring-inset ring-primary/20">
+                            <Package className="w-5 h-5" />
+                        </div>
+                        <h2 className="text-xl font-bold text-foreground">Restock Inventory</h2>
+                    </div>
+                    <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors p-2 hover:bg-muted rounded-full">
                         <X className="w-6 h-6" />
                     </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl flex items-start gap-3 border border-blue-100 dark:border-blue-900/40">
-                        <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <div className="bg-blue-500/10 p-4 rounded-xl flex items-start gap-3 border border-blue-500/20">
+                        <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5" />
                         <div>
-                            <p className="text-sm font-bold text-blue-900 dark:text-blue-300">{product.name}</p>
-                            <p className="text-[10px] uppercase font-bold text-blue-600 mt-1">Current Stock: {product.stockQuantity}</p>
+                            <p className="text-sm font-bold text-foreground">{product.name}</p>
+                            <p className="text-[10px] uppercase font-bold text-blue-500 mt-1">Current Stock: {product.stockQuantity}</p>
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Addition Quantity</label>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Addition Quantity</label>
                         <input
                             type="number"
                             min="1"
                             required
-                            className="modern-input h-12 text-lg font-bold"
+                            className="w-full h-14 rounded-xl border border-input bg-background px-4 text-center text-2xl font-bold text-foreground placeholder-muted-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
                             value={quantity}
                             onChange={(e) => setQuantity(e.target.value)}
                             placeholder="0"
@@ -83,21 +88,21 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Logistic Note (Optional)</label>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Logistic Note (Optional)</label>
                         <textarea
-                            className="modern-input h-24 py-3 resize-none"
+                            className="w-full min-h-[100px] rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all resize-none"
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
                             placeholder="e.g. Shipment from central hub..."
                         />
                     </div>
 
-                    <div className="flex gap-4 pt-2">
-                        <button type="button" onClick={onClose} className="flex-1 h-12 modern-button bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold">CANCEL</button>
+                    <div className="flex gap-4 pt-4 border-t border-border">
+                        <button type="button" onClick={onClose} className="flex-1 h-12 bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground rounded-lg font-bold uppercase text-xs transition-colors">CANCEL</button>
                         <button
                             type="submit"
                             disabled={loading}
-                            className="flex-1 h-12 modern-button bg-blue-600 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-600/10"
+                            className="flex-1 h-12 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg font-bold uppercase text-xs flex items-center justify-center gap-2 shadow-lg shadow-primary/25 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100"
                         >
                             <Save className="w-4 h-4" />
                             {loading ? 'STORING...' : 'RESTOCK'}

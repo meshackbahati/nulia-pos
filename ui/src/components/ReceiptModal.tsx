@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Download, Printer, Mail, FileText } from 'lucide-react';
+import { X, Download, Printer, Mail, FileText, Check } from 'lucide-react';
 import jsPDF from 'jspdf';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
@@ -128,49 +128,49 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-md w-full p-8 border border-slate-200 dark:border-slate-800">
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
+            <div className="bg-card rounded-2xl shadow-xl max-w-md w-full p-8 border border-border ring-1 ring-border/50">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/40 rounded-lg flex items-center justify-center text-blue-600">
+                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary shadow-sm ring-1 ring-inset ring-primary/20">
                             <FileText className="w-5 h-5" />
                         </div>
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Sale Receipt</h2>
+                        <h2 className="text-xl font-bold text-foreground">Sale Receipt</h2>
                     </div>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+                    <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors p-2 hover:bg-muted rounded-full">
                         <X className="w-6 h-6" />
                     </button>
                 </div>
 
                 {/* Receipt Card */}
-                <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-xl border border-slate-100 dark:border-slate-700 mb-8 max-h-[40vh] overflow-y-auto custom-scrollbar">
+                <div className="bg-muted/30 p-6 rounded-xl border border-border/50 mb-8 max-h-[40vh] overflow-y-auto custom-scrollbar">
                     <div className="text-center mb-6">
-                        <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">{companyName}</p>
-                        <p className="text-xs text-slate-400 mt-1 uppercase font-bold tracking-tight">Official Confirmation</p>
+                        <p className="text-[10px] font-bold text-primary uppercase tracking-widest">{companyName}</p>
+                        <p className="text-xs text-muted-foreground mt-1 uppercase font-bold tracking-tight">Official Confirmation</p>
                     </div>
 
                     <div className="space-y-4">
                         {sale.items.map((item, idx) => (
-                            <div key={idx} className="flex justify-between items-start text-xs">
+                            <div key={idx} className="flex justify-between items-start text-xs border-b border-border/10 pb-2 last:border-0 last:pb-0">
                                 <div className="min-w-0 pr-4">
-                                    <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{item.name}</p>
-                                    <p className="text-slate-400 mt-0.5">{item.quantity} units @ ${item.price.toFixed(2)}</p>
+                                    <p className="font-bold text-foreground truncate">{item.name}</p>
+                                    <p className="text-muted-foreground mt-0.5">{item.quantity} units @ ${item.price.toFixed(2)}</p>
                                 </div>
-                                <span className="font-bold text-slate-900 dark:text-white">${(item.quantity * item.price).toFixed(2)}</span>
+                                <span className="font-bold text-foreground">${(item.quantity * item.price).toFixed(2)}</span>
                             </div>
                         ))}
 
-                        <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-2">
-                            <div className="flex justify-between text-xs text-slate-500">
+                        <div className="pt-4 border-t border-border space-y-2">
+                            <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>Subtotal</span>
                                 <span>${sale.subtotal.toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between text-xs text-slate-500">
+                            <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>Tax (16%)</span>
                                 <span>${sale.tax.toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between text-base font-bold text-slate-900 dark:text-white pt-2">
+                            <div className="flex justify-between text-base font-bold text-foreground pt-2 border-t border-border border-dashed">
                                 <span>Amount Total</span>
                                 <span>${sale.total.toFixed(2)}</span>
                             </div>
@@ -180,19 +180,19 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
 
                 {/* Email Section */}
                 <div className="space-y-4 mb-8">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Dispatch Digitally</label>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Dispatch Digitally</label>
                     <div className="flex gap-2">
                         <input
                             type="email"
                             placeholder="customer@email.com"
                             value={customerEmail}
                             onChange={(e) => setCustomerEmail(e.target.value)}
-                            className="flex-1 modern-input h-10 text-xs"
+                            className="flex-1 w-full h-10 rounded-lg border border-input bg-background px-3 py-2 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
                         />
                         <button
                             onClick={handleEmailReceipt}
                             disabled={sending || !customerEmail}
-                            className="bg-blue-600 text-white px-4 h-10 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                            className="bg-primary text-primary-foreground px-4 h-10 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center shadow-sm"
                         >
                             <Mail className="w-4 h-4" />
                         </button>
@@ -201,10 +201,10 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
 
                 {/* Primary Actions */}
                 <div className="grid grid-cols-2 gap-4">
-                    <button onClick={handlePrint} className="h-11 modern-button bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center gap-2 text-xs font-bold uppercase">
+                    <button onClick={handlePrint} className="h-11 bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground rounded-lg flex items-center justify-center gap-2 text-xs font-bold uppercase transition-colors">
                         <Printer className="w-4 h-4" /> Print
                     </button>
-                    <button onClick={generatePDF} className="h-11 modern-button bg-slate-900 dark:bg-blue-600 text-white flex items-center justify-center gap-2 text-xs font-bold uppercase shadow-lg shadow-blue-600/10">
+                    <button onClick={generatePDF} className="h-11 bg-foreground text-background hover:bg-foreground/90 flex items-center justify-center gap-2 text-xs font-bold uppercase shadow-md transition-colors">
                         <Download className="w-4 h-4" /> Export PDF
                     </button>
                 </div>

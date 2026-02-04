@@ -64,7 +64,7 @@ export default function SettingsPage() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
+            <div className="flex items-center justify-center min-h-screen bg-background">
                 <div className="flex flex-col items-center gap-4">
                     <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                     <p className="text-slate-500 text-sm font-medium">Accessing Core...</p>
@@ -74,19 +74,19 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans transition-colors duration-300">
+        <div className="min-h-screen bg-background flex flex-col font-sans transition-colors duration-300">
             {/* Header */}
-            <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 sticky top-0 z-50">
+            <header className="bg-background border-b border-border px-6 py-4 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-sm">
+                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary shadow-sm">
                             <SettingsIcon className="w-5 h-5" />
                         </div>
                         <div>
-                            <h1 className="text-lg font-bold text-slate-900 dark:text-white">
-                                Global <span className="text-blue-600">Configuration</span>
+                            <h1 className="text-lg font-bold text-foreground">
+                                Global <span className="text-primary">Configuration</span>
                             </h1>
-                            <p className="text-xs text-slate-500 font-medium">System parameters and integrations</p>
+                            <p className="text-xs text-muted-foreground font-medium">System parameters and integrations</p>
                         </div>
                     </div>
 
@@ -95,7 +95,7 @@ export default function SettingsPage() {
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="modern-button bg-blue-600 text-white flex items-center gap-2 disabled:opacity-50"
+                            className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 rounded-md transition-colors text-sm font-medium disabled:opacity-50"
                         >
                             <Save className="w-4 h-4" />
                             <span className="hidden md:inline uppercase text-xs font-bold">{saving ? 'Syncing...' : 'Sync Config'}</span>
@@ -104,30 +104,30 @@ export default function SettingsPage() {
                 </div>
             </header>
 
-            <main className="max-w-5xl mx-auto w-full px-6 py-8 space-y-12 animate-in text-left">
+            <main className="max-w-5xl mx-auto w-full px-6 py-8 space-y-12 animate-in fade-in duration-500 text-left">
                 <form onSubmit={handleSave} className="space-y-8">
                     {/* Organization */}
                     <div className="space-y-4">
-                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                             <Building className="w-4 h-4" />
                             Organization Identity
                         </h2>
-                        <div className="modern-card p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-card text-card-foreground border border-border shadow-sm rounded-xl p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Company Name</label>
-                                <input type="text" className="modern-input" value={settings.company.name} onChange={(e) => setSettings({ ...settings, company: { ...settings.company, name: e.target.value } })} />
+                                <label className="text-xs font-bold text-muted-foreground uppercase ml-1">Company Name</label>
+                                <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" value={settings.company.name} onChange={(e) => setSettings({ ...settings, company: { ...settings.company, name: e.target.value } })} />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Support Email</label>
-                                <input type="email" className="modern-input" value={settings.company.email} onChange={(e) => setSettings({ ...settings, company: { ...settings.company, email: e.target.value } })} />
+                                <label className="text-xs font-bold text-muted-foreground uppercase ml-1">Support Email</label>
+                                <input type="email" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" value={settings.company.email} onChange={(e) => setSettings({ ...settings, company: { ...settings.company, email: e.target.value } })} />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Hotline</label>
-                                <input type="tel" className="modern-input" value={settings.company.phone} onChange={(e) => setSettings({ ...settings, company: { ...settings.company, phone: e.target.value } })} />
+                                <label className="text-xs font-bold text-muted-foreground uppercase ml-1">Hotline</label>
+                                <input type="tel" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" value={settings.company.phone} onChange={(e) => setSettings({ ...settings, company: { ...settings.company, phone: e.target.value } })} />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Location</label>
-                                <input type="text" className="modern-input" value={settings.company.address} onChange={(e) => setSettings({ ...settings, company: { ...settings.company, address: e.target.value } })} />
+                                <label className="text-xs font-bold text-muted-foreground uppercase ml-1">Location</label>
+                                <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" value={settings.company.address} onChange={(e) => setSettings({ ...settings, company: { ...settings.company, address: e.target.value } })} />
                             </div>
                         </div>
                     </div>
@@ -135,64 +135,66 @@ export default function SettingsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {/* Financial */}
                         <div className="space-y-4">
-                            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                <CreditCard className="w-4 h-4 text-green-500" />
+                            <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                <CreditCard className="w-4 h-4 text-emerald-500" />
                                 M-Pesa Gateway
                             </h2>
-                            <div className="modern-card p-6 space-y-4">
-                                <input type="text" className="modern-input" placeholder="Consumer Key" value={settings.mpesa.consumerKey} onChange={(e) => setSettings({ ...settings, mpesa: { ...settings.mpesa, consumerKey: e.target.value } })} />
-                                <input type="password" className="modern-input" placeholder="Consumer Secret" value={settings.mpesa.consumerSecret} onChange={(e) => setSettings({ ...settings, mpesa: { ...settings.mpesa, consumerSecret: e.target.value } })} />
-                                <input type="text" className="modern-input" placeholder="Shortcode" value={settings.mpesa.shortcode} onChange={(e) => setSettings({ ...settings, mpesa: { ...settings.mpesa, shortcode: e.target.value } })} />
-                                <input type="password" className="modern-input" placeholder="Passkey" value={settings.mpesa.passkey} onChange={(e) => setSettings({ ...settings, mpesa: { ...settings.mpesa, passkey: e.target.value } })} />
-                                <input type="url" className="modern-input" placeholder="Callback URL" value={settings.mpesa.callbackUrl} onChange={(e) => setSettings({ ...settings, mpesa: { ...settings.mpesa, callbackUrl: e.target.value } })} />
+                            <div className="bg-card text-card-foreground border border-border shadow-sm rounded-xl p-6 space-y-4">
+                                <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Consumer Key" value={settings.mpesa.consumerKey} onChange={(e) => setSettings({ ...settings, mpesa: { ...settings.mpesa, consumerKey: e.target.value } })} />
+                                <input type="password" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Consumer Secret" value={settings.mpesa.consumerSecret} onChange={(e) => setSettings({ ...settings, mpesa: { ...settings.mpesa, consumerSecret: e.target.value } })} />
+                                <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Shortcode" value={settings.mpesa.shortcode} onChange={(e) => setSettings({ ...settings, mpesa: { ...settings.mpesa, shortcode: e.target.value } })} />
+                                <input type="password" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Passkey" value={settings.mpesa.passkey} onChange={(e) => setSettings({ ...settings, mpesa: { ...settings.mpesa, passkey: e.target.value } })} />
+                                <input type="url" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Callback URL" value={settings.mpesa.callbackUrl} onChange={(e) => setSettings({ ...settings, mpesa: { ...settings.mpesa, callbackUrl: e.target.value } })} />
                             </div>
                         </div>
 
                         {/* External Nodes */}
                         <div className="space-y-8">
                             <div className="space-y-4">
-                                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                                     <Mail className="w-4 h-4 text-blue-500" />
                                     Communication
                                 </h2>
-                                <div className="modern-card p-6 space-y-4">
-                                    <input type="password" className="modern-input" placeholder="Brevo API Key" value={settings.brevo.apiKey} onChange={(e) => setSettings({ ...settings, brevo: { ...settings.brevo, apiKey: e.target.value } })} />
+                                <div className="bg-card text-card-foreground border border-border shadow-sm rounded-xl p-6 space-y-4">
+                                    <input type="password" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Brevo API Key" value={settings.brevo.apiKey} onChange={(e) => setSettings({ ...settings, brevo: { ...settings.brevo, apiKey: e.target.value } })} />
                                     <div className="grid grid-cols-2 gap-4">
-                                        <input type="email" className="modern-input" placeholder="Sender Email" value={settings.brevo.senderEmail} onChange={(e) => setSettings({ ...settings, brevo: { ...settings.brevo, senderEmail: e.target.value } })} />
-                                        <input type="text" className="modern-input" placeholder="Sender Name" value={settings.brevo.senderName} onChange={(e) => setSettings({ ...settings, brevo: { ...settings.brevo, senderName: e.target.value } })} />
+                                        <input type="email" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Sender Email" value={settings.brevo.senderEmail} onChange={(e) => setSettings({ ...settings, brevo: { ...settings.brevo, senderEmail: e.target.value } })} />
+                                        <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Sender Name" value={settings.brevo.senderName} onChange={(e) => setSettings({ ...settings, brevo: { ...settings.brevo, senderName: e.target.value } })} />
                                     </div>
                                 </div>
                             </div>
 
                             <div className="space-y-4">
-                                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                                     <Cloud className="w-4 h-4 text-purple-500" />
                                     Assets
                                 </h2>
-                                <div className="modern-card p-6 space-y-4">
-                                    <input type="text" className="modern-input" placeholder="Cloudinary Name" value={settings.cloudinary.cloudName} onChange={(e) => setSettings({ ...settings, cloudinary: { ...settings.cloudinary, cloudName: e.target.value } })} />
+                                <div className="bg-card text-card-foreground border border-border shadow-sm rounded-xl p-6 space-y-4">
+                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Cloudinary Name" value={settings.cloudinary.cloudName} onChange={(e) => setSettings({ ...settings, cloudinary: { ...settings.cloudinary, cloudName: e.target.value } })} />
                                     <div className="grid grid-cols-2 gap-4">
-                                        <input type="text" className="modern-input" placeholder="API Key" value={settings.cloudinary.apiKey} onChange={(e) => setSettings({ ...settings, cloudinary: { ...settings.cloudinary, apiKey: e.target.value } })} />
-                                        <input type="password" className="modern-input" placeholder="API Secret" value={settings.cloudinary.apiSecret} onChange={(e) => setSettings({ ...settings, cloudinary: { ...settings.cloudinary, apiSecret: e.target.value } })} />
+                                        <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="API Key" value={settings.cloudinary.apiKey} onChange={(e) => setSettings({ ...settings, cloudinary: { ...settings.cloudinary, apiKey: e.target.value } })} />
+                                        <input type="password" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="API Secret" value={settings.cloudinary.apiSecret} onChange={(e) => setSettings({ ...settings, cloudinary: { ...settings.cloudinary, apiSecret: e.target.value } })} />
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-slate-100 dark:bg-slate-800/50 p-6 rounded-xl flex items-center justify-between">
+                    <div className="bg-muted/50 p-6 rounded-xl flex items-center justify-between border border-border">
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-lg flex items-center justify-center text-blue-600 shadow-sm">
+                            <div className="w-10 h-10 bg-background rounded-lg flex items-center justify-center text-primary shadow-sm border border-border">
                                 <Shield className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Security Protocol</h3>
-                                <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">All parameters encrypted</p>
+                                <h3 className="text-sm font-bold text-foreground">Security Protocol</h3>
+                                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">All parameters encrypted</p>
                             </div>
                         </div>
-                        <button type="submit" disabled={saving} className="modern-button bg-slate-900 dark:bg-blue-600 text-white font-bold px-8 shadow-sm">
-                            {saving ? 'Syncing...' : 'Commit Changes'}
-                        </button>
+                        <div className="flex gap-4">
+                            <button type="submit" disabled={saving} className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6 rounded-md transition-colors text-sm font-bold disabled:opacity-50">
+                                {saving ? 'Syncing...' : 'Commit Changes'}
+                            </button>
+                        </div>
                     </div>
                 </form>
             </main>

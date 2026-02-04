@@ -63,19 +63,19 @@ export default function SuppliersPage() {
     );
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans transition-colors duration-300">
+        <div className="min-h-screen bg-background flex flex-col font-sans transition-colors duration-300">
             {/* Header */}
-            <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 sticky top-0 z-50">
+            <header className="bg-background/80 backdrop-blur-md border-b border-border/40 px-6 py-4 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-sm">
+                        <div className="w-10 h-10 bg-blue-600/10 rounded-lg flex items-center justify-center text-blue-600 shadow-sm ring-1 ring-inset ring-blue-600/20">
                             <Truck className="w-5 h-5" />
                         </div>
                         <div>
-                            <h1 className="text-lg font-bold text-slate-900 dark:text-white">
-                                Supply <span className="text-blue-600">Network</span>
+                            <h1 className="text-lg font-bold text-foreground">
+                                Supply <span className="text-primary">Network</span>
                             </h1>
-                            <p className="text-xs text-slate-500 font-medium">Vendor partnerships and logistics</p>
+                            <p className="text-xs text-muted-foreground font-medium">Vendor partnerships and logistics</p>
                         </div>
                     </div>
 
@@ -83,31 +83,31 @@ export default function SuppliersPage() {
                         <ThemeToggle />
                         <button
                             onClick={() => setShowModal(true)}
-                            className="modern-button bg-blue-600 text-white flex items-center gap-2"
+                            className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all shadow-sm active:scale-[0.98]"
                         >
                             <Plus className="w-4 h-4" />
-                            <span className="hidden md:inline uppercase text-xs font-bold">Add Vendor</span>
+                            <span className="hidden md:inline">Add Vendor</span>
                         </button>
                     </div>
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto w-full px-6 py-8 space-y-8 animate-in text-left">
+            <main className="max-w-7xl mx-auto w-full px-6 py-8 space-y-8 animate-in fade-in zoom-in-95 duration-500 text-left">
                 {/* Search & Stats */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
                         <input
                             type="text"
                             placeholder="Search vendors..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="modern-input pl-12 h-11"
+                            className="w-full h-11 pl-12 rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         />
                     </div>
                     <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Active Accounts:</span>
-                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1 rounded-full text-xs font-bold text-green-600 shadow-sm">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Active Accounts:</span>
+                        <div className="bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-bold text-emerald-500 shadow-sm">
                             {suppliers.filter(s => s.isActive).length}
                         </div>
                     </div>
@@ -116,58 +116,60 @@ export default function SuppliersPage() {
                 {loading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {[1, 2, 3, 4, 5, 6].map(i => (
-                            <div key={i} className="h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl animate-pulse"></div>
+                            <div key={i} className="h-64 bg-muted rounded-xl animate-pulse"></div>
                         ))}
                     </div>
                 ) : filteredSuppliers.length === 0 ? (
-                    <div className="bg-white dark:bg-slate-900 border border-dash border-slate-200 dark:border-slate-800 p-16 text-center rounded-2xl">
-                        <Truck className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">No vendors found</h3>
-                        <p className="text-slate-500 text-sm mt-1">Start by adding your first supply partner to the terminal.</p>
-                        <button onClick={() => setShowModal(true)} className="mt-6 modern-button bg-blue-600 text-white">Add Vendor</button>
+                    <div className="bg-card border border-dashed border-border p-16 text-center rounded-2xl">
+                        <Truck className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                        <h3 className="text-lg font-bold text-foreground">No vendors found</h3>
+                        <p className="text-muted-foreground text-sm mt-1">Start by adding your first supply partner to the terminal.</p>
+                        <button onClick={() => setShowModal(true)} className="mt-6 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors">Add Vendor</button>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredSuppliers.map(supplier => (
-                            <div key={supplier.id} className="modern-card p-6 flex flex-col gap-6 group">
+                            <div key={supplier.id} className="group relative rounded-xl border border-border/50 bg-card p-6 flex flex-col gap-6 hover:border-primary/50 transition-all shadow-sm hover:shadow-md">
                                 <div className="flex justify-between items-start">
-                                    <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-lg flex items-center justify-center text-slate-600 font-bold text-xl">
+                                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary font-bold text-xl ring-1 ring-inset ring-primary/20">
                                         {supplier.name.charAt(0)}
                                     </div>
-                                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${supplier.isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${supplier.isActive ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
                                         {supplier.isActive ? 'Active' : 'Offline'}
                                     </span>
                                 </div>
 
                                 <div className="space-y-1">
-                                    <h3 className="font-bold text-slate-900 dark:text-white line-clamp-1">{supplier.name}</h3>
+                                    <h3 className="font-bold text-foreground line-clamp-1">{supplier.name}</h3>
                                     {supplier.contactPerson && (
-                                        <p className="text-xs text-slate-500">{supplier.contactPerson}</p>
+                                        <p className="text-xs text-muted-foreground">{supplier.contactPerson}</p>
                                     )}
                                 </div>
 
-                                <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                <div className="space-y-3 pt-4 border-t border-border/50">
                                     {supplier.phone && (
-                                        <div className="flex items-center gap-3 text-xs text-slate-500">
+                                        <div className="flex items-center gap-3 text-xs text-muted-foreground group-hover:text-foreground transition-colors">
                                             <Phone className="w-4 h-4 opacity-50" />
                                             <span>{supplier.phone}</span>
                                         </div>
                                     )}
                                     {supplier.email && (
-                                        <div className="flex items-center gap-3 text-xs text-slate-500">
+                                        <div className="flex items-center gap-3 text-xs text-muted-foreground group-hover:text-foreground transition-colors">
                                             <Mail className="w-4 h-4 opacity-50" />
                                             <span className="truncate">{supplier.email}</span>
                                         </div>
                                     )}
                                     {supplier.website && (
-                                        <div className="flex items-center gap-3 text-xs text-blue-600">
+                                        <div className="flex items-center gap-3 text-xs text-primary">
                                             <Globe className="w-4 h-4 opacity-50" />
                                             <span className="truncate">{supplier.website.replace(/^https?:\/\//, '')}</span>
                                         </div>
                                     )}
                                 </div>
 
-                                <button className="mt-auto h-8 modern-button bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] uppercase font-bold hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600">Edit Vendor</button>
+                                <button className="mt-auto h-8 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground px-3 rounded-lg text-[10px] uppercase font-bold transition-colors">
+                                    Edit Vendor
+                                </button>
                             </div>
                         ))}
                     </div>
@@ -176,43 +178,72 @@ export default function SuppliersPage() {
 
             {/* Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-6 z-[100] animate-in">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-2xl w-full p-8 border border-slate-200 dark:border-slate-800">
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center p-6 z-[100] animate-in fade-in duration-200">
+                    <div className="bg-card rounded-2xl shadow-xl max-w-2xl w-full p-8 border border-border ring-1 ring-border/50">
                         <div className="flex items-center justify-between mb-8">
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Register Vendor</h2>
-                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
+                            <h2 className="text-xl font-bold text-foreground">Register Vendor</h2>
+                            <button onClick={() => setShowModal(false)} className="text-muted-foreground hover:text-foreground transition-colors">
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Company Name</label>
-                                <input type="text" required className="modern-input" value={formData.name || ''} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Company Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    value={formData.name || ''}
+                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Key Contact</label>
-                                    <input type="text" className="modern-input" value={formData.contactPerson || ''} onChange={e => setFormData({ ...formData, contactPerson: e.target.value })} />
+                                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Key Contact</label>
+                                    <input
+                                        type="text"
+                                        className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        value={formData.contactPerson || ''}
+                                        onChange={e => setFormData({ ...formData, contactPerson: e.target.value })}
+                                    />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Communication</label>
-                                    <input type="tel" className="modern-input" value={formData.phone || ''} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
+                                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Communication</label>
+                                    <input
+                                        type="tel"
+                                        className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        value={formData.phone || ''}
+                                        onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                    />
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Email Identity</label>
-                                <input type="email" className="modern-input" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Email Identity</label>
+                                <input
+                                    type="email"
+                                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    value={formData.email || ''}
+                                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                />
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">HQ Address</label>
-                                <textarea className="modern-input h-20" value={formData.address || ''} onChange={e => setFormData({ ...formData, address: e.target.value })} />
+                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">HQ Address</label>
+                                <textarea
+                                    className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    value={formData.address || ''}
+                                    onChange={e => setFormData({ ...formData, address: e.target.value })}
+                                />
                             </div>
 
-                            <button type="submit" disabled={submitting} className="w-full h-12 modern-button bg-blue-600 text-white font-bold shadow-sm disabled:opacity-50">
+                            <button
+                                type="submit"
+                                disabled={submitting}
+                                className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg font-bold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            >
                                 {submitting ? 'Registering...' : 'Confirm Registration'}
                             </button>
                         </form>
