@@ -1,0 +1,55 @@
+src/components/BranchSelector.tsx(13,11): error TS6133: 'user' is declared but its value is never read.
+src/components/ProductModal.tsx(26,26): error TS6133: 'setImagePreview' is declared but its value is never read.
+src/components/ReceiptModal.tsx(52,21): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/components/ReceiptModal.tsx(58,21): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/components/ReceiptModal.tsx(86,21): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/components/ReceiptModal.tsx(92,21): error TS2345: Argument of type 'undefined' is not assignable to parameter of type 'string'.
+src/components/installation-form.tsx(4,27): error TS2307: Cannot find module 'next/navigation' or its corresponding type declarations.
+src/components/installation-form.tsx(8,26): error TS2307: Cannot find module '@/hooks/use-toast' or its corresponding type declarations.
+src/components/login-form.tsx(4,27): error TS2307: Cannot find module 'next/navigation' or its corresponding type declarations.
+src/components/login-form.tsx(8,26): error TS2307: Cannot find module '@/hooks/use-toast' or its corresponding type declarations.
+src/components/pos-interface.tsx(17,3): error TS6133: 'Receipt' is declared but its value is never read.
+src/components/pos-interface.tsx(276,26): error TS2304: Cannot find name 'Package'.
+src/components/ui/label.tsx(2,33): error TS2307: Cannot find module '@radix-ui/react-label' or its corresponding type declarations.
+src/components/ui/toaster.tsx(11,26): error TS2307: Cannot find module '@/hooks/use-toast' or its corresponding type declarations.
+src/components/ui/toaster.tsx(18,31): error TS7031: Binding element 'id' implicitly has an 'any' type.
+src/components/ui/toaster.tsx(18,35): error TS7031: Binding element 'title' implicitly has an 'any' type.
+src/components/ui/toaster.tsx(18,42): error TS7031: Binding element 'description' implicitly has an 'any' type.
+src/components/ui/toaster.tsx(18,55): error TS7031: Binding element 'action' implicitly has an 'any' type.
+src/lib/audit.ts(1,20): error TS2307: Cannot find module '@/models' or its corresponding type declarations.
+src/lib/audit.ts(2,29): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+src/lib/auth-middleware.ts(1,25): error TS2307: Cannot find module 'next/headers' or its corresponding type declarations.
+src/lib/auth-middleware.ts(2,26): error TS2307: Cannot find module 'next/navigation' or its corresponding type declarations.
+src/lib/auth.ts(1,17): error TS2307: Cannot find module 'jsonwebtoken' or its corresponding type declarations.
+src/lib/auth.ts(2,29): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+src/lib/auth.ts(3,20): error TS2307: Cannot find module '@/models' or its corresponding type declarations.
+src/lib/auth.ts(5,20): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/auth.ts(6,24): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/email.ts(1,24): error TS2307: Cannot find module 'nodemailer' or its corresponding type declarations.
+src/lib/email.ts(9,14): error TS2591: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/email.ts(40,15): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/email.ts(41,15): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/email.ts(50,17): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/email.ts(51,20): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/encryption.ts(1,20): error TS2307: Cannot find module 'crypto' or its corresponding type declarations.
+src/lib/encryption.ts(3,24): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/encryption.ts(30,11): error TS6133: 'iv' is declared but its value is never read.
+src/lib/encryption.ts(30,16): error TS2591: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/encryption.ts(31,21): error TS2591: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/mpesa.ts(2,1): error TS6192: All imports in import declaration are unused.
+src/lib/mpesa.ts(3,20): error TS2307: Cannot find module '@/models' or its corresponding type declarations.
+src/lib/mpesa.ts(35,20): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/mpesa.ts(42,20): error TS2591: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/mpesa.ts(67,24): error TS2591: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/mpesa.ts(123,21): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/mpesa.ts(123,60): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/mpesa.ts(138,24): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/mpesa.ts(139,27): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/mpesa.ts(140,20): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/mpesa.ts(141,22): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/mpesa.ts(155,45): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/utils.ts(8,48): error TS6133: 'currency' is declared but its value is never read.
+src/lib/utils.ts(75,16): error TS2503: Cannot find namespace 'NodeJS'.
+src/pages/AnalyticsPage.tsx(4,68): error TS6133: 'FileText' is declared but its value is never read.
+src/pages/ProductsPage.tsx(2,1): error TS6133: 'useAuth' is declared but its value is never read.
+src/pages/UsersPage.tsx(18,11): error TS6133: 'currentUser' is declared but its value is never read.

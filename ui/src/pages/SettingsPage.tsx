@@ -1,0 +1,201 @@
+import { useState, useEffect } from 'react';
+import { Save, Settings as SettingsIcon, Shield, CreditCard, Cloud, Building, Mail } from 'lucide-react';
+import api from '../lib/api-client';
+import toast from 'react-hot-toast';
+import ThemeToggle from '../components/ThemeToggle';
+
+export default function SettingsPage() {
+    const [settings, setSettings] = useState({
+        mpesa: {
+            consumerKey: '',
+            consumerSecret: '',
+            shortcode: '',
+            passkey: '',
+            callbackUrl: '',
+        },
+        brevo: {
+            apiKey: '',
+            senderEmail: '',
+            senderName: '',
+        },
+        cloudinary: {
+            cloudName: '',
+            apiKey: '',
+            apiSecret: '',
+        },
+        company: {
+            name: 'BorderShop POS',
+            email: '',
+            phone: '',
+            address: '',
+        },
+    });
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        fetchSettings();
+    }, []);
+
+    const fetchSettings = async () => {
+        try {
+            const response = await api.getSettings();
+            setSettings(response.data.settings || settings);
+        } catch (error) {
+            console.error('Error fetching settings:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSaving(true);
+
+        try {
+            await api.updateSettings(settings);
+            toast.success('Settings synchronized');
+        } catch (error) {
+            toast.error('Failed to update settings');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-slate-500 text-sm font-medium">Accessing Core...</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans transition-colors duration-300">
+            {/* Header */}
+            <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 sticky top-0 z-50">
+                <div className="max-w-7xl mx-auto flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-sm">
+                            <SettingsIcon className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h1 className="text-lg font-bold text-slate-900 dark:text-white">
+                                Global <span className="text-blue-600">Configuration</span>
+                            </h1>
+                            <p className="text-xs text-slate-500 font-medium">System parameters and integrations</p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <ThemeToggle />
+                        <button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="modern-button bg-blue-600 text-white flex items-center gap-2 disabled:opacity-50"
+                        >
+                            <Save className="w-4 h-4" />
+                            <span className="hidden md:inline uppercase text-xs font-bold">{saving ? 'Syncing...' : 'Sync Config'}</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main className="max-w-5xl mx-auto w-full px-6 py-8 space-y-12 animate-in text-left">
+                <form onSubmit={handleSave} className="space-y-8">
+                    {/* Organization */}
+                    <div className="space-y-4">
+                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            <Building className="w-4 h-4" />
+                            Organization Identity
+                        </h2>
+                        <div className="modern-card p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Company Name</label>
+                                <input type="text" className="modern-input" value={settings.company.name} onChange={(e) => setSettings({ ...settings, company: { ...settings.company, name: e.target.value } })} />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Support Email</label>
+                                <input type="email" className="modern-input" value={settings.company.email} onChange={(e) => setSettings({ ...settings, company: { ...settings.company, email: e.target.value } })} />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Hotline</label>
+                                <input type="tel" className="modern-input" value={settings.company.phone} onChange={(e) => setSettings({ ...settings, company: { ...settings.company, phone: e.target.value } })} />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Location</label>
+                                <input type="text" className="modern-input" value={settings.company.address} onChange={(e) => setSettings({ ...settings, company: { ...settings.company, address: e.target.value } })} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Financial */}
+                        <div className="space-y-4">
+                            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <CreditCard className="w-4 h-4 text-green-500" />
+                                M-Pesa Gateway
+                            </h2>
+                            <div className="modern-card p-6 space-y-4">
+                                <input type="text" className="modern-input" placeholder="Consumer Key" value={settings.mpesa.consumerKey} onChange={(e) => setSettings({ ...settings, mpesa: { ...settings.mpesa, consumerKey: e.target.value } })} />
+                                <input type="password" className="modern-input" placeholder="Consumer Secret" value={settings.mpesa.consumerSecret} onChange={(e) => setSettings({ ...settings, mpesa: { ...settings.mpesa, consumerSecret: e.target.value } })} />
+                                <input type="text" className="modern-input" placeholder="Shortcode" value={settings.mpesa.shortcode} onChange={(e) => setSettings({ ...settings, mpesa: { ...settings.mpesa, shortcode: e.target.value } })} />
+                                <input type="password" className="modern-input" placeholder="Passkey" value={settings.mpesa.passkey} onChange={(e) => setSettings({ ...settings, mpesa: { ...settings.mpesa, passkey: e.target.value } })} />
+                                <input type="url" className="modern-input" placeholder="Callback URL" value={settings.mpesa.callbackUrl} onChange={(e) => setSettings({ ...settings, mpesa: { ...settings.mpesa, callbackUrl: e.target.value } })} />
+                            </div>
+                        </div>
+
+                        {/* External Nodes */}
+                        <div className="space-y-8">
+                            <div className="space-y-4">
+                                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                    <Mail className="w-4 h-4 text-blue-500" />
+                                    Communication
+                                </h2>
+                                <div className="modern-card p-6 space-y-4">
+                                    <input type="password" className="modern-input" placeholder="Brevo API Key" value={settings.brevo.apiKey} onChange={(e) => setSettings({ ...settings, brevo: { ...settings.brevo, apiKey: e.target.value } })} />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <input type="email" className="modern-input" placeholder="Sender Email" value={settings.brevo.senderEmail} onChange={(e) => setSettings({ ...settings, brevo: { ...settings.brevo, senderEmail: e.target.value } })} />
+                                        <input type="text" className="modern-input" placeholder="Sender Name" value={settings.brevo.senderName} onChange={(e) => setSettings({ ...settings, brevo: { ...settings.brevo, senderName: e.target.value } })} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                    <Cloud className="w-4 h-4 text-purple-500" />
+                                    Assets
+                                </h2>
+                                <div className="modern-card p-6 space-y-4">
+                                    <input type="text" className="modern-input" placeholder="Cloudinary Name" value={settings.cloudinary.cloudName} onChange={(e) => setSettings({ ...settings, cloudinary: { ...settings.cloudinary, cloudName: e.target.value } })} />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <input type="text" className="modern-input" placeholder="API Key" value={settings.cloudinary.apiKey} onChange={(e) => setSettings({ ...settings, cloudinary: { ...settings.cloudinary, apiKey: e.target.value } })} />
+                                        <input type="password" className="modern-input" placeholder="API Secret" value={settings.cloudinary.apiSecret} onChange={(e) => setSettings({ ...settings, cloudinary: { ...settings.cloudinary, apiSecret: e.target.value } })} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-100 dark:bg-slate-800/50 p-6 rounded-xl flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-lg flex items-center justify-center text-blue-600 shadow-sm">
+                                <Shield className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Security Protocol</h3>
+                                <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">All parameters encrypted</p>
+                            </div>
+                        </div>
+                        <button type="submit" disabled={saving} className="modern-button bg-slate-900 dark:bg-blue-600 text-white font-bold px-8 shadow-sm">
+                            {saving ? 'Syncing...' : 'Commit Changes'}
+                        </button>
+                    </div>
+                </form>
+            </main>
+        </div>
+    );
+}
