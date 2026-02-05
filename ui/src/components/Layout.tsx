@@ -23,6 +23,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
     const { user, logout } = useAuth();
@@ -60,19 +61,31 @@ export default function Layout({ children }: LayoutProps) {
 
             {/* Sidebar */}
             <aside
-                className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-72 bg-card border-r transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-                    }`}
+                className={`fixed lg:sticky top-0 left-0 z-50 h-screen bg-card border-r transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                    } ${isCollapsed ? 'lg:w-20' : 'lg:w-72'}`}
             >
-                <div className="h-full flex flex-col p-6">
-                    {/* Logo */}
-                    <div className="flex items-center gap-3 mb-10 px-2">
-                        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20">
-                            <Store className="w-6 h-6" />
+                <div className="h-full flex flex-col p-4">
+                    {/* Logo & Toggle */}
+                    <div className="flex items-center justify-between mb-10 px-2 overflow-hidden">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20 shrink-0">
+                                <Store className="w-6 h-6" />
+                            </div>
+                            {!isCollapsed && (
+                                <div className="animate-in fade-in slide-in-from-left-2">
+                                    <h1 className="text-xl font-display font-bold tracking-tight">BorderShop</h1>
+                                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                                        {user?.role?.replace(/_/g, ' ') || 'Manager'}
+                                    </p>
+                                </div>
+                            )}
                         </div>
-                        <div>
-                            <h1 className="text-xl font-display font-bold tracking-tight">BorderShop</h1>
-                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Manager</p>
-                        </div>
+                        <button
+                            onClick={() => setIsCollapsed(!isCollapsed)}
+                            className={`p-1.5 rounded-lg hover:bg-secondary text-muted-foreground transition-all duration-300 ${isCollapsed ? 'lg:flex absolute top-4 left-5 bg-card border shadow-sm z-50 animate-pulse-subtle' : 'hidden lg:flex'}`}
+                        >
+                            <Menu className="w-4 h-4" />
+                        </button>
                     </div>
 
                     {/* Navigation */}
@@ -83,35 +96,41 @@ export default function Layout({ children }: LayoutProps) {
                                 <Link
                                     key={item.path}
                                     to={item.path}
-                                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group font-medium ${isActive
+                                    className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group font-medium ${isActive
                                         ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
                                         : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                                         }`}
+                                    title={isCollapsed ? item.label : ''}
                                 >
-                                    <item.icon className={`w-5 h-5 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-primary transition-colors'}`} />
-                                    {item.label}
+                                    <item.icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-primary transition-colors'
+                                        }`} />
+                                    {!isCollapsed && <span className="truncate">{item.label}</span>}
                                 </Link>
                             );
                         })}
                     </nav>
 
                     {/* User Profile */}
-                    <div className="mt-auto pt-6 border-t">
+                    <div className="mt-auto pt-6 border-t overflow-hidden">
                         <div className="flex items-center gap-3 px-2 mb-4">
-                            <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg font-bold text-primary">
+                            <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg font-bold text-primary shrink-0">
                                 {user?.firstName?.[0] || 'U'}
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold truncate">{user?.firstName || 'User'}</p>
-                                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-                            </div>
+                            {!isCollapsed && (
+                                <div className="flex-1 min-w-0 animate-in fade-in">
+                                    <p className="text-sm font-bold truncate">{user?.firstName || 'User'}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                                </div>
+                            )}
                         </div>
                         <button
                             onClick={handleLogout}
-                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                            className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg transition-colors ${isCollapsed ? 'justify-center' : ''
+                                }`}
+                            title={isCollapsed ? 'Sign Out' : ''}
                         >
-                            <LogOut className="w-4 h-4" />
-                            Sign Out
+                            <LogOut className="w-4 h-4 shrink-0" />
+                            {!isCollapsed && <span>Sign Out</span>}
                         </button>
                     </div>
                 </div>

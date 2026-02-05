@@ -7,8 +7,15 @@ interface User {
     email: string;
     firstName: string;
     lastName: string;
-    role: 'admin' | 'manager' | 'salesperson';
+    role: 'admin' | 'manager' | 'head_of_sales' | 'salesperson';
     branchId?: string;
+    branch?: {
+        id: string;
+        name: string;
+        currency: string;
+        currencySymbol: string;
+        exchangeRate?: number;
+    };
 }
 
 interface AuthContextType {

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../lib/api-client';
 import { ShieldCheck, User, Mail, Lock, Store, ArrowRight, Loader2 } from 'lucide-react';
 
 export default function InstallPage() {
@@ -26,22 +27,32 @@ export default function InstallPage() {
         setError('');
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/install/setup`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
-            });
+            const nameParts = formData.name.trim().split(/\s+/);
+            const firstName = nameParts[0] || 'Admin';
+            const lastName = nameParts.slice(1).join(' ') || 'User';
 
-            const data = await response.json();
+            const setupData = {
+                branch: {
+                    name: formData.branchName,
+                },
+                admin: {
+                    firstName,
+                    lastName,
+                    email: formData.email,
+                    password: formData.password,
+                }
+            };
 
-            if (response.ok) {
+            const response = await api.setup(setupData);
+
+            if (response.data.success) {
                 // Installation complete, redirect to login
                 navigate('/auth/login');
             } else {
-                setError(data.error || 'Installation failed');
+                setError(response.data.error || 'Installation failed');
             }
-        } catch (err) {
-            setError('Network error. Please try again.');
+        } catch (err: any) {
+            setError(err.response?.data?.error || 'Network error. Please try again.');
         } finally {
             setLoading(false);
         }

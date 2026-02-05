@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../lib/api-client';
 import ProductModal from '../components/ProductModal';
 import RestockModal from '../components/RestockModal';
-import { Plus, Package, AlertTriangle, PlusCircle, Search } from 'lucide-react';
+import { Plus, Package, AlertTriangle, PlusCircle, Search, FileUp, Building } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
+import { useCurrency } from '../hooks/useCurrency';
+import toast from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Product {
     id: string;
@@ -22,16 +25,60 @@ interface Product {
 }
 
 export default function ProductsPage() {
+    const { user } = useAuth();
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [restockingProduct, setRestockingProduct] = useState<Product | null>(null);
+    const { formatPrice } = useCurrency();
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [branches, setBranches] = useState<any[]>([]);
+    const [selectedImportBranch, setSelectedImportBranch] = useState('');
 
     useEffect(() => {
         fetchProducts();
-    }, []);
+        if (user?.role === 'admin') {
+            fetchBranches();
+        }
+    }, [user]);
+
+    const fetchBranches = async () => {
+        try {
+            const res = await api.getBranches();
+            setBranches(res.data.branches || []);
+        } catch (error) {
+            console.error('Error fetching branches:', error);
+        }
+    };
+
+    const handleCSVImport = async (file: File) => {
+        const branchId = selectedImportBranch;
+        if (!branchId) {
+            toast.error('Please select a target hub for import first');
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            toast.loading('Importing products...', { id: 'csv-import' });
+            const response = await api.importProducts(file, branchId);
+            const { created, updated, errors } = response.data.results;
+
+            if (errors.length > 0) {
+                toast.error(`Imported with ${errors.length} errors. ${created} created, ${updated} updated.`, { id: 'csv-import', duration: 5000 });
+                console.error('Import errors:', errors);
+            } else {
+                toast.success(`Success! ${created} created, ${updated} updated.`, { id: 'csv-import' });
+            }
+            fetchProducts();
+        } catch (error: any) {
+            toast.error(error.response?.data?.error || 'Failed to import products', { id: 'csv-import' });
+        }
+    };
 
     const fetchProducts = async () => {
         try {
@@ -79,13 +126,45 @@ export default function ProductsPage() {
 
                     <div className="flex items-center gap-4">
                         <ThemeToggle />
-                        <button
-                            onClick={() => setShowAddModal(true)}
-                            className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 rounded-md transition-colors text-sm font-medium"
-                        >
-                            <Plus className="w-4 h-4" />
-                            <span className="hidden md:inline uppercase text-xs font-bold">Register Item</span>
-                        </button>
+                        <div className="flex gap-2">
+                            <div className="flex items-center gap-2">
+                                <Building className="w-4 h-4 text-muted-foreground" />
+                                <select
+                                    value={selectedImportBranch}
+                                    onChange={(e) => setSelectedImportBranch(e.target.value)}
+                                    className="h-9 rounded-md border border-input bg-background px-3 py-1 text-xs font-bold uppercase focus:outline-none focus:ring-2 focus:ring-ring"
+                                >
+                                    <option value="">Select Hub...</option>
+                                    {branches.map(b => (
+                                        <option key={b.id} value={b.id}>{b.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="flex items-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-9 px-4 py-2 rounded-md transition-colors text-sm font-medium"
+                            >
+                                <FileUp className="w-4 h-4" />
+                                <span className="hidden md:inline uppercase text-xs font-bold">Import CSV</span>
+                            </button>
+                            <button
+                                onClick={() => setShowAddModal(true)}
+                                className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 rounded-md transition-colors text-sm font-medium"
+                            >
+                                <Plus className="w-4 h-4" />
+                                <span className="hidden md:inline uppercase text-xs font-bold">Register Item</span>
+                            </button>
+                        </div>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleCSVImport(file);
+                            }}
+                            className="hidden"
+                            accept=".csv"
+                        />
                     </div>
                 </div>
             </header>
@@ -153,7 +232,7 @@ export default function ProductsPage() {
                                 <div className="space-y-1 mb-4 flex-1">
                                     <h3 className="font-bold text-foreground text-sm line-clamp-1">{product.name}</h3>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-primary font-bold text-sm">${product.basePrice.toFixed(2)}</span>
+                                        <span className="text-primary font-bold text-sm">{formatPrice(product.basePrice)}</span>
                                         <span className="text-[10px] text-muted-foreground font-medium">SKU: {product.sku}</span>
                                     </div>
                                 </div>

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8888/.netlify/functions';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 // Create axios instance
 const apiClient = axios.create({
@@ -39,6 +39,7 @@ export const api = {
 
     // Installation
     checkInstall: () => apiClient.get('/install/check'),
+    setup: (data: any) => apiClient.post('/install/setup', data),
     setupInstall: (data: any) => apiClient.post('/install/setup', data),
 
     // Users
@@ -81,8 +82,8 @@ export const api = {
     updateBranch: (data: any) => apiClient.post('/branches/update', data),
 
     // Settings
-    getSettings: () => apiClient.get('/settings/get'),
-    updateSettings: (settings: any) => apiClient.post('/settings/update', settings),
+    getSettings: () => apiClient.get('/settings/get'), // Updated to use apiClient
+    updateSettings: (data: any) => apiClient.post('/settings/update', data), // Updated to use apiClient and 'data' param
 
     // Receipts
     emailReceipt: (saleId: string, email: string) => apiClient.post('/receipts/email', { saleId, email }),
@@ -95,6 +96,33 @@ export const api = {
     getPurchaseOrders: () => apiClient.get('/purchase-orders/list'),
     createPurchaseOrder: (data: any) => apiClient.post('/purchase-orders/create', data),
     receivePurchaseOrder: (purchaseOrderId: string) => apiClient.post('/purchase-orders/receive', { purchaseOrderId }),
+
+    // Analytics
+    getAnalyticsSummary: (params: any) => apiClient.get('/analytics/summary', { params }),
+    getSalesLeaderboard: (params: any) => apiClient.get('/analytics/leaderboard', { params }),
+    getBranchLeaderboard: (params: any) => apiClient.get('/analytics/branch-leaderboard', { params }),
+    getSalesTrends: (params: any) => apiClient.get('/analytics/trends', { params }),
+
+    // Generic
+    get: (url: string, params?: any) => apiClient.get(url, { params }),
+    post: (url: string, data?: any) => apiClient.post(url, data),
+
+    // Upload
+    uploadImage: (file: File) => {
+        const formData = new FormData();
+        formData.append('image', file);
+        return apiClient.post('/products/upload-image', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    },
+    importProducts: (file: File, branchId?: string) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (branchId) formData.append('branchId', branchId);
+        return apiClient.post('/products/import-csv', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    }
 };
 
 export default api;

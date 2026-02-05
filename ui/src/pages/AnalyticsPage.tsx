@@ -18,6 +18,7 @@ import {
 } from 'recharts';
 import jsPDF from 'jspdf';
 import { useTheme } from '../contexts/ThemeContext';
+import { useCurrency } from '../hooks/useCurrency';
 
 export default function AnalyticsPage() {
     const [period, setPeriod] = useState<'week' | 'month'>('week');
@@ -27,6 +28,7 @@ export default function AnalyticsPage() {
     const [paymentData, setPaymentData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const { theme } = useTheme();
+    const { formatPrice } = useCurrency();
 
     useEffect(() => {
         fetchAnalytics();
@@ -125,9 +127,9 @@ export default function AnalyticsPage() {
                 {/* Metrics Matrix */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {[
-                        { label: 'Total Revenue', value: `$${stats[period].revenue.toFixed(2)}`, icon: DollarSign, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+                        { label: 'Total Revenue', value: formatPrice(stats[period].revenue), icon: DollarSign, color: 'text-amber-500', bg: 'bg-amber-500/10' },
                         { label: 'Sales Count', value: stats[period].salesCount, icon: ShoppingCart, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                        { label: 'Average Order', value: `$${stats[period].salesCount > 0 ? (stats[period].revenue / stats[period].salesCount).toFixed(2) : '0.00'}`, icon: TrendingUp, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+                        { label: 'Average Order', value: formatPrice(stats[period].salesCount > 0 ? (stats[period].revenue / stats[period].salesCount) : 0), icon: TrendingUp, color: 'text-blue-500', bg: 'bg-blue-500/10' },
                         { label: 'Period', value: period === 'week' ? 'This Week' : 'This Month', icon: Calendar, color: 'text-purple-500', bg: 'bg-purple-500/10' }
                     ].map((item, i) => (
                         <div key={i} className="rounded-xl border border-border/50 bg-card p-6 flex items-center gap-4 shadow-sm hover:border-primary/20 transition-colors">
@@ -252,7 +254,7 @@ export default function AnalyticsPage() {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-bold text-foreground text-xs truncate uppercase tracking-tight">{item.product.name}</p>
-                                            <p className="text-[10px] text-muted-foreground font-medium">${item.revenue.toFixed(2)} revenue</p>
+                                            <p className="text-[10px] text-muted-foreground font-medium">{formatPrice(item.revenue)} revenue</p>
                                         </div>
                                         <div className="px-2 py-1 bg-primary/10 text-primary rounded text-[10px] font-black italic">
                                             {item.quantitySold} sold

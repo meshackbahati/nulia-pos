@@ -18,8 +18,9 @@ import {
     CreditCard
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { formatCurrency } from '../lib/utils';
+import { useCurrency } from '../hooks/useCurrency';
 import { Link } from 'react-router-dom';
+import useScanDetection from '../hooks/useScanDetection';
 
 interface Product {
     id: string;
@@ -47,6 +48,7 @@ interface CartItem {
 
 export default function POSPage() {
     const { user } = useAuth();
+    const { formatPrice } = useCurrency();
     const [products, setProducts] = useState<Product[]>([]);
     const [cart, setCart] = useState<CartItem[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -133,9 +135,7 @@ export default function POSPage() {
         fetchProducts();
     };
 
-    const handleScan = (_barcode: string) => {
-        setShowScanner(false);
-    };
+
 
     const filteredProducts = products.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -146,8 +146,32 @@ export default function POSPage() {
 
     const categories = ['All', ...new Set(products.map(p => p.category))];
 
+    // Handle barcode scan (from hardware scanner)
+    useScanDetection({
+        onScan: (barcode) => {
+            handleScan(barcode);
+        }
+    });
+
+    const handleScan = (barcode: string) => {
+        // Try to find product by SKU or Barcode (assuming we map them or they are same)
+        // In this mock, we check SKU 
+        const product = products.find(p => p.sku === barcode || p.id === barcode); // Basic check
+
+        if (product) {
+            addToCart(product);
+            // toast.success(`Added ${product.name}`);
+        } else {
+            // Check if it matches a product name loosely? No, scanner is precise.
+            // Maybe just set search term
+            setSearchTerm(barcode);
+            // toast.error('Product not found');
+        }
+        setShowScanner(false);
+    };
+
     return (
-        <div className="h-screen bg-background flex flex-col overflow-hidden font-body">
+        <div className="h-full bg-background flex flex-col overflow-hidden font-body">
             {/* Header */}
             <header className="flex-none h-16 bg-card border-b px-4 lg:px-6 flex items-center justify-between z-20 shadow-sm">
                 <div className="flex items-center gap-4">
@@ -165,9 +189,14 @@ export default function POSPage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="hidden md:flex items-center gap-2 bg-secondary/50 px-3 py-1.5 rounded-lg text-xs font-mono font-medium text-foreground">
-                        <Clock className="w-3.5 h-3.5 text-primary" />
-                        {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <div className="hidden md:flex flex-col items-end gap-0.5 bg-secondary/30 px-3 py-1 rounded-lg">
+                        <div className="flex items-center gap-1.5 text-xs font-mono font-medium text-foreground">
+                            <Clock className="w-3 h-3 text-primary" />
+                            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">
+                            Terminal: {user?.branchId || 'Main Branch'}
+                        </div>
                     </div>
                     <ThemeToggle />
                     <button
@@ -207,8 +236,8 @@ export default function POSPage() {
                                     key={cat}
                                     onClick={() => setSelectedCategory(cat)}
                                     className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap shadow-sm ${selectedCategory === cat
-                                            ? 'bg-primary text-primary-foreground shadow-primary/25'
-                                            : 'bg-card text-muted-foreground hover:bg-secondary border border-transparent hover:border-border'
+                                        ? 'bg-primary text-primary-foreground shadow-primary/25'
+                                        : 'bg-card text-muted-foreground hover:bg-secondary border border-transparent hover:border-border'
                                         }`}
                                 >
                                     {cat}
@@ -275,7 +304,7 @@ export default function POSPage() {
                                             </h3>
                                             <div className="mt-3 flex items-end justify-between">
                                                 <span className="text-lg font-black text-primary font-display">
-                                                    {formatCurrency(product.price)}
+                                                    {formatPrice(product.price)}
                                                 </span>
                                                 <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <Plus className="w-5 h-5" />
@@ -327,7 +356,7 @@ export default function POSPage() {
                                     <div className="flex-1 min-w-0 flex flex-col justify-between">
                                         <div>
                                             <h4 className="text-sm font-bold text-foreground line-clamp-1">{item.name}</h4>
-                                            <p className="text-xs font-medium text-primary mt-0.5">{formatCurrency(item.price)}</p>
+                                            <p className="text-xs font-medium text-primary mt-0.5">{formatPrice(item.price)}</p>
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <button
@@ -346,7 +375,7 @@ export default function POSPage() {
                                         </div>
                                     </div>
                                     <div className="flex flex-col justify-between items-end">
-                                        <p className="font-bold text-foreground">{formatCurrency(item.price * item.quantity)}</p>
+                                        <p className="font-bold text-foreground">{formatPrice(item.price * item.quantity)}</p>
                                     </div>
                                 </div>
                             ))
@@ -357,11 +386,11 @@ export default function POSPage() {
                         <div className="space-y-3 mb-4">
                             <div className="flex justify-between text-sm text-muted-foreground">
                                 <span>Subtotal</span>
-                                <span className="font-medium text-foreground">{formatCurrency(subtotal)}</span>
+                                <span className="font-medium text-foreground">{formatPrice(subtotal)}</span>
                             </div>
                             <div className="flex justify-between items-end pt-2 border-t border-dashed">
                                 <span className="text-lg font-bold">Total</span>
-                                <span className="text-2xl font-black text-primary font-display">{formatCurrency(total)}</span>
+                                <span className="text-2xl font-black text-primary font-display">{formatPrice(total)}</span>
                             </div>
                         </div>
                         <button
@@ -377,29 +406,35 @@ export default function POSPage() {
             </div>
 
             {/* Modals */}
-            {showScanner && (
-                <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
-            )}
+            {
+                showScanner && (
+                    <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
+                )
+            }
 
-            {showReceipt && currentSale && (
-                <ReceiptModal
-                    sale={currentSale}
-                    companyName="BorderShop"
-                    onClose={() => {
-                        setShowReceipt(false);
-                        setCurrentSale(null);
-                        setCart([]);
-                    }}
-                />
-            )}
+            {
+                showReceipt && currentSale && (
+                    <ReceiptModal
+                        sale={currentSale}
+                        companyName="BorderShop"
+                        onClose={() => {
+                            setShowReceipt(false);
+                            setCurrentSale(null);
+                            setCart([]);
+                        }}
+                    />
+                )
+            }
 
-            {showPaymentModal && (
-                <PaymentModal
-                    total={total}
-                    onComplete={onPaymentComplete}
-                    onClose={() => setShowPaymentModal(false)}
-                />
-            )}
-        </div>
+            {
+                showPaymentModal && (
+                    <PaymentModal
+                        total={total}
+                        onComplete={onPaymentComplete}
+                        onClose={() => setShowPaymentModal(false)}
+                    />
+                )
+            }
+        </div >
     );
 }

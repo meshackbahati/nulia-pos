@@ -1,7 +1,12 @@
-import { useState } from 'react';
-import { X, Package, Tag, Hash, DollarSign, Info, Barcode, Check, AlertCircle } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { X, Package, Tag, DollarSign, Info, Barcode, Check, AlertCircle, Image as ImageIcon, Upload, Loader2, Plus as PlusIcon, Camera, CameraOff } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
+import useScanDetection from '../hooks/useScanDetection';
+import { useCurrency } from '../hooks/useCurrency';
+import { BrowserMultiFormatReader } from '@zxing/library';
+
+import { useAuth } from '../contexts/AuthContext';
 
 interface ProductModalProps {
     product?: any;
@@ -11,7 +16,12 @@ interface ProductModalProps {
 
 export default function ProductModal({ product, onClose, onSuccess }: ProductModalProps) {
     const isEdit = !!product;
+    const { user } = useAuth();
+    const { symbol } = useCurrency();
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [branches, setBranches] = useState<any[]>([]);
     const [formData, setFormData] = useState({
+        branchId: product?.branchId || (user?.role === 'admin' ? '' : user?.branchId) || '',
         name: product?.name || '',
         description: product?.description || '',
         category: product?.category || '',
@@ -20,26 +30,114 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
         costPrice: product?.costPrice || '',
         sku: product?.sku || '',
         barcode: product?.barcode || '',
+        barcodes: product?.barcodes || [],
         stockQuantity: product?.stockQuantity || '',
         lowStockThreshold: product?.lowStockThreshold || 10,
+        imageUrl: product?.imageUrl || '',
     });
     const [variants, setVariants] = useState<{ name: string; sku: string; price: string; stock: string }[]>(
         product?.variants ? product.variants.map((v: any) => ({
             name: v.name,
             sku: v.sku,
             price: v.price.toString(),
-            stock: '0'
+            stock: '0',
+            imageUrl: v.imageUrl || product.imageUrl
         })) : []
     );
     const [submitting, setSubmitting] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [isScanning, setIsScanning] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const codeReader = useRef<BrowserMultiFormatReader | null>(null);
+
+    useEffect(() => {
+        if (user?.role === 'admin') {
+            fetchBranches();
+        }
+    }, [user]);
+
+    const fetchBranches = async () => {
+        try {
+            const res = await api.getBranches();
+            setBranches(res.data.branches || []);
+        } catch (error) {
+            console.error('Error fetching branches:', error);
+        }
+    };
+
+    useEffect(() => {
+        if (isScanning && videoRef.current) {
+            codeReader.current = new BrowserMultiFormatReader();
+            codeReader.current.decodeFromVideoDevice(null, videoRef.current, (result) => {
+                if (result) {
+                    handleAddBarcode(result.getText());
+                    toast.success('Barcode scanned via camera!');
+                    setIsScanning(false);
+                }
+            });
+        }
+
+        return () => {
+            if (codeReader.current) {
+                codeReader.current.reset();
+            }
+        };
+    }, [isScanning]);
+
+    const handleAddBarcode = (newBarcode: string) => {
+        if (!newBarcode || formData.barcodes.includes(newBarcode)) return;
+        setFormData(prev => ({
+            ...prev,
+            barcodes: [...prev.barcodes, newBarcode],
+            barcode: prev.barcode || newBarcode // Set as primary if empty
+        }));
+    };
+
+    const handleRemoveBarcode = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            barcodes: prev.barcodes.filter((_: any, i: number) => i !== index)
+        }));
+    };
+
+    // Handle hardware scan
+    useScanDetection({
+        onScan: (barcode) => {
+            handleAddBarcode(barcode);
+            toast.success('Barcode scanned!');
+        }
+    });
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            setUploading(true);
+            const response = await api.uploadImage(file);
+            setFormData({ ...formData, imageUrl: response.data.url });
+            toast.success('Image uploaded successfully');
+        } catch (error: any) {
+            toast.error(error.response?.data?.error || 'Failed to upload image');
+        } finally {
+            setUploading(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!formData.imageUrl) {
+            toast.error('Product image is required');
+            return;
+        }
+
         setSubmitting(true);
 
         try {
             const payload = {
                 ...formData,
+                branchId: formData.branchId,
                 basePrice: parseFloat(formData.basePrice),
                 costPrice: parseFloat(formData.costPrice || '0'),
                 stockQuantity: parseInt(formData.stockQuantity || '0'),
@@ -71,7 +169,7 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
 
     return (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
-            <div className="bg-card rounded-2xl shadow-xl max-w-4xl w-full p-8 border border-border max-h-[90vh] overflow-y-auto custom-scrollbar ring-1 ring-border/50">
+            <div className="bg-card rounded-2xl shadow-xl max-w-5xl w-full p-8 border border-border max-h-[90vh] overflow-y-auto custom-scrollbar ring-1 ring-border/50">
                 <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary shadow-sm ring-1 ring-inset ring-primary/20">
@@ -87,14 +185,71 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-8">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                        {/* Primary Info */}
-                        <div className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                        {/* Image Upload Area */}
+                        <div className="lg:col-span-1 space-y-4">
+                            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                <ImageIcon className="w-4 h-4" /> Product Visual
+                            </h3>
+                            <div
+                                onClick={() => fileInputRef.current?.click()}
+                                className="aspect-square rounded-2xl border-2 border-dashed border-border hover:border-primary/50 transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center bg-muted/20 relative group"
+                            >
+                                {formData.imageUrl ? (
+                                    <>
+                                        <img src={formData.imageUrl} alt="Product" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                            <Upload className="w-8 h-8 text-white" />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                        {uploading ? <Loader2 className="w-10 h-10 animate-spin text-primary" /> : <Upload className="w-10 h-10" />}
+                                        <div className="text-center">
+                                            <p className="text-xs font-bold uppercase tracking-wider">Click to upload</p>
+                                            <p className="text-[10px] font-medium opacity-60">JPG, PNG or WEBP (Max 5MB)</p>
+                                        </div>
+                                    </div>
+                                )}
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleImageUpload}
+                                    className="hidden"
+                                    accept="image/*"
+                                />
+                            </div>
+                            {uploading && (
+                                <p className="text-[10px] font-bold text-primary animate-pulse text-center">UPLOADING ASSET...</p>
+                            )}
+                            {!formData.imageUrl && !uploading && (
+                                <p className="text-[10px] font-bold text-destructive text-center uppercase tracking-tighter">* Required for system update</p>
+                            )}
+                        </div>
+
+                        {/* Core Identity */}
+                        <div className="lg:col-span-1 space-y-6">
                             <div className="space-y-4">
                                 <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                                     <Info className="w-4 h-4" /> Core Identity
                                 </h3>
-                                <div className="space-y-4">
+                                <div className="space-y-4 text-left">
+                                    {user?.role === 'admin' && (
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-muted-foreground uppercase ml-1">Target Branch</label>
+                                            <select
+                                                required
+                                                value={formData.branchId}
+                                                onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                                                className="w-full h-11 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
+                                            >
+                                                <option value="">Select a branch...</option>
+                                                {branches.map((b: any) => (
+                                                    <option key={b.id} value={b.id}>{b.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-muted-foreground uppercase ml-1">Product Title</label>
                                         <input
@@ -139,99 +294,151 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                                             />
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                    <Hash className="w-4 h-4" /> Identification
-                                </h3>
-                                <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-muted-foreground uppercase ml-1">SKU Code</label>
                                         <input
                                             type="text"
-                                            required
                                             value={formData.sku}
                                             onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                                             className="w-full h-11 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
+                                            placeholder="Optional internal SKU"
                                         />
                                     </div>
+                                    <div className="flex justify-between items-center ml-1">
+                                        <label className="text-xs font-bold text-muted-foreground uppercase">Barcodes</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsScanning(!isScanning)}
+                                            className={`flex items-center gap-1.5 text-[10px] font-bold uppercase px-2 py-1 rounded-md transition-all ${isScanning ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary hover:bg-primary/20'
+                                                }`}
+                                        >
+                                            {isScanning ? <><CameraOff className="w-3 h-3" /> Stop Camera</> : <><Camera className="w-3 h-3" /> Use Camera</>}
+                                        </button>
+                                    </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-muted-foreground uppercase ml-1">Barcode</label>
-                                        <div className="relative">
-                                            <Barcode className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                                            <input
-                                                type="text"
-                                                value={formData.barcode}
-                                                onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                                                className="w-full h-11 pl-10 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
-                                            />
+                                        {isScanning && (
+                                            <div className="relative aspect-video bg-black rounded-lg overflow-hidden border-2 border-primary/50 shadow-inner mb-2 animate-in fade-in zoom-in duration-300">
+                                                <video ref={videoRef} className="w-full h-full object-cover" />
+                                                <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 h-0.5 bg-primary/40 animate-pulse shadow-[0_0_15px_rgba(var(--primary),0.5)]"></div>
+                                                <div className="absolute top-2 left-2 text-[8px] font-bold text-white bg-black/40 px-1.5 py-0.5 rounded backdrop-blur">
+                                                    LIVE FEED • SCAN BARCODE
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <Barcode className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                                <input
+                                                    type="text"
+                                                    value={formData.barcode}
+                                                    onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            handleAddBarcode(formData.barcode);
+                                                            setFormData(prev => ({ ...prev, barcode: '' }));
+                                                        }
+                                                    }}
+                                                    placeholder="Enter or scan barcode..."
+                                                    className="w-full h-11 pl-10 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
+                                                />
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    handleAddBarcode(formData.barcode);
+                                                    setFormData(prev => ({ ...prev, barcode: '' }));
+                                                }}
+                                                className="h-11 px-4 bg-secondary text-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                                            >
+                                                <PlusIcon className="w-4 h-4" />
+                                            </button>
+                                        </div>
+
+                                        {/* Barcode List */}
+                                        <div className="flex flex-wrap gap-2 min-h-[40px] p-2 rounded-lg border border-dashed border-border/50 bg-muted/20">
+                                            {formData.barcodes.length === 0 ? (
+                                                <span className="text-[10px] text-muted-foreground italic px-2 py-1">No barcodes added yet</span>
+                                            ) : (
+                                                formData.barcodes.map((bc: string, idx: number) => (
+                                                    <div key={idx} className="flex items-center gap-1.5 bg-background border rounded-full pl-3 pr-1.5 py-1 text-xs font-medium group">
+                                                        {bc}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveBarcode(idx)}
+                                                            className="p-0.5 text-muted-foreground hover:text-destructive rounded-full hover:bg-destructive/10 transition-colors"
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                ))
+                                            )}
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        {/* Inventory & Variants */}
-                        <div className="space-y-6">
-                            <div className="space-y-4">
-                                <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                    <DollarSign className="w-4 h-4 text-emerald-500" /> Pricing & Stock
-                                </h3>
-                                <div className="bg-muted/30 p-6 rounded-xl border border-border/50 space-y-6">
-                                    <div className="grid grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-muted-foreground uppercase">Selling Price</label>
-                                            <div className="relative">
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">$</span>
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    required
-                                                    value={formData.basePrice}
-                                                    onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })}
-                                                    className="w-full h-12 pl-8 rounded-lg border border-input bg-background px-3 py-2 text-lg font-bold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-muted-foreground uppercase">Cost Logic</label>
-                                            <div className="relative">
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">$</span>
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={formData.costPrice}
-                                                    onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
-                                                    className="w-full h-12 pl-8 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-6 pt-4 border-t border-border/50">
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-muted-foreground uppercase">Initial Units</label>
+                    {/* Pricing & Stock */}
+                    <div className="lg:col-span-1 space-y-6">
+                        <div className="space-y-4">
+                            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                <DollarSign className="w-4 h-4 text-emerald-500" /> Pricing & Stock
+                            </h3>
+                            <div className="bg-muted/30 p-6 rounded-xl border border-border/50 space-y-6 text-left">
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-muted-foreground uppercase">Selling Price</label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">{symbol}</span>
                                             <input
                                                 type="number"
-                                                value={formData.stockQuantity}
-                                                onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
-                                                className="w-full h-11 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
+                                                step="0.01"
+                                                required
+                                                value={formData.basePrice}
+                                                onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })}
+                                                className="w-full h-12 pl-8 rounded-lg border border-input bg-background px-3 py-2 text-lg font-bold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
                                             />
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-muted-foreground uppercase">Alert Threshold</label>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-muted-foreground uppercase">Cost Logic</label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">{symbol}</span>
                                             <input
                                                 type="number"
-                                                value={formData.lowStockThreshold}
-                                                onChange={(e) => setFormData({ ...formData, lowStockThreshold: e.target.value })}
-                                                className="w-full h-11 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
+                                                step="0.01"
+                                                value={formData.costPrice}
+                                                onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
+                                                className="w-full h-12 pl-8 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
                                             />
                                         </div>
                                     </div>
                                 </div>
+                                <div className="grid grid-cols-2 gap-6 pt-4 border-t border-border/50">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-muted-foreground uppercase">Initial Units</label>
+                                        <input
+                                            type="number"
+                                            value={formData.stockQuantity}
+                                            onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
+                                            className="w-full h-11 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-muted-foreground uppercase">Alert Threshold</label>
+                                        <input
+                                            type="number"
+                                            value={formData.lowStockThreshold}
+                                            onChange={(e) => setFormData({ ...formData, lowStockThreshold: e.target.value })}
+                                            className="w-full h-11 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
+                            {/* Variation Matrix */}
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center px-1">
                                     <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Variation Matrix</h3>
@@ -278,7 +485,7 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                         <button type="button" onClick={onClose} className="h-12 bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground px-8 rounded-lg font-bold uppercase text-xs transition-colors">CANCEL</button>
                         <button
                             type="submit"
-                            disabled={submitting}
+                            disabled={submitting || uploading}
                             className="h-12 bg-primary text-primary-foreground hover:bg-primary/90 px-10 rounded-lg font-bold shadow-lg shadow-primary/25 uppercase text-xs flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:shadow-none"
                         >
                             {submitting ? 'EXECUTING...' : isEdit ? 'UPDATE ITEM' : 'STORE ITEM'}

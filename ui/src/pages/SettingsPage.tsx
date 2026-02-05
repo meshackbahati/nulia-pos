@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, Settings as SettingsIcon, Shield, CreditCard, Cloud, Building, Mail } from 'lucide-react';
+import { Save, Settings as SettingsIcon, Shield, CreditCard, Cloud, Building, Mail, Globe } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import ThemeToggle from '../components/ThemeToggle';
@@ -29,6 +29,11 @@ export default function SettingsPage() {
             phone: '',
             address: '',
         },
+        currency: {
+            base: 'USD',
+            symbol: '$',
+            defaultRate: '1',
+        }
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -132,6 +137,48 @@ export default function SettingsPage() {
                         </div>
                     </div>
 
+                    {/* Currency Settings */}
+                    <div className="space-y-4 text-left">
+                        <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                            <Globe className="w-4 h-4 text-primary" />
+                            Currency System
+                        </h2>
+                        <div className="bg-card text-card-foreground border border-border shadow-sm rounded-xl p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-muted-foreground uppercase ml-1">Base Currency</label>
+                                <select
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    value={settings.currency?.base || 'USD'}
+                                    onChange={(e) => setSettings({ ...settings, currency: { ...(settings.currency || {}), base: e.target.value } })}
+                                >
+                                    <option value="USD">USD ($)</option>
+                                    <option value="KES">KES (KSh)</option>
+                                    <option value="EUR">EUR (€)</option>
+                                    <option value="GBP">GBP (£)</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-muted-foreground uppercase ml-1">Symbol</label>
+                                <input
+                                    type="text"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    value={settings.currency?.symbol || '$'}
+                                    onChange={(e) => setSettings({ ...settings, currency: { ...(settings.currency || {}), symbol: e.target.value } })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-muted-foreground uppercase ml-1">Exchange Rate</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    value={settings.currency?.defaultRate || '1'}
+                                    onChange={(e) => setSettings({ ...settings, currency: { ...(settings.currency || {}), defaultRate: e.target.value } })}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {/* Financial */}
                         <div className="space-y-4">
@@ -198,6 +245,6 @@ export default function SettingsPage() {
                     </div>
                 </form>
             </main>
-        </div>
+        </div >
     );
 }

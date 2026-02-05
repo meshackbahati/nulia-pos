@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import api from '../lib/api-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +16,9 @@ import {
   Settings,
   Scan
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { formatCurrency } from '../lib/utils';
 
 interface BranchStats {
   todaySales: number;
@@ -30,43 +34,66 @@ interface BranchStats {
   recentSales: Array<{
     id: string;
     receiptId: string;
-    total: number;
+    totalAmount: number;
     customer?: string;
     timestamp: string;
+  }>;
+  branches?: Array<{
+    id: string;
+    name: string;
+    revenue: number;
+    salesCount: number;
+  }>;
+  supplierStats?: Array<{
+    supplier: { name: string };
+    orderCount: number;
+    totalSpent: number;
   }>;
 }
 
 export function ManagerDashboard() {
   const [stats, setStats] = useState<BranchStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [userRole, setUserRole] = useState<string>('');
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const userRole = user?.role || '';
   const [branchName, setBranchName] = useState<string>('');
 
   useEffect(() => {
-    // Get user data from localStorage
-    const userData = localStorage.getItem('user_data');
-    if (userData) {
-      const user = JSON.parse(userData);
-      setUserRole(user.role);
-    }
-
     fetchBranchStats();
   }, []);
 
   const fetchBranchStats = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/manager/dashboard', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      setIsLoading(true);
+      const [statsRes, branchRes, supplierRes] = await Promise.all([
+        api.getDashboardStats(),
+        user?.role === 'admin' ? api.get('/analytics/branch-comparison') : Promise.resolve({ data: { branches: [] } }),
+        user?.role === 'admin' || user?.role === 'manager' ? api.get('/analytics/suppliers') : Promise.resolve({ data: { stats: [] } })
+      ]);
 
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data.stats);
-        setBranchName(data.branchName);
-      }
+      const dashboardData = statsRes.data.stats;
+      setStats({
+        todaySales: dashboardData.todaySales || 0,
+        todayRevenue: dashboardData.todayRevenue || 0,
+        totalProducts: dashboardData.totalProducts || 0,
+        lowStockItems: dashboardData.lowStockItems || 0,
+        activeUsers: dashboardData.activeUsers || 0,
+        topProducts: (dashboardData.topProducts || []).map((p: any) => ({
+          name: p.product?.name || 'Unknown Product',
+          quantity: parseInt(p.quantity),
+          revenue: parseFloat(p.revenue)
+        })),
+        recentSales: (dashboardData.recentSales || []).map((s: any) => ({
+          id: s.id,
+          receiptId: s.receiptId,
+          totalAmount: parseFloat(s.totalAmount),
+          timestamp: new Date(s.createdAt).toLocaleTimeString()
+        })),
+        branches: branchRes.data.branches || [],
+        supplierStats: supplierRes.data.stats || []
+      });
+      if (user?.branch?.name) setBranchName(user.branch.name);
     } catch (error) {
       console.error('Failed to fetch branch stats:', error);
     } finally {
@@ -130,7 +157,9 @@ export function ManagerDashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-display text-primary">${stats?.todayRevenue?.toFixed(2) || '0.00'}</div>
+            <div className="text-2xl font-bold font-display text-primary">
+              {formatCurrency(stats?.todayRevenue || 0, user?.branch?.currency)}
+            </div>
             <p className="text-xs text-muted-foreground">
               Revenue today
             </p>
@@ -172,19 +201,35 @@ export function ManagerDashboard() {
             <CardDescription>Common management tasks</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-4">
-            <Button className="h-24 flex flex-col items-center justify-center gap-2 hover:scale-[1.02] transition-transform shadow-md shadow-primary/10" variant="default">
+            <Button
+              onClick={() => navigate('/products')}
+              className="h-24 flex flex-col items-center justify-center gap-2 hover:scale-[1.02] transition-transform shadow-md shadow-primary/10"
+              variant="default"
+            >
               <Plus className="w-6 h-6" />
               Add Product
             </Button>
-            <Button variant="secondary" className="h-24 flex flex-col items-center justify-center gap-2 hover:scale-[1.02] transition-transform">
+            <Button
+              onClick={() => navigate('/pos')}
+              variant="secondary"
+              className="h-24 flex flex-col items-center justify-center gap-2 hover:scale-[1.02] transition-transform"
+            >
               <Scan className="w-6 h-6" />
               Open POS
             </Button>
-            <Button variant="outline" className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-secondary">
+            <Button
+              onClick={() => navigate('/users')}
+              variant="outline"
+              className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-secondary"
+            >
               <Users className="w-6 h-6" />
               Manage Staff
             </Button>
-            <Button variant="outline" className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-secondary">
+            <Button
+              onClick={() => navigate('/manager/analytics')}
+              variant="outline"
+              className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-secondary"
+            >
               <BarChart3 className="w-6 h-6" />
               View Reports
             </Button>
@@ -210,7 +255,9 @@ export function ManagerDashboard() {
                         <p className="text-xs text-muted-foreground">{product.quantity} sold</p>
                       </div>
                     </div>
-                    <span className="text-sm font-bold font-mono">${product.revenue.toFixed(2)}</span>
+                    <span className="text-sm font-bold font-mono">
+                      {formatCurrency(product.revenue, user?.branch?.currency)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -223,6 +270,73 @@ export function ManagerDashboard() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Branch & Supplier Insights */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {(userRole === 'admin' || userRole === 'manager') && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-primary" />
+                Branch Comparison
+              </CardTitle>
+              <CardDescription>Performance across locations</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {stats?.branches && stats.branches.length > 0 ? (
+                  stats.branches.map((branch) => (
+                    <div key={branch.id} className="flex justify-between items-center p-3 rounded-lg bg-secondary/20 hover:bg-secondary/30 transition-colors">
+                      <span className="text-sm font-medium">{branch.name}</span>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-primary">{formatCurrency(branch.revenue, user?.branch?.currency)}</p>
+                        <p className="text-[10px] text-muted-foreground">{branch.salesCount} sales</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center py-4 text-xs text-muted-foreground">No branch data available</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {(userRole === 'admin' || userRole === 'manager') && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                Supplier Performance
+              </CardTitle>
+              <CardDescription>Supply frequency and volume</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4 text-sm">
+                {stats?.supplierStats && stats.supplierStats.length > 0 ? (
+                  stats.supplierStats.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center">
+                      <span className="text-muted-foreground">{item.supplier.name}</span>
+                      <div className="text-right">
+                        <p className="font-bold">{item.orderCount} Orders</p>
+                        <p className="text-[10px] text-muted-foreground">{formatCurrency(item.totalSpent, user?.branch?.currency)}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center py-4 text-xs text-muted-foreground">No supplier data available</p>
+                )}
+                <button
+                  onClick={() => navigate('/manager/suppliers')}
+                  className="w-full mt-2 text-xs text-primary font-bold hover:underline"
+                >
+                  View Full Supplier Analytics →
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Recent Sales */}
@@ -247,7 +361,9 @@ export function ManagerDashboard() {
                     </div>
                   </div>
                   <div className="text-right flex items-center gap-3">
-                    <span className="text-sm font-bold">${sale.total.toFixed(2)}</span>
+                    <span className="text-sm font-bold">
+                      {formatCurrency(sale.totalAmount, user?.branch?.currency)}
+                    </span>
                     <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20">
                       Completed
                     </Badge>
@@ -266,4 +382,4 @@ export function ManagerDashboard() {
       </Card>
     </div>
   );
-}export default ManagerDashboard;
+} export default ManagerDashboard;

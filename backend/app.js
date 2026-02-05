@@ -1,0 +1,70 @@
+import express from 'express';
+import cors from 'cors';
+import morgan from 'morgan';
+import dotenv from 'dotenv';
+import sequelize from './lib/database.js';
+
+// Route imports
+import authRoutes from './routes/auth.js';
+import salesRoutes from './routes/sales.js';
+import productRoutes from './routes/products.js';
+import inventoryRoutes from './routes/inventory.js';
+import branchRoutes from './routes/branches.js';
+import userRoutes from './routes/users.js';
+import settingRoutes from './routes/settings.js';
+import analyticsRoutes from './routes/analytics.js';
+import mpesaRoutes from './routes/mpesa.js';
+import installRoutes from './routes/install.js';
+import supplierRoutes from './routes/suppliers.js';
+import poRoutes from './routes/purchase-orders.js';
+import receiptRoutes from './routes/receipts.js';
+
+dotenv.config();
+
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(morgan('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/sales', salesRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/branches', branchRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/settings', settingRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/mpesa', mpesaRoutes);
+app.use('/api/install', installRoutes);
+app.use('/api/suppliers', supplierRoutes);
+app.use('/api/purchase-orders', poRoutes);
+app.use('/api/receipts', receiptRoutes);
+
+// Health check endpoint
+app.get('/health', async (req, res) => {
+    try {
+        await sequelize.authenticate();
+        res.json({ status: 'OK', database: 'connected' });
+    } catch (error) {
+        res.status(500).json({ status: 'ERROR', database: 'disconnected', error: error.message });
+    }
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+    res.json({ message: 'BorderShop POS API is running' });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(err.status || 500).json({
+        error: err.message || 'Internal Server Error',
+    });
+});
+
+export default app;

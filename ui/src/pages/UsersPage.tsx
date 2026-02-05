@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import api from '../lib/api-client';
-import { Mail, Users, Shield, UserPlus, Building, X } from 'lucide-react';
+import { Mail, Users, Shield, UserPlus, Building, X, Award } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 import toast from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface User {
     id: string;
@@ -13,9 +15,17 @@ interface User {
     branch?: { id: string; name: string };
     isActive: boolean;
     lastLoginAt?: string;
+    creator?: {
+        id: string;
+        firstName: string;
+        lastName: string;
+        role: string;
+    };
 }
 
 export default function UsersPage() {
+    const { user: currentUser } = useAuth();
+    const navigate = useNavigate();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -25,12 +35,24 @@ export default function UsersPage() {
         firstName: '',
         lastName: '',
         role: 'salesperson',
+        branchId: '',
     });
+    const [branches, setBranches] = useState<any[]>([]);
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
         fetchUsers();
+        fetchBranches();
     }, []);
+
+    const fetchBranches = async () => {
+        try {
+            const response = await api.getBranches();
+            setBranches(response.data.branches || []);
+        } catch (error) {
+            console.error('Error fetching branches:', error);
+        }
+    };
 
     const fetchUsers = async () => {
         try {
@@ -50,6 +72,12 @@ export default function UsersPage() {
         setSubmitting(true);
 
         try {
+            if (formData.role !== 'admin' && !formData.branchId) {
+                toast.error('Please assign a branch to this agent');
+                setSubmitting(false);
+                return;
+            }
+
             await api.createUser(formData);
             setShowAddModal(false);
             setFormData({
@@ -58,6 +86,7 @@ export default function UsersPage() {
                 firstName: '',
                 lastName: '',
                 role: 'salesperson',
+                branchId: '',
             });
             toast.success('Agent created successfully');
             fetchUsers();
@@ -87,13 +116,15 @@ export default function UsersPage() {
 
                     <div className="flex items-center gap-4">
                         <ThemeToggle />
-                        <button
-                            onClick={() => setShowAddModal(true)}
-                            className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 rounded-md transition-colors text-sm font-medium"
-                        >
-                            <UserPlus className="w-4 h-4" />
-                            <span className="hidden md:inline uppercase text-xs font-bold">Add New Agent</span>
-                        </button>
+                        {currentUser?.role !== 'salesperson' && (
+                            <button
+                                onClick={() => setShowAddModal(true)}
+                                className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 rounded-md transition-colors text-sm font-medium"
+                            >
+                                <UserPlus className="w-4 h-4" />
+                                <span className="hidden md:inline uppercase text-xs font-bold">Add New Agent</span>
+                            </button>
+                        )}
                     </div>
                 </div>
             </header>
@@ -110,7 +141,9 @@ export default function UsersPage() {
                         <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
                         <h3 className="text-lg font-bold text-foreground">No agents found</h3>
                         <p className="text-muted-foreground text-sm mt-1">Get started by creating your first system user.</p>
-                        <button onClick={() => setShowAddModal(true)} className="mt-6 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 rounded-md transition-colors text-sm font-medium">Create Agent</button>
+                        {currentUser?.role !== 'salesperson' && (
+                            <button onClick={() => setShowAddModal(true)} className="mt-6 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 rounded-md transition-colors text-sm font-medium">Create Agent</button>
+                        )}
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -128,7 +161,7 @@ export default function UsersPage() {
                                             <div className="flex items-center gap-2 mt-0.5">
                                                 <div className={`w-2 h-2 rounded-full ${user.isActive ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
                                                 <span className="text-[10px] font-bold uppercase text-primary bg-primary/10 px-2 py-0.5 rounded">
-                                                    {user.role}
+                                                    {user.role.replace('_', ' ')}
                                                 </span>
                                             </div>
                                         </div>
@@ -147,6 +180,12 @@ export default function UsersPage() {
                                         <Building className="w-4 h-4 opacity-50" />
                                         <span>{user.branch?.name || 'Main Office'}</span>
                                     </div>
+                                    {user.creator && (
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <Award className="w-4 h-4 opacity-50 text-amber-500" />
+                                            <span>Hired by: {user.creator.firstName} ({user.creator.role.replace('_', ' ')})</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="mt-2 pt-4 border-t border-border flex items-center justify-between">
@@ -181,32 +220,71 @@ export default function UsersPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">First Name</label>
-                                    <input type="text" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} />
+                                    <input type="text" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Last Name</label>
-                                    <input type="text" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} />
+                                    <input type="text" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} />
                                 </div>
                             </div>
 
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Email Address</label>
-                                <input type="email" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                                <input type="email" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
                             </div>
 
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Password</label>
-                                <input type="password" required minLength={8} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+                                <input type="password" required minLength={8} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
                             </div>
 
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Access Role</label>
-                                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
+                                <select
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    value={formData.role}
+                                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                                >
                                     <option value="salesperson">Salesperson</option>
-                                    <option value="manager">Manager</option>
-                                    <option value="admin">Administrator</option>
+                                    {['admin', 'manager'].includes(currentUser?.role || '') && (
+                                        <option value="head_of_sales">Head of Sales</option>
+                                    )}
+                                    {currentUser?.role === 'admin' && (
+                                        <option value="manager">Manager</option>
+                                    )}
+                                    {currentUser?.role === 'admin' && (
+                                        <option value="admin">Administrator</option>
+                                    )}
                                 </select>
                             </div>
+
+                            {formData.role !== 'admin' && (
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Assign Branch</label>
+                                        {branches.length === 0 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => { setShowAddModal(false); navigate('/manager/branches'); }}
+                                                className="text-[10px] text-primary hover:underline font-bold"
+                                            >
+                                                + Create Branch
+                                            </button>
+                                        )}
+                                    </div>
+                                    <select
+                                        required
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                        value={formData.branchId}
+                                        onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                                    >
+                                        <option value="">Select a branch</option>
+                                        {branches.map((b) => (
+                                            <option key={b.id} value={b.id}>{b.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
                             <button type="submit" disabled={submitting} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md transition-colors text-sm font-medium disabled:opacity-50">
                                 {submitting ? 'Creating...' : 'Create Agent Account'}

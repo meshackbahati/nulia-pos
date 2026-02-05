@@ -39,7 +39,7 @@ export default function SalesDashboard() {
                 api.getLeaderboard('month'),
             ]);
 
-            setStats(statsRes.data);
+            setStats(statsRes.data.stats);
             setLeaderboard(leaderboardRes.data.leaderboard);
 
             const position = leaderboardRes.data.leaderboard.findIndex(
@@ -150,8 +150,8 @@ export default function SalesDashboard() {
                                 <div
                                     key={entry.user.id}
                                     className={`relative rounded-xl border p-4 flex items-center gap-4 transition-all duration-300 ${entry.user.id === user?.id
-                                            ? 'bg-primary/5 border-primary/20 ring-1 ring-primary/20'
-                                            : 'bg-card/30 border-border/40 hover:bg-card hover:border-border'
+                                        ? 'bg-primary/5 border-primary/20 ring-1 ring-primary/20'
+                                        : 'bg-card/30 border-border/40 hover:bg-card hover:border-border'
                                         }`}
                                 >
                                     <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center font-bold text-muted-foreground">

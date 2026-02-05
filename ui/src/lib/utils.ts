@@ -5,8 +5,16 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(amount: number, _currency: string = 'USD', symbol: string = '$'): string {
-  return `${symbol}${amount.toFixed(2)}`;
+export function formatCurrency(amount: number, currency: string = 'USD', symbol?: string): string {
+  // Use provided symbol, or default to branch setting, or fallback to currency code
+  const displaySymbol = symbol || (typeof window !== 'undefined' ? (window as any)._BRANCH_CURRENCY_SYMBOL : null) || currency;
+
+  // If use symbol, format like $10.00, if use code, format like 10.00 KES
+  if (displaySymbol.length <= 2 || displaySymbol === '$' || displaySymbol === '€' || displaySymbol === '£' || displaySymbol === '¥') {
+    return `${displaySymbol}${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  return `${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${displaySymbol}`;
 }
 
 export function formatPhoneNumber(phone: string): string {

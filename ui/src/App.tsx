@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
 import './index.css';
 
 // Pages
@@ -19,6 +20,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import BranchesPage from './pages/BranchesPage';
 import SuppliersPage from './pages/SuppliersPage';
 import PurchaseOrdersPage from './pages/PurchaseOrdersPage';
+import HeadOfSalesDashboard from './pages/HeadOfSalesDashboard';
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -62,21 +64,63 @@ function App() {
             <Route path="/install" element={<InstallPage />} />
             <Route path="/auth/login" element={<LoginPage />} />
 
-            {/* Manager Routes */}
-            <Route path="/dashboard" element={<Layout><ManagerDashboard /></Layout>} />
-            <Route path="/products" element={<Layout><ProductsPage /></Layout>} />
-            <Route path="/users" element={<Layout><UsersPage /></Layout>} />
-            <Route path="/manager/settings" element={<Layout><SettingsPage /></Layout>} />
-            <Route path="/manager/analytics" element={<Layout><AnalyticsPage /></Layout>} />
-            <Route path="/manager/branches" element={<Layout><BranchesPage /></Layout>} />
-            <Route path="/manager/suppliers" element={<Layout><SuppliersPage /></Layout>} />
-            <Route path="/manager/purchase-orders" element={<Layout><PurchaseOrdersPage /></Layout>} />
+            {/* Manager & Head of Sales Routes */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                <Layout>
+                  <DashboardSwitcher />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/products" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                <Layout><ProductsPage /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/users" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <Layout><UsersPage /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/manager/settings" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                <Layout><SettingsPage /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/manager/analytics" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                <Layout><AnalyticsPage /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/manager/branches" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <Layout><BranchesPage /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/manager/suppliers" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                <Layout><SuppliersPage /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/manager/purchase-orders" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                <Layout><PurchaseOrdersPage /></Layout>
+              </ProtectedRoute>
+            } />
 
             {/* Sales Person Routes */}
-            <Route path="/sales-dashboard" element={<SalesDashboard />} />
+            <Route path="/sales-dashboard" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager', 'salesperson']}>
+                <SalesDashboard />
+              </ProtectedRoute>
+            } />
 
             {/* Shared Routes */}
-            <Route path="/pos" element={<POSPage />} />
+            <Route path="/pos" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager', 'salesperson']}>
+                <Layout><POSPage /></Layout>
+              </ProtectedRoute>
+            } />
 
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
@@ -85,6 +129,16 @@ function App() {
       </ThemeProvider>
     </BrowserRouter>
   );
+}
+
+function DashboardSwitcher() {
+  const { user } = useAuth();
+  const userRole = user?.role;
+
+  if (userRole === 'head_of_sales') {
+    return <HeadOfSalesDashboard />;
+  }
+  return <ManagerDashboard />;
 }
 
 export default App;

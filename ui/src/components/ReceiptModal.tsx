@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Download, Printer, Mail, FileText, Check } from 'lucide-react';
+import { X, Download, Printer, Mail, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
