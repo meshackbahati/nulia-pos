@@ -103,7 +103,7 @@ router.get('/list', authenticate, async (req, res) => {
 });
 
 // Create sale
-router.post('/', authenticate, async (req, res) => {
+router.post('/create', authenticate, async (req, res) => {
     const transaction = await sequelize.transaction();
     try {
         const { items, paymentMethod, customerPhone, customerEmail, notes } = req.body;
