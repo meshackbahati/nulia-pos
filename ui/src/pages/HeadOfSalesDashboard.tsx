@@ -6,9 +6,7 @@ import { useCurrency } from '../hooks/useCurrency';
 import {
     Users,
     TrendingUp,
-    Target,
     Award,
-    ArrowUpRight,
     Trophy,
     DollarSign
 } from 'lucide-react';
@@ -52,11 +50,12 @@ export default function HeadOfSalesDashboard() {
             ]);
 
             const dashboardData = statsRes.data.stats;
+            // Map backend 'today' stats to our state
             setStats({
-                totalSales: dashboardData.period.salesCount,
-                totalRevenue: dashboardData.period.revenue,
-                averageSale: dashboardData.period.salesCount ? dashboardData.period.revenue / dashboardData.period.salesCount : 0,
-                topSeller: leaderboardRes.data.leaderboard[0]?.user.firstName || 'N/A'
+                totalSales: dashboardData.todaySales || 0,
+                totalRevenue: dashboardData.todayRevenue || 0,
+                averageSale: dashboardData.todaySales ? dashboardData.todayRevenue / dashboardData.todaySales : 0,
+                topSeller: leaderboardRes.data.leaderboard[0]?.name || 'N/A' // Use name from leaderboard entry
             });
 
             setLeaderboard(leaderboardRes.data.leaderboard);
@@ -82,36 +81,29 @@ export default function HeadOfSalesDashboard() {
                     <h1 className="text-2xl font-bold text-foreground">Team Performance</h1>
                     <p className="text-muted-foreground">Head of Sales • Branch Overview</p>
                 </div>
-                <Badge variant="outline" className="px-3 py-1 bg-primary/5 text-primary border-primary/20">
-                    <Target className="w-4 h-4 mr-2" />
-                    Weekly Target: 85%
-                </Badge>
             </div>
 
             {/* Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Team Revenue (Week)</CardTitle>
+                        <CardTitle className="text-sm font-medium">Daily Revenue</CardTitle>
                         <DollarSign className="w-4 h-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{formatPrice(stats?.totalRevenue || 0)}</div>
-                        <div className="flex items-center text-xs text-emerald-500 mt-1 font-medium">
-                            <ArrowUpRight className="w-3 h-3 mr-1" />
-                            +12.5% from last week
-                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">Today's total revenue</p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
+                        <CardTitle className="text-sm font-medium">Daily Sales</CardTitle>
                         <TrendingUp className="w-4 h-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{stats?.totalSales}</div>
-                        <p className="text-xs text-muted-foreground mt-1">Units processed by team</p>
+                        <p className="text-xs text-muted-foreground mt-1">Transactions today</p>
                     </CardContent>
                 </Card>
 
@@ -158,15 +150,18 @@ export default function HeadOfSalesDashboard() {
                                     </div>
                                     <div>
                                         <p className="text-sm font-bold text-foreground">
-                                            {entry.user.firstName} {entry.user.lastName}
+                                            {/* API returns 'name' directly for leaderboard entries */}
+                                            {(entry as any).name || `${entry.user?.firstName} ${entry.user?.lastName}`}
                                         </p>
-                                        <p className="text-xs text-muted-foreground">{entry.salesCount} transactions</p>
+                                        <p className="text-xs text-muted-foreground">{entry.salesCount || (entry as any).count} transactions</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-sm font-bold text-primary">{formatPrice(entry.totalRevenue)}</p>
+                                    <p className="text-sm font-bold text-primary">{formatPrice(entry.totalRevenue || (entry as any).revenue || 0)}</p>
                                     <Badge variant="secondary" className="text-[10px] h-4">
-                                        {stats?.totalRevenue ? Math.round((entry.totalRevenue / stats.totalRevenue) * 100) : 0}% of total
+                                        {leaderboard.reduce((acc, curr) => acc + (curr.totalRevenue || (curr as any).revenue || 0), 0) > 0
+                                            ? Math.round(((entry.totalRevenue || (entry as any).revenue || 0) / leaderboard.reduce((acc, curr) => acc + (curr.totalRevenue || (curr as any).revenue || 0), 0)) * 100)
+                                            : 0}% of total
                                     </Badge>
                                 </div>
                             </div>

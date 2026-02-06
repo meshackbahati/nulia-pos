@@ -162,7 +162,7 @@ router.get('/leaderboard', authenticate, async (req, res) => {
         const dateRange = getDateRange(period);
         const where = { createdAt: dateRange };
 
-        // Scope
+        // 1. Determine Scope for Sales Data
         if (global === 'true' && req.user.role === 'admin') {
             // No branch filter
         } else if (branchId) {
@@ -171,7 +171,8 @@ router.get('/leaderboard', authenticate, async (req, res) => {
             where.branchId = req.user.branchId;
         }
 
-        const leaderboard = await models.Sale.findAll({
+        // 2. Fetch Aggregated Sales Data (Everyone who sold)
+        const salesData = await models.Sale.findAll({
             attributes: [
                 'userId',
                 [sequelize.fn('COUNT', sequelize.col('Sale.id')), 'salesCount'],
@@ -185,20 +186,71 @@ router.get('/leaderboard', authenticate, async (req, res) => {
                 include: [{ model: models.Branch, as: 'branch', attributes: ['name'] }]
             }],
             group: ['userId', 'user.id', 'user->branch.id'],
-            order: [[sequelize.literal('"totalRevenue"'), 'DESC']],
-            limit: 20
+            order: [[sequelize.literal('"totalRevenue"'), 'DESC']]
         });
+
+        // 3. Fetch ALL Salespersons (Mandatory inclusion)
+        const salespersonWhere = { role: 'salesperson', isActive: true };
+        if (branchId) {
+            salespersonWhere.branchId = branchId;
+        } else if (req.user.role !== 'admin' && global !== 'true') {
+            salespersonWhere.branchId = req.user.branchId;
+        }
+
+        const allSalespersons = await models.User.findAll({
+            where: salespersonWhere,
+            attributes: ['id', 'firstName', 'lastName', 'role'],
+            include: [{ model: models.Branch, as: 'branch', attributes: ['name'] }]
+        });
+
+        // 4. Merge Data
+        // Start with sales map
+        const leaderboardMap = new Map();
+
+        // Process actual sales first
+        salesData.forEach(sale => {
+            const userId = sale.userId;
+            leaderboardMap.set(userId, {
+                userId,
+                name: `${sale.user.firstName} ${sale.user.lastName}`,
+                role: sale.user.role,
+                branch: sale.user.branch?.name || 'N/A',
+                revenue: parseFloat(sale.get('totalRevenue')),
+                count: parseInt(sale.get('salesCount'))
+            });
+        });
+
+        // Ensure all salespersons are present (even if 0 sales)
+        allSalespersons.forEach(user => {
+            if (!leaderboardMap.has(user.id)) {
+                leaderboardMap.set(user.id, {
+                    userId: user.id,
+                    name: `${user.firstName} ${user.lastName}`,
+                    role: user.role,
+                    branch: user.branch?.name || 'N/A',
+                    revenue: 0,
+                    count: 0
+                });
+            }
+        });
+
+        // 5. Convert to array and filter/sort
+        const finalLeaderboard = Array.from(leaderboardMap.values())
+            .filter(entry => {
+                // Keep if Salesperson OR (Has Sales > 0)
+                // Note: The logic above effectively adds salespersons. 
+                // Any non-salesperson in the map MUST have come from salesData, meaning they have sales.
+                // So no extra filtering needed unless we want to strictly enforce the "Execs only if sold" rule again, 
+                // but the construction guarantees it.
+                return true;
+            })
+            .sort((a, b) => b.revenue - a.revenue); // Sort by revenue DESC
 
         res.json({
             success: true,
-            leaderboard: leaderboard.map((l, idx) => ({
-                rank: idx + 1,
-                userId: l.userId,
-                name: `${l.user.firstName} ${l.user.lastName}`,
-                role: l.user.role,
-                branch: l.user.branch?.name || 'N/A',
-                revenue: parseFloat(l.get('totalRevenue')),
-                count: parseInt(l.get('salesCount'))
+            leaderboard: finalLeaderboard.map((l, idx) => ({
+                ...l,
+                rank: idx + 1
             }))
         });
     } catch (error) {
