@@ -57,7 +57,13 @@ export default function UsersPage() {
     const fetchBranches = async () => {
         try {
             const response = await api.getBranches();
-            setBranches(response.data.branches || []);
+            const branchList = response.data.branches || [];
+            setBranches(branchList);
+
+            // Auto-select branch if user only has access to one (e.g. Head of Sales)
+            if (currentUser?.role !== 'admin' && branchList.length === 1) {
+                setFormData(prev => ({ ...prev, branchId: branchList[0].id }));
+            }
         } catch (error) {
             console.error('Error fetching branches:', error);
         }
@@ -491,11 +497,12 @@ export default function UsersPage() {
                                     <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Assign Branch</label>
                                     <select
                                         required
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                        disabled={branches.length === 1}
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
                                         value={formData.branchId}
                                         onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
                                     >
-                                        <option value="">Select a branch</option>
+                                        {branches.length !== 1 && <option value="">Select a branch</option>}
                                         {branches.map((b) => (
                                             <option key={b.id} value={b.id}>{b.name}</option>
                                         ))}

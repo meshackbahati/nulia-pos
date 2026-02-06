@@ -78,7 +78,7 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="/users" element={
-              <ProtectedRoute allowedRoles={['admin', 'manager']}>
+              <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
                 <Layout><UsersPage /></Layout>
               </ProtectedRoute>
             } />
