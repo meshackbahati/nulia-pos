@@ -21,6 +21,80 @@ const getDateRange = (period) => {
     return { [Op.gte]: startDate };
 };
 
+// Dashboard Stats (Consolidated for frontend)
+router.get('/dashboard', authenticate, async (req, res) => {
+    try {
+        const branchId = req.user.role === 'admin' ? req.query.branchId : req.user.branchId;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const where = { createdAt: { [Op.gte]: today } };
+        if (branchId) where.branchId = branchId;
+
+        const [todaySalesData, totalProducts, lowStockItems, activeUsers, topProducts, recentSales] = await Promise.all([
+            models.Sale.findAll({
+                where,
+                attributes: [
+                    [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+                    [sequelize.fn('SUM', sequelize.col('totalAmount')), 'revenue']
+                ],
+                raw: true
+            }),
+            models.Product.count({ where: { isActive: true } }),
+            models.Inventory.count({
+                where: {
+                    ...(branchId ? { branchId } : {}),
+                    quantity: { [Op.lte]: sequelize.col('minStockLevel') }
+                }
+            }),
+            models.User.count({
+                where: {
+                    isActive: true,
+                    ...(branchId ? { branchId } : {})
+                }
+            }),
+            models.SaleItem.findAll({
+                attributes: [
+                    'productId',
+                    [sequelize.fn('SUM', sequelize.col('quantity')), 'quantity'],
+                    [sequelize.fn('SUM', sequelize.col('subtotal')), 'revenue']
+                ],
+                include: [{
+                    model: models.Product,
+                    as: 'product',
+                    attributes: ['name']
+                }],
+                where: { createdAt: { [Op.gte]: today } },
+                group: ['productId', 'product.id'],
+                order: [[sequelize.literal('quantity'), 'DESC']],
+                limit: 5
+            }),
+            models.Sale.findAll({
+                where: branchId ? { branchId } : {},
+                order: [['createdAt', 'DESC']],
+                limit: 10,
+                attributes: ['id', 'receiptId', 'totalAmount', 'createdAt']
+            })
+        ]);
+
+        res.json({
+            success: true,
+            stats: {
+                todaySales: parseInt(todaySalesData[0]?.count || 0),
+                todayRevenue: parseFloat(todaySalesData[0]?.revenue || 0),
+                totalProducts,
+                lowStockItems,
+                activeUsers,
+                topProducts,
+                recentSales
+            }
+        });
+    } catch (error) {
+        console.error('Dashboard stats error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Global Summary Stats (Admin/Manager)
 router.get('/summary', authenticate, async (req, res) => {
     try {
@@ -129,6 +203,65 @@ router.get('/leaderboard', authenticate, async (req, res) => {
         });
     } catch (error) {
         console.error('Leaderboard error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Branch Comparison (Admin Only)
+router.get('/branch-comparison', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const branches = await models.Branch.findAll({
+            where: { isActive: true },
+            attributes: [
+                'id', 'name',
+                [sequelize.literal('(SELECT COUNT(*) FROM sales WHERE sales."branchId" = "Branch".id)'), 'salesCount'],
+                [sequelize.literal('(SELECT SUM("totalAmount") FROM sales WHERE sales."branchId" = "Branch".id)'), 'revenue']
+            ]
+        });
+
+        res.json({
+            success: true,
+            branches: branches.map(b => ({
+                id: b.id,
+                name: b.name,
+                revenue: parseFloat(b.get('revenue') || 0),
+                salesCount: parseInt(b.get('salesCount') || 0)
+            }))
+        });
+    } catch (error) {
+        console.error('Branch comparison error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Supplier Stats
+router.get('/suppliers', authenticate, authorize('manager'), async (req, res) => {
+    try {
+        const stats = await models.PurchaseOrder.findAll({
+            attributes: [
+                'supplierId',
+                [sequelize.fn('COUNT', sequelize.col('id')), 'orderCount'],
+                [sequelize.fn('SUM', sequelize.col('totalAmount')), 'totalSpent']
+            ],
+            include: [{
+                model: models.Supplier,
+                as: 'supplier',
+                attributes: ['name']
+            }],
+            group: ['supplierId', 'supplier.id'],
+            order: [[sequelize.literal('totalSpent'), 'DESC']]
+        });
+
+        res.json({
+            success: true,
+            stats: stats.map(s => ({
+                supplier: s.supplier,
+                orderCount: parseInt(s.get('orderCount')),
+                totalSpent: parseFloat(s.get('totalSpent'))
+            }))
+        });
+    } catch (error) {
+        console.error('Supplier stats error:', error);
         res.status(500).json({ error: error.message });
     }
 });
