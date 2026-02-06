@@ -31,6 +31,17 @@ apiClient.interceptors.request.use(
     }
 );
 
+// handle 401 globally
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            window.dispatchEvent(new Event('auth:unauthorized'));
+        }
+        return Promise.reject(error);
+    }
+);
+
 // API Methods
 export const api = {
     // Auth

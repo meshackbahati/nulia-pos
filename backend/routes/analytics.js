@@ -226,7 +226,7 @@ router.get('/top-products', authenticate, async (req, res) => {
             include: [{
                 model: models.Product,
                 as: 'product',
-                attributes: ['id', 'name', 'sku', 'price']
+                attributes: ['id', 'name', 'sku', 'basePrice']
             }],
             where,
             group: ['productId', 'product.id'],

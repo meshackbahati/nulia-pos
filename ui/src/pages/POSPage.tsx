@@ -66,38 +66,6 @@ export default function POSPage() {
     useEffect(() => {
         fetchProducts();
         fetchBranchData();
-
-        // Global Scanner listener (for physical HID scanners)
-        let scannerBuffer = '';
-        let lastKeyTime = Date.now();
-
-        const handleKeyDown = (e: KeyboardEvent) => {
-            // Ignore if the user is typing in an input or textarea
-            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-                return;
-            }
-
-            const currentTime = Date.now();
-
-            // Physical scanners are very fast (usually < 50ms between characters)
-            if (currentTime - lastKeyTime > 50) {
-                scannerBuffer = '';
-            }
-
-            if (e.key === 'Enter') {
-                if (scannerBuffer.length > 3) {
-                    handleScan(scannerBuffer);
-                    scannerBuffer = '';
-                }
-            } else if (e.key.length === 1) {
-                scannerBuffer += e.key;
-            }
-
-            lastKeyTime = currentTime;
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
     const fetchBranchData = async () => {
@@ -196,7 +164,9 @@ export default function POSPage() {
     useScanDetection({
         onScan: (barcode) => {
             handleScan(barcode);
-        }
+        },
+        minLength: 3,
+        timeLimit: 50 // Standard for HID scanners
     });
 
     const handleScan = (barcode: string) => {

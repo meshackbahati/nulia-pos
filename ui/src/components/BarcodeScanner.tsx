@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
+import { BrowserMultiFormatReader } from '@zxing/library';
 import { Camera, X, Barcode as BarcodeIcon } from 'lucide-react';
 
 interface BarcodeScannerProps {
@@ -9,6 +9,8 @@ interface BarcodeScannerProps {
 
 export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
+    const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+    const [selectedDeviceId, setSelectedDeviceId] = useState('');
     const [scanning, setScanning] = useState(false);
     const [error, setError] = useState('');
     const [manualCode, setManualCode] = useState('');
@@ -18,12 +20,11 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
     useEffect(() => {
         if (useCamera && scanning) {
             startCamera();
-        }
-
-        return () => {
+        } else {
             stopCamera();
-        };
-    }, [useCamera, scanning]);
+        }
+        return () => stopCamera();
+    }, [useCamera, scanning, selectedDeviceId]); // Re-start if device changes
 
     const startCamera = async () => {
         try {
@@ -31,31 +32,37 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
             codeReaderRef.current = codeReader;
 
             const videoInputDevices = await codeReader.listVideoInputDevices();
+            setDevices(videoInputDevices);
 
             if (videoInputDevices.length === 0) {
                 setError('No camera found');
                 return;
             }
 
-            const selectedDeviceId = videoInputDevices[0].deviceId;
+            // Smart Selection: Prefer back camera
+            let deviceId = selectedDeviceId;
+            if (!deviceId) {
+                const backCamera = videoInputDevices.find(device =>
+                    device.label.toLowerCase().includes('back') ||
+                    device.label.toLowerCase().includes('environment')
+                );
+                deviceId = backCamera ? backCamera.deviceId : videoInputDevices[0].deviceId;
+                setSelectedDeviceId(deviceId); // Set for UI sync
+            }
 
-            codeReader.decodeFromVideoDevice(
-                selectedDeviceId,
+            await codeReader.decodeFromVideoDevice(
+                deviceId,
                 videoRef.current!,
-                (result, error) => {
+                (result) => {
                     if (result) {
                         onScan(result.getText());
                         stopCamera();
                         onClose();
                     }
-                    if (error && !(error instanceof NotFoundException)) {
-                        console.error('Scanner error:', error);
-                    }
                 }
             );
         } catch (err: any) {
             setError(err.message || 'Failed to start camera');
-            console.error('Camera error:', err);
         }
     };
 
@@ -74,7 +81,7 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in">
             <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
@@ -82,63 +89,69 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
                         <BarcodeIcon className="w-6 h-6" />
                         Scan Barcode
                     </h2>
-                    <button
-                        onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Mode Toggle */}
-                <div className="flex gap-2 mb-4">
+                <div className="flex gap-2 mb-4 bg-gray-100 p-1 rounded-lg">
                     <button
-                        onClick={() => {
-                            setUseCamera(true);
-                            setScanning(true);
-                        }}
-                        className={`flex-1 py-2 px-4 rounded-lg transition-all ${useCamera
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
+                        onClick={() => { setUseCamera(true); setScanning(true); }}
+                        className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${useCamera ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        <Camera className="w-5 h-5 mx-auto mb-1" />
-                        <span className="text-sm">Camera</span>
+                        <div className="flex flex-col items-center">
+                            <Camera className="w-4 h-4 mb-1" />
+                            <span>Camera</span>
+                        </div>
                     </button>
                     <button
-                        onClick={() => {
-                            setUseCamera(false);
-                            stopCamera();
-                        }}
-                        className={`flex-1 py-2 px-4 rounded-lg transition-all ${!useCamera
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
+                        onClick={() => { setUseCamera(false); stopCamera(); }}
+                        className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${!useCamera ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        <BarcodeIcon className="w-5 h-5 mx-auto mb-1" />
-                        <span className="text-sm">Manual</span>
+                        <div className="flex flex-col items-center">
+                            <BarcodeIcon className="w-4 h-4 mb-1" />
+                            <span>Manual Entry</span>
+                        </div>
                     </button>
                 </div>
 
-                {/* Camera Scanner */}
                 {useCamera ? (
                     <div>
-                        {error ? (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                                <p className="text-red-700 text-sm">{error}</p>
+                        {error && (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3 text-red-700 text-sm">
+                                {error}
                             </div>
-                        ) : null}
+                        )}
 
-                        <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden mb-4">
-                            <video
-                                ref={videoRef}
-                                className="w-full h-full object-cover"
-                                autoPlay
-                                playsInline
-                                muted
-                            />
-                            <div className="absolute inset-0 border-2 border-blue-500 rounded-lg pointer-events-none">
-                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3/4 h-1/3 border-2 border-white/50"></div>
+                        {devices.length > 1 && (
+                            <div className="mb-3">
+                                <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Select Camera</label>
+                                <select
+                                    value={selectedDeviceId}
+                                    onChange={(e) => {
+                                        stopCamera();
+                                        setSelectedDeviceId(e.target.value);
+                                        // Effect will restart camera
+                                    }}
+                                    className="w-full text-sm border-gray-300 rounded-lg"
+                                >
+                                    {devices.map(device => (
+                                        <option key={device.deviceId} value={device.deviceId}>
+                                            {device.label || `Camera ${device.deviceId.slice(0, 5)}...`}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        <div className="relative aspect-video bg-black rounded-lg overflow-hidden mb-4 ring-1 ring-black/10">
+                            <video ref={videoRef} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 border-2 border-blue-500/50 rounded-lg pointer-events-none">
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-32 border-2 border-white/80 rounded corner-box shadow-2xl"></div>
+                            </div>
+                            <div className="absolute bottom-2 left-0 right-0 text-center">
+                                <p className="text-white/80 text-xs font-medium bg-black/50 inline-block px-2 py-1 rounded">Align barcode within frame</p>
                             </div>
                         </div>
 
