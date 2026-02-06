@@ -66,6 +66,7 @@ export const api = {
     getByBarcode: (barcode: string) => apiClient.get(`/products/barcode/${barcode}`),
     getLowStock: (threshold?: number) =>
         apiClient.get('/products/low-stock', { params: { threshold } }),
+    getCategories: () => apiClient.get('/products/categories'),
 
     // Inventory
     restockInventory: (data: { items: { productId: string, variantId?: string, quantity: number }[], branchId?: string, reason?: string }) =>

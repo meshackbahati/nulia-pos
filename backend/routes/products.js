@@ -219,7 +219,7 @@ router.get('/list', authenticate, async (req, res) => {
                 description: product.description,
                 category: product.category,
                 brand: product.brand,
-                price: parseFloat(product.basePrice.toString()),
+                basePrice: parseFloat(product.basePrice.toString()),
                 costPrice: parseFloat(product.costPrice.toString()),
                 sku: product.sku,
                 barcode: product.barcode,
@@ -234,6 +234,25 @@ router.get('/list', authenticate, async (req, res) => {
         res.json({ products: formattedProducts });
     } catch (error) {
         console.error('List products error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// List categories
+router.get('/categories', authenticate, async (req, res) => {
+    try {
+        const categories = await models.Product.findAll({
+            attributes: [
+                [sequelize.fn('DISTINCT', sequelize.col('category')), 'category']
+            ],
+            where: { isActive: true },
+            order: [[sequelize.col('category'), 'ASC']]
+        });
+
+        const categoryList = categories.map(c => c.category).filter(Boolean);
+        res.json({ categories: categoryList });
+    } catch (error) {
+        console.error('List categories error:', error);
         res.status(500).json({ error: error.message });
     }
 });

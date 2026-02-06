@@ -35,6 +35,10 @@ export default function SettingsPage() {
             base: defaultCurrency || 'KES',
             symbol: 'KSh',
             defaultRate: '1',
+        },
+        paystack: {
+            publicKey: '',
+            secretKey: '',
         }
     });
     const [loading, setLoading] = useState(true);
@@ -194,6 +198,18 @@ export default function SettingsPage() {
                                 <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Shortcode" value={settings.mpesa.shortcode} onChange={(e) => setSettings({ ...settings, mpesa: { ...settings.mpesa, shortcode: e.target.value } })} />
                                 <input type="password" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Passkey" value={settings.mpesa.passkey} onChange={(e) => setSettings({ ...settings, mpesa: { ...settings.mpesa, passkey: e.target.value } })} />
                                 <input type="url" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Callback URL" value={settings.mpesa.callbackUrl} onChange={(e) => setSettings({ ...settings, mpesa: { ...settings.mpesa, callbackUrl: e.target.value } })} />
+                            </div>
+                        </div>
+
+                        {/* Paystack Gateway */}
+                        <div className="space-y-4">
+                            <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                <CreditCard className="w-4 h-4 text-primary" />
+                                Paystack Gateway
+                            </h2>
+                            <div className="bg-card text-card-foreground border border-border shadow-sm rounded-xl p-6 space-y-4">
+                                <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Public Key" value={settings.paystack?.publicKey || ''} onChange={(e) => setSettings({ ...settings, paystack: { ...settings.paystack, publicKey: e.target.value } })} />
+                                <input type="password" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Secret Key" value={settings.paystack?.secretKey || ''} onChange={(e) => setSettings({ ...settings, paystack: { ...settings.paystack, secretKey: e.target.value } })} />
                             </div>
                         </div>
 

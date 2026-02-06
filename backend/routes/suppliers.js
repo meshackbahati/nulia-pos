@@ -30,7 +30,19 @@ router.post('/create', authenticate, async (req, res) => {
     }
 
     try {
-        const supplier = await models.Supplier.create(req.body);
+        const branchId = req.user.role === 'admin' ? req.body.branchId : req.user.branchId;
+
+        // If no branchId specific and is admin, user must provide it
+        if (!branchId) {
+            return res.status(400).json({ error: 'Branch ID is required. Please verify your session or select a branch.' });
+        }
+
+        const supplierData = {
+            ...req.body,
+            branchId: branchId || req.user.branchId
+        };
+
+        const supplier = await models.Supplier.create(supplierData);
         res.json({ success: true, supplier });
     } catch (error) {
         console.error('Create supplier error:', error);

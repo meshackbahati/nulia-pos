@@ -50,11 +50,23 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
     const videoRef = useRef<HTMLVideoElement>(null);
     const codeReader = useRef<BrowserMultiFormatReader | null>(null);
 
+    const [categories, setCategories] = useState<string[]>([]);
+
     useEffect(() => {
         if (user?.role === 'admin') {
             fetchBranches();
         }
+        fetchCategories();
     }, [user]);
+
+    const fetchCategories = async () => {
+        try {
+            const res = await api.getCategories();
+            setCategories(res.data.categories || []);
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    };
 
     const fetchBranches = async () => {
         try {
@@ -316,10 +328,17 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                                                 <input
                                                     type="text"
                                                     required
+                                                    list="category-options"
                                                     value={formData.category}
                                                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                                                     className="w-full h-11 pl-10 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
+                                                    placeholder="Select or type new..."
                                                 />
+                                                <datalist id="category-options">
+                                                    {categories.map((cat, idx) => (
+                                                        <option key={idx} value={cat} />
+                                                    ))}
+                                                </datalist>
                                             </div>
                                         </div>
                                         <div className="space-y-2">

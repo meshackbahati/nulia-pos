@@ -26,7 +26,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-    origin: ['https://v0-supermarket-management-system-eight-swart.vercel.app', 'http://localhost:3001'],
+    origin: true, // Allow all origins for debugging
     credentials: true
 }));
 app.use(morgan('dev'));
