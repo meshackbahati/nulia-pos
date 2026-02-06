@@ -66,20 +66,50 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
     };
 
     useEffect(() => {
-        if (isScanning && videoRef.current) {
-            codeReader.current = new BrowserMultiFormatReader();
-            codeReader.current.decodeFromVideoDevice(null, videoRef.current, (result) => {
-                if (result) {
-                    handleAddBarcode(result.getText());
-                    toast.success('Barcode scanned via camera!');
+        let activeReader: BrowserMultiFormatReader | null = null;
+
+        const startScanning = async () => {
+            if (isScanning && videoRef.current) {
+                try {
+                    activeReader = new BrowserMultiFormatReader();
+                    codeReader.current = activeReader;
+
+                    const videoDevices = await activeReader.listVideoInputDevices();
+                    if (videoDevices.length === 0) {
+                        toast.error('No camera found');
+                        setIsScanning(false);
+                        return;
+                    }
+
+                    // Prefer back camera if available
+                    const backCamera = videoDevices.find(device =>
+                        device.label.toLowerCase().includes('back') ||
+                        device.label.toLowerCase().includes('rear')
+                    );
+                    const selectedDeviceId = backCamera ? backCamera.deviceId : videoDevices[0].deviceId;
+
+                    await activeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.current, (result, _err) => {
+                        if (result) {
+                            handleAddBarcode(result.getText());
+                            toast.success('Barcode scanned!');
+                            setIsScanning(false);
+                        }
+                    });
+                } catch (err) {
+                    console.error('Camera access error:', err);
+                    toast.error('Could not access camera. Please check permissions.');
                     setIsScanning(false);
                 }
-            });
+            }
+        };
+
+        if (isScanning) {
+            startScanning();
         }
 
         return () => {
-            if (codeReader.current) {
-                codeReader.current.reset();
+            if (activeReader) {
+                activeReader.reset();
             }
         };
     }, [isScanning]);
@@ -318,7 +348,7 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                                     <div className="space-y-2">
                                         {isScanning && (
                                             <div className="relative aspect-video bg-black rounded-lg overflow-hidden border-2 border-primary/50 shadow-inner mb-2 animate-in fade-in zoom-in duration-300">
-                                                <video ref={videoRef} className="w-full h-full object-cover" />
+                                                <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
                                                 <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 h-0.5 bg-primary/40 animate-pulse shadow-[0_0_15px_rgba(var(--primary),0.5)]"></div>
                                                 <div className="absolute top-2 left-2 text-[8px] font-bold text-white bg-black/40 px-1.5 py-0.5 rounded backdrop-blur">
                                                     LIVE FEED • SCAN BARCODE

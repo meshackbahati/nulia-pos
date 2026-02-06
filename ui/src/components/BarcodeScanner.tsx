@@ -98,8 +98,8 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
                             setScanning(true);
                         }}
                         className={`flex-1 py-2 px-4 rounded-lg transition-all ${useCamera
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                     >
                         <Camera className="w-5 h-5 mx-auto mb-1" />
@@ -111,8 +111,8 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
                             stopCamera();
                         }}
                         className={`flex-1 py-2 px-4 rounded-lg transition-all ${!useCamera
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                     >
                         <BarcodeIcon className="w-5 h-5 mx-auto mb-1" />
@@ -135,6 +135,7 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
                                 className="w-full h-full object-cover"
                                 autoPlay
                                 playsInline
+                                muted
                             />
                             <div className="absolute inset-0 border-2 border-blue-500 rounded-lg pointer-events-none">
                                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3/4 h-1/3 border-2 border-white/50"></div>
