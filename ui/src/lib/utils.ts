@@ -6,6 +6,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number, currency: string = 'KES', symbol?: string): string {
+  // Check for invalid amount
+  if (isNaN(Number(amount))) {
+    amount = 0;
+  }
+
   // Use provided symbol, or default to branch setting, or fallback to currency code
   const displaySymbol = symbol || (typeof window !== 'undefined' ? (window as any)._BRANCH_CURRENCY_SYMBOL : null) || currency;
 

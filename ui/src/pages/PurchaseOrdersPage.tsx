@@ -207,7 +207,7 @@ export default function PurchaseOrdersPage() {
                         <div>
                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Value</p>
                             <p className="text-xl font-bold text-foreground mt-0.5">
-                                {formatCurrency(orders.reduce((acc, o) => acc + o.totalAmount, 0))}
+                                {formatCurrency(orders.reduce((acc, o) => acc + (Number(o.totalAmount) || 0), 0))}
                             </p>
                         </div>
                     </div>
