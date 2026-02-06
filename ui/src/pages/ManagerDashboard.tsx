@@ -123,10 +123,15 @@ export function ManagerDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold font-display tracking-tight text-foreground">
-            {userRole === 'admin' ? 'System Overview' : 'Branch Dashboard'}
+            {userRole === 'admin' && !localStorage.getItem('selectedBranchId')
+              ? 'System Overview (All Branches)'
+              : ((branchName || 'Branch Dashboard'))}
           </h1>
-          {branchName && (
-            <p className="text-muted-foreground">{branchName}</p>
+          {branchName && localStorage.getItem('selectedBranchId') && (
+            <p className="text-muted-foreground">
+              {/* Try to find name from branches list if available, else fallback to user branch or generic */}
+              {stats?.branches?.find(b => b.id === localStorage.getItem('selectedBranchId'))?.name || branchName}
+            </p>
           )}
         </div>
         <div className="flex gap-2">

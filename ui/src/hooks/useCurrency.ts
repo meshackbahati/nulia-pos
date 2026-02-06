@@ -22,10 +22,16 @@ export const useCurrency = (customBranch?: any) => {
         };
     }, [branch]);
 
-    const formatPrice = (amount: number) => {
+    const formatPrice = (amount: number | undefined | null) => {
         const s = branchSettings.symbol;
+        if (amount === undefined || amount === null || isNaN(amount)) {
+            return `${s} 0.00`;
+        }
         const separator = s.length > 2 ? ' ' : ''; // Add space for codes like KES, none for $
-        return `${s}${separator}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return `${s}${separator}${amount.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        })}`;
     };
 
     return {

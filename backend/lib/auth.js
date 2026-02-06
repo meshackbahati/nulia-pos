@@ -44,6 +44,7 @@ export const authenticate = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            console.log('Auth failed: Missing or invalid Authorization header');
             return res.status(401).json({ error: 'Authentication required' });
         }
 
@@ -52,12 +53,14 @@ export const authenticate = async (req, res, next) => {
 
         const user = await models.User.findByPk(payload.userId);
         if (!user || !user.isActive) {
+            console.log(`Auth failed: User ${payload.userId} not found or inactive`);
             return res.status(401).json({ error: 'User inactive or not found' });
         }
 
         req.user = payload;
         next();
     } catch (error) {
+        console.error('Auth Middleware Error:', error.message);
         return res.status(401).json({ error: error.message });
     }
 };

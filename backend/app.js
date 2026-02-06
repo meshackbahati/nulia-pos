@@ -36,11 +36,21 @@ app.use(express.urlencoded({ extended: true }));
 // Security Headers
 app.use((req, res, next) => {
     // Fix Permissions-Policy warning
+    // We only set the standard ones. The browser might warn about others if used by third-party scripts.
     res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
 
-    // Fix Content-Security-Policy path warning (if backend serves anything)
-    // Note: This is more relevant for frontend, but setting it here doesn't hurt for API responses
-    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';");
+    // Fix Content-Security-Policy path warning
+    // Removed specific paths with queries which are invalid in CSP source lists.
+    // Added connect-src to allow connections to paystack and other APIs
+    res.setHeader(
+        'Content-Security-Policy',
+        "default-src 'self' https:; " +
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; " +
+        "style-src 'self' 'unsafe-inline' https:; " +
+        "img-src 'self' data: https:; " +
+        "font-src 'self' data: https:; " +
+        "connect-src 'self' https:;"
+    );
 
     next();
 });
