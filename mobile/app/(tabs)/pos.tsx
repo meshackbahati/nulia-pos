@@ -214,32 +214,40 @@ export default function POS() {
             {/* Cart Modal */}
             <Modal visible={showCart} animationType="slide" presentationStyle="pageSheet">
                 {/* ... existing modal code ... */}
-                <View className="flex-1 bg-background">
-                    <View className="p-4 border-b border-border flex-row items-center justify-between">
-                        <Text className="text-xl font-bold">Current Cart</Text>
-                        <TouchableOpacity onPress={() => setShowCart(false)} className="bg-muted p-2 rounded-full">
+                <View className="flex-1 bg-muted/30">
+                    <View className="p-4 bg-background border-b border-border flex-row items-center justify-between shadow-sm">
+                        <Text className="text-xl font-bold text-foreground">Current Cart</Text>
+                        <TouchableOpacity onPress={() => setShowCart(false)} className="bg-muted p-2 rounded-full active:bg-muted/80">
                             <X size={20} color="#64748b" />
                         </TouchableOpacity>
                     </View>
 
                     <FlatList
                         data={cart}
-                        contentContainerStyle={{ padding: 16, gap: 16 }}
+                        contentContainerStyle={{ padding: 16, gap: 12 }}
                         renderItem={({ item }) => (
-                            <View className="flex-row items-center bg-card p-3 rounded-xl border border-border shadow-sm">
+                            <View className="flex-row items-center bg-card p-4 rounded-2xl border border-border/50 shadow-sm">
                                 <View className="flex-1">
-                                    <Text className="font-bold text-foreground">{item.name}</Text>
-                                    <Text className="text-muted-foreground text-xs">
-                                        {formatMoney(item.price)} x {item.quantity}
-                                    </Text>
+                                    <Text className="font-bold text-foreground text-base mb-1">{item.name}</Text>
+                                    <View className="flex-row items-center gap-2">
+                                        <Text className="text-primary font-bold">{formatMoney(item.price)}</Text>
+                                        <Text className="text-muted-foreground text-xs">•</Text>
+                                        <Text className="text-muted-foreground text-xs">Qty: {item.quantity}</Text>
+                                    </View>
                                 </View>
-                                <View className="flex-row items-center gap-3">
-                                    <TouchableOpacity onPress={() => updateQuantity(item.productId, item.variantId, -1)} className="bg-muted p-2 rounded-lg">
+                                <View className="flex-row items-center gap-4 bg-muted/50 p-1.5 rounded-xl border border-border/50">
+                                    <TouchableOpacity
+                                        onPress={() => updateQuantity(item.productId, item.variantId, -1)}
+                                        className="bg-background w-8 h-8 rounded-lg items-center justify-center shadow-sm border border-border/50 active:scale-95 transition-transform"
+                                    >
                                         <Minus size={16} color="#64748b" />
                                     </TouchableOpacity>
-                                    <Text className="font-bold w-6 text-center">{item.quantity}</Text>
-                                    <TouchableOpacity onPress={() => updateQuantity(item.productId, item.variantId, 1)} className="bg-primary/10 p-2 rounded-lg">
-                                        <Plus size={16} color="#3b82f6" />
+                                    <Text className="font-bold w-4 text-center text-foreground">{item.quantity}</Text>
+                                    <TouchableOpacity
+                                        onPress={() => updateQuantity(item.productId, item.variantId, 1)}
+                                        className="bg-primary w-8 h-8 rounded-lg items-center justify-center shadow-sm active:scale-95 transition-transform"
+                                    >
+                                        <Plus size={16} color="white" />
                                     </TouchableOpacity>
                                 </View>
                             </View>

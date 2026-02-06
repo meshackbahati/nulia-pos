@@ -6,20 +6,18 @@ import { DollarSign, TrendingUp, Trophy, Package, LayoutDashboard } from 'lucide
 import ThemeToggle from '../components/ThemeToggle';
 
 interface DashboardStats {
-    today: { salesCount: number; revenue: number };
-    week: { salesCount: number; revenue: number };
-    month: { salesCount: number; revenue: number };
+    todayRevenue: number;
+    weekSales: number;
+    monthSales: number;
 }
 
 interface LeaderboardEntry {
     rank: number;
-    user: {
-        id: string;
-        firstName: string;
-        lastName: string;
-    };
-    salesCount: number;
-    totalRevenue: number;
+    userId: string;
+    name: string;
+    revenue: number;
+    count: number;
+    branch: string;
 }
 
 export default function SalesDashboard() {
@@ -36,16 +34,25 @@ export default function SalesDashboard() {
 
     const fetchData = async () => {
         try {
-            const [statsRes, leaderboardRes] = await Promise.all([
+            // Fetch today's stats from general dashboard endpoint
+            // Fetch weekly summary explicitly for "Weekly Sales"
+            // Fetch leaderboard for "Store Rank"
+            const [dashboardRes, weekSummaryRes, leaderboardRes] = await Promise.all([
                 api.getDashboardStats(),
+                api.getAnalyticsSummary({ period: 'week' }),
                 api.getLeaderboard('month'),
             ]);
 
-            setStats(statsRes.data.stats);
-            setLeaderboard(leaderboardRes.data.leaderboard);
+            setStats({
+                todayRevenue: dashboardRes.data.stats.todayRevenue || 0,
+                weekSales: weekSummaryRes.data.salesCount || 0,
+                monthSales: 0 // Placeholder or fetch if needed
+            });
+
+            setLeaderboard(leaderboardRes.data.leaderboard || []);
 
             const position = leaderboardRes.data.leaderboard.findIndex(
-                (entry: LeaderboardEntry) => entry.user.id === user?.id
+                (entry: LeaderboardEntry) => entry.userId === user?.id
             );
             setMyPosition(position >= 0 ? position + 1 : null);
         } catch (error) {
@@ -100,7 +107,7 @@ export default function SalesDashboard() {
                             <div>
                                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Today's Revenue</p>
                                 <p className="text-2xl font-bold text-foreground mt-0.5">
-                                    {formatPrice(stats.today.revenue)}
+                                    {formatPrice(stats.todayRevenue)}
                                 </p>
                             </div>
                         </div>
@@ -115,7 +122,7 @@ export default function SalesDashboard() {
                             <div>
                                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Weekly Sales</p>
                                 <p className="text-2xl font-bold text-foreground mt-0.5">
-                                    {stats.week.salesCount} Units
+                                    {stats.weekSales} Units
                                 </p>
                             </div>
                         </div>
@@ -150,8 +157,8 @@ export default function SalesDashboard() {
                         <div className="space-y-3">
                             {leaderboard.map((entry) => (
                                 <div
-                                    key={entry.user.id}
-                                    className={`relative rounded-xl border p-4 flex items-center gap-4 transition-all duration-300 ${entry.user.id === user?.id
+                                    key={entry.userId}
+                                    className={`relative rounded-xl border p-4 flex items-center gap-4 transition-all duration-300 ${entry.userId === user?.id
                                         ? 'bg-primary/5 border-primary/20 ring-1 ring-primary/20'
                                         : 'bg-card/30 border-border/40 hover:bg-card hover:border-border'
                                         }`}
@@ -162,19 +169,19 @@ export default function SalesDashboard() {
 
                                     <div className="flex-1">
                                         <p className="font-bold text-foreground flex items-center gap-2">
-                                            {entry.user.firstName} {entry.user.lastName}
-                                            {entry.user.id === user?.id && (
+                                            {entry.name}
+                                            {entry.userId === user?.id && (
                                                 <span className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary rounded-full uppercase border border-primary/20">You</span>
                                             )}
                                         </p>
                                         <p className="text-xs text-muted-foreground">
-                                            {entry.salesCount} sales completed
+                                            {entry.count} sales completed
                                         </p>
                                     </div>
 
                                     <div className="text-right">
                                         <p className="font-bold text-primary">
-                                            {formatPrice(entry.totalRevenue)}
+                                            {formatPrice(entry.revenue)}
                                         </p>
                                     </div>
                                 </div>
