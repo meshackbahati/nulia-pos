@@ -48,18 +48,31 @@ export const getCloudinaryConfig = async () => {
     const models = (await import('../models/index.js')).default;
     const Setting = models.Setting;
 
-    // Note: getSetting might need to be implemented or adjusted in the new model structure
-    // For now, assuming it exists or using findOne
-    const cloudNameSetting = await Setting.findOne({ where: { key: 'cloudinary_cloud_name' } });
-    const apiKeySetting = await Setting.findOne({ where: { key: 'cloudinary_api_key' } });
-    const apiSecretSetting = await Setting.findOne({ where: { key: 'cloudinary_api_secret' } });
+    const cloudNameSetting = await Setting.findOne({
+        where: { category: 'cloudinary', key: 'cloudName' }
+    });
+    const apiKeySetting = await Setting.findOne({
+        where: { category: 'cloudinary', key: 'apiKey' }
+    });
+    const apiSecretSetting = await Setting.findOne({
+        where: { category: 'cloudinary', key: 'apiSecret' }
+    });
 
-    const cloudName = cloudNameSetting?.value;
-    const apiKey = apiKeySetting?.value;
-    const apiSecret = apiSecretSetting?.value;
+    const cloudName = cloudNameSetting?.getDecryptedValue();
+    const apiKey = apiKeySetting?.getDecryptedValue();
+    const apiSecret = apiSecretSetting?.getDecryptedValue();
 
     if (!cloudName || !apiKey || !apiSecret) {
-        throw new Error('Cloudinary credentials not configured');
+        console.error('Missing Cloudinary credentials:', {
+            cloudName: !!cloudName,
+            apiKey: !!apiKey,
+            apiSecret: !!apiSecret
+        });
+        throw new Error('Cloudinary credentials not configured or failed to decrypt');
+    }
+
+    if (apiKey === '[DECRYPTION_ERROR]' || apiSecret === '[DECRYPTION_ERROR]') {
+        throw new Error('Cloudinary credentials decryption failed. Please re-save them in settings.');
     }
 
     return {
