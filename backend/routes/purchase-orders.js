@@ -47,7 +47,7 @@ router.post('/create', authenticate, async (req, res) => {
             branchId: req.user.branchId,
             orderNumber: `PO-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
             status: 'pending',
-            totalAmount: items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0),
+            totalAmount: items.reduce((sum, item) => sum + (item.quantity * (item.unitCost || item.unitPrice || 0)), 0),
             notes,
             createdBy: req.user.id || req.user.userId
         }, { transaction: t });
@@ -58,8 +58,8 @@ router.post('/create', authenticate, async (req, res) => {
                 productId: item.productId,
                 variantId: item.variantId || null,
                 quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                totalPrice: item.quantity * item.unitPrice
+                unitCost: item.unitCost || item.unitPrice || 0,
+                totalCost: item.quantity * (item.unitCost || item.unitPrice || 0)
             }, { transaction: t });
         }
 
