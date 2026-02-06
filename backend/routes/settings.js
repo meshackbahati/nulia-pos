@@ -15,7 +15,8 @@ router.get('/get', authenticate, async (req, res) => {
             brevo: {},
             cloudinary: {},
             company: {},
-            currency: {}
+            currency: {},
+            paystack: {}
         };
 
         allSettings.forEach(s => {
@@ -46,7 +47,7 @@ router.post('/update', authenticate, authorize('admin'), async (req, res) => {
         const nestedSettings = req.body; // { mpesa: {...}, brevo: {...} }
 
         // List of keys that should be encrypted
-        const secretKeys = ['consumerKey', 'consumerSecret', 'passkey', 'apiKey', 'apiSecret'];
+        const secretKeys = ['consumerKey', 'consumerSecret', 'passkey', 'apiKey', 'apiSecret', 'secretKey'];
 
         for (const [category, keys] of Object.entries(nestedSettings)) {
             if (typeof keys !== 'object') continue;

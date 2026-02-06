@@ -3,9 +3,10 @@ import { encrypt, decrypt } from './encryption.js';
 import models from '../models/index.js';
 
 export class MpesaService {
-    constructor(credentials, branchId) {
+    constructor(credentials, branchId, callbackUrl = null) {
         this.credentials = credentials;
         this.branchId = branchId;
+        this.callbackUrl = callbackUrl;
         this.baseUrl = process.env.MPESA_ENVIRONMENT === 'production'
             ? 'https://api.safaricom.co.ke'
             : 'https://sandbox.safaricom.co.ke';
@@ -94,9 +95,9 @@ export class MpesaService {
     }
 
     generateCallbackUrl() {
+        if (this.callbackUrl) return this.callbackUrl;
         const baseUrl = process.env.MPESA_CALLBACK_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5000';
-        // Pointer to our local/deployed Express API endpoint
-        return `${baseUrl}/api/mpesa/callback`;
+        return `${baseUrl}/api/mpesa/callback/${this.branchId}`;
     }
 
     static async getBranchMpesaService(branchId) {
@@ -125,7 +126,7 @@ export class MpesaService {
                         consumerSecret: globalCredentials.consumerSecret,
                         passkey: globalCredentials.passkey,
                         shortcode: globalCredentials.shortcode || process.env.DEFAULT_MPESA_SHORTCODE,
-                    }, branchId);
+                    }, branchId, branch.mpesaCallbackUrl);
                 }
 
                 // If no global settings, use default env credentials
@@ -140,7 +141,7 @@ export class MpesaService {
                     return null;
                 }
 
-                return new MpesaService(defaultCredentials, branchId);
+                return new MpesaService(defaultCredentials, branchId, branch.mpesaCallbackUrl);
             }
 
             return new MpesaService({
@@ -148,7 +149,7 @@ export class MpesaService {
                 consumerSecret: credentials.consumerSecret,
                 passkey: credentials.passkey,
                 shortcode: credentials.shortcode || process.env.DEFAULT_MPESA_SHORTCODE,
-            }, branchId);
+            }, branchId, branch.mpesaCallbackUrl);
         } catch (error) {
             console.error('Failed to get M-Pesa service for branch:', error);
             return null;

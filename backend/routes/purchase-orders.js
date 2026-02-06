@@ -1,13 +1,19 @@
 import express from 'express';
 import models, { sequelize } from '../models/index.js';
-import { authenticate, authorize } from '../lib/auth.js';
+import { authenticate, authorize, hasPermission } from '../lib/auth.js';
 
 const router = express.Router();
 
 // List purchase orders
 router.get('/list', authenticate, async (req, res) => {
     try {
+        const where = {};
+        if (req.user.role !== 'admin') {
+            where.branchId = req.user.branchId;
+        }
+
         const pos = await models.PurchaseOrder.findAll({
+            where,
             include: [
                 { model: models.Supplier, as: 'supplier', attributes: ['name'] },
                 { model: models.PurchaseOrderItem, as: 'items' }
@@ -22,7 +28,16 @@ router.get('/list', authenticate, async (req, res) => {
 });
 
 // Create purchase order
-router.post('/create', authenticate, authorize('manager'), async (req, res) => {
+router.post('/create', authenticate, async (req, res) => {
+    // Check permissions
+    if (req.user.role === 'head_of_sales') {
+        if (!req.user.permissions?.canManageInventory) {
+            return res.status(403).json({ error: 'Head of Sales does not have inventory write access' });
+        }
+    } else if (!hasPermission(req.user.role, 'manager')) {
+        return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
     const t = await sequelize.transaction();
     try {
         const { supplierId, items, notes } = req.body;
@@ -56,7 +71,16 @@ router.post('/create', authenticate, authorize('manager'), async (req, res) => {
 });
 
 // Receive purchase order (and update inventory)
-router.post('/receive', authenticate, authorize('manager'), async (req, res) => {
+router.post('/receive', authenticate, async (req, res) => {
+    // Check permissions
+    if (req.user.role === 'head_of_sales') {
+        if (!req.user.permissions?.canManageInventory) {
+            return res.status(403).json({ error: 'Head of Sales does not have inventory write access' });
+        }
+    } else if (!hasPermission(req.user.role, 'manager')) {
+        return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
     const t = await sequelize.transaction();
     try {
         const { purchaseOrderId } = req.body;

@@ -1,6 +1,6 @@
 import express from 'express';
 import models from '../models/index.js';
-import { authenticate, authorize } from '../lib/auth.js';
+import { authenticate, hasPermission } from '../lib/auth.js';
 
 const router = express.Router();
 
@@ -19,7 +19,16 @@ router.get('/list', authenticate, async (req, res) => {
 });
 
 // Create supplier
-router.post('/create', authenticate, authorize('manager'), async (req, res) => {
+router.post('/create', authenticate, async (req, res) => {
+    // Check permissions
+    if (req.user.role === 'head_of_sales') {
+        if (!req.user.permissions?.canManageInventory) {
+            return res.status(403).json({ error: 'Head of Sales does not have inventory write access' });
+        }
+    } else if (!hasPermission(req.user.role, 'manager')) {
+        return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
     try {
         const supplier = await models.Supplier.create(req.body);
         res.json({ success: true, supplier });

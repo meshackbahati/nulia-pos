@@ -17,6 +17,8 @@ export function verifyToken(token) {
 }
 
 export function hasPermission(userRole, requiredRole) {
+    // Role Hierarchy: Higher numbers have more permissions
+    // admin (4) > manager (3) > head_of_sales (2) > salesperson (1)
     const roleHierarchy = {
         admin: 4,
         manager: 3,

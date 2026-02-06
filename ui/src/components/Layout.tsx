@@ -90,7 +90,23 @@ export default function Layout({ children }: LayoutProps) {
 
                     {/* Navigation */}
                     <nav className="flex-1 space-y-1">
-                        {menuItems.map((item) => {
+                        {menuItems.filter(item => {
+                            if (!user) return false;
+                            const role = user.role;
+
+                            // Salesperson: Only POS, Products, Dashboard
+                            if (role === 'salesperson') {
+                                return ['Dashboard', 'POS Terminal', 'Products'].includes(item.label);
+                            }
+
+                            // Head of Sales: No Settings
+                            if (role === 'head_of_sales') {
+                                return item.label !== 'Settings';
+                            }
+
+                            // Managers and Admins see everything
+                            return true;
+                        }).map((item) => {
                             const isActive = location.pathname === item.path;
                             return (
                                 <Link

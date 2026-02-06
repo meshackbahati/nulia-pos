@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { X, CreditCard, DollarSign, Smartphone, ShieldCheck } from 'lucide-react';
+import { X, CreditCard, DollarSign, Smartphone, ShieldCheck, Percent } from 'lucide-react';
+import usePaystack from '../hooks/usePaystack'; // New hook for card payments
+import { useCurrency } from '../hooks/useCurrency';
 
 interface PaymentModalProps {
     total: number;
@@ -7,16 +9,23 @@ interface PaymentModalProps {
         currency: string;
         secondaryCurrency?: string;
         exchangeRate: number;
+        taxRate: number;
     };
     onClose: () => void;
     onComplete: (paymentMethod: string, paymentDetails?: any) => Promise<void>;
 }
 
 export default function PaymentModal({ total, branchConfig, onClose, onComplete }: PaymentModalProps) {
+    const { formatPrice, symbol } = useCurrency(branchConfig);
     const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'mpesa'>('cash');
     const [processing, setProcessing] = useState(false);
     const [customerPhone, setCustomerPhone] = useState('');
     const [amountReceived, setAmountReceived] = useState('');
+    const [payWithPaystack] = usePaystack();
+
+    const taxRate = branchConfig?.taxRate || 0;
+    const taxAmount = total * (taxRate / 100);
+    const finalTotal = total + taxAmount;
 
     const handleSubmit = async () => {
         setProcessing(true);
@@ -26,13 +35,34 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
 
             if (paymentMethod === 'cash') {
                 const received = parseFloat(amountReceived);
-                if (received < total) {
+                if (received < finalTotal) {
                     alert('Amount received is less than total!');
                     setProcessing(false);
                     return;
                 }
                 paymentDetails.amountReceived = received;
-                paymentDetails.change = received - total;
+                paymentDetails.change = received - finalTotal;
+            } else if (paymentMethod === 'card') {
+                // Initialize Paystack
+                const success = await payWithPaystack({
+                    amount: finalTotal,
+                    email: 'pos-customer@retailpro.com', // Placeholder if not provided
+                    metadata: {
+                        custom_fields: [
+                            {
+                                display_name: "POS Transaction",
+                                variable_name: "pos_tx",
+                                value: "POS"
+                            }
+                        ]
+                    }
+                });
+
+                if (!success) {
+                    setProcessing(false);
+                    return;
+                }
+                paymentDetails.cardProcessed = true;
             } else if (paymentMethod === 'mpesa') {
                 if (!customerPhone || customerPhone.length < 10) {
                     alert('Please enter a valid phone number');
@@ -70,10 +100,25 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
                     </button>
                 </div>
 
-                {/* Total Display */}
-                <div className="bg-muted/30 rounded-xl p-6 mb-8 text-center border border-border/50">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-1">Payable Total</p>
-                    <p className="text-4xl font-extrabold text-primary">${total.toFixed(2)}</p>
+                {/* Summary Display */}
+                <div className="bg-muted/30 rounded-xl p-6 mb-8 text-center border border-border/50 divide-y divide-border/20">
+                    <div className="pb-4">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-1">Subtotal</p>
+                        <p className="text-2xl font-bold text-foreground">${total.toFixed(2)}</p>
+                    </div>
+                    {taxRate > 0 && (
+                        <div className="py-4 flex justify-between items-center bg-primary/5 px-4 rounded-lg my-2">
+                            <div className="flex items-center gap-2">
+                                <Percent className="w-3 h-3 text-primary" />
+                                <span className="text-[10px] font-bold text-primary uppercase">Tax ({taxRate}%)</span>
+                            </div>
+                            <span className="text-sm font-bold text-primary">${taxAmount.toFixed(2)}</span>
+                        </div>
+                    )}
+                    <div className="pt-4">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-1">Final Amount</p>
+                        <p className="text-4xl font-extrabold text-primary">${finalTotal.toFixed(2)}</p>
+                    </div>
                 </div>
 
                 {/* Payment Options */}
@@ -103,7 +148,7 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Cash Received</label>
                             <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">$</span>
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">{symbol}</span>
                                 <input
                                     type="number"
                                     step="0.01"
@@ -117,7 +162,7 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
                             {amountReceived && parseFloat(amountReceived) >= total && (
                                 <div className="p-3 bg-emerald-500/10 rounded-lg flex justify-between items-center animate-in fade-in slide-in-from-top-2 border border-emerald-500/20">
                                     <span className="text-[10px] font-bold text-emerald-500 uppercase">Change Due</span>
-                                    <span className="text-sm font-bold text-emerald-500">${(parseFloat(amountReceived) - total).toFixed(2)}</span>
+                                    <span className="text-sm font-bold text-emerald-500">{formatPrice(parseFloat(amountReceived) - finalTotal)}</span>
                                 </div>
                             )}
                         </div>
@@ -156,7 +201,7 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
                         disabled={processing}
                         className="flex-1 h-12 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg font-bold uppercase text-xs shadow-lg shadow-primary/25 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:shadow-none"
                     >
-                        {processing ? 'EXECUTING...' : `AUTHORIZE $${total.toFixed(2)}`}
+                        {processing ? 'EXECUTING...' : `AUTHORIZE ${formatPrice(finalTotal)}`}
                     </button>
                 </div>
             </div>

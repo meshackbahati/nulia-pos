@@ -1,12 +1,12 @@
 import express from 'express';
 import models, { sequelize } from '../models/index.js';
-import { authenticate, authorize } from '../lib/auth.js';
+import { authenticate, authorize, hasPermission } from '../lib/auth.js';
 import { Op } from 'sequelize';
 
 const router = express.Router();
 
 // Get low stock products
-router.get('/low-stock', authenticate, authorize('manager'), async (req, res) => {
+router.get('/low-stock', authenticate, authorize('head_of_sales'), async (req, res) => {
     try {
         const { threshold = 10, branchId } = req.query;
         const targetBranchId = branchId || req.user.branchId;
@@ -38,7 +38,16 @@ router.get('/low-stock', authenticate, authorize('manager'), async (req, res) =>
 });
 
 // Update inventory level / Restock
-router.post('/restock', authenticate, authorize('manager'), async (req, res) => {
+router.post('/restock', authenticate, async (req, res) => {
+    // Check permissions
+    if (req.user.role === 'head_of_sales') {
+        if (!req.user.permissions?.canManageInventory) {
+            return res.status(403).json({ error: 'Head of Sales does not have inventory write access' });
+        }
+    } else if (!hasPermission(req.user.role, 'manager')) {
+        return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
     const t = await sequelize.transaction();
     try {
         const { items, branchId, reason } = req.body;
@@ -77,7 +86,16 @@ router.post('/restock', authenticate, authorize('manager'), async (req, res) => 
 });
 
 // Alias for /restock for backward compatibility or specific use-case
-router.post('/adjust', authenticate, authorize('manager'), async (req, res) => {
+router.post('/adjust', authenticate, async (req, res) => {
+    // Check permissions
+    if (req.user.role === 'head_of_sales') {
+        if (!req.user.permissions?.canManageInventory) {
+            return res.status(403).json({ error: 'Head of Sales does not have inventory write access' });
+        }
+    } else if (!hasPermission(req.user.role, 'manager')) {
+        return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
     // The original /adjust endpoint directly set the quantity.
     // The new /restock endpoint increments the quantity.
     // To alias /adjust to /restock, we need to adapt the request body

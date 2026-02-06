@@ -10,8 +10,8 @@ router.get('/list', authenticate, async (req, res) => {
         const { branchId, includeInactive } = req.query;
         const where = includeInactive === 'true' ? {} : { isActive: true };
 
-        if (req.user.role === 'manager') {
-            // Managers can seen users in their branch OR users they created
+        if (req.user.role === 'manager' || req.user.role === 'head_of_sales') {
+            // Managers and Head of Sales can see users in their branch OR users they created
             where[models.Sequelize.Op.or] = [
                 { branchId: req.user.branchId },
                 { createdBy: req.user.userId }
@@ -47,7 +47,7 @@ router.get('/list', authenticate, async (req, res) => {
 });
 
 // Create user
-router.post('/create', authenticate, authorize('manager'), async (req, res) => {
+router.post('/create', authenticate, authorize('head_of_sales'), async (req, res) => {
     try {
         const userData = {
             ...req.body,
@@ -63,8 +63,14 @@ router.post('/create', authenticate, authorize('manager'), async (req, res) => {
                 return res.status(403).json({ error: 'Unauthorized to create users for this branch' });
             }
 
-            // Managers cannot create other admins
-            if (userData.role === 'admin') {
+            // Role-based creation limits
+            if (req.user.role === 'manager') {
+                // Managers can create head_of_sales and salesperson
+                if (!['head_of_sales', 'salesperson'].includes(userData.role)) {
+                    userData.role = 'salesperson';
+                }
+            } else if (req.user.role === 'head_of_sales') {
+                // Head of Sales can ONLY create salespeople
                 userData.role = 'salesperson';
             }
         }
@@ -89,7 +95,7 @@ router.post('/create', authenticate, authorize('manager'), async (req, res) => {
 });
 
 // Update user
-router.put('/update/:id', authenticate, authorize('manager'), async (req, res) => {
+router.put('/update/:id', authenticate, authorize('head_of_sales'), async (req, res) => {
     try {
         const { id } = req.params;
         const { password, ...updateData } = req.body;
@@ -101,15 +107,26 @@ router.put('/update/:id', authenticate, authorize('manager'), async (req, res) =
 
         // Role-based authorization
         if (req.user.role !== 'admin') {
-            // Managers can only update users in their branch or users they created
+            // Managers and Head of Sales can only update users in their branch or users they created
             const isAuthorized = user.branchId === req.user.branchId || user.createdBy === req.user.userId;
             if (!isAuthorized) {
                 return res.status(403).json({ error: 'Unauthorized to update this user' });
             }
 
-            // Managers cannot promote others to admin
-            if (updateData.role === 'admin' && user.role !== 'admin') {
-                delete updateData.role;
+            // Role-based update limits
+            if (req.user.role === 'manager') {
+                // Managers can update anyone to head_of_sales or salesperson, but cannot create admins
+                if (updateData.role && !['head_of_sales', 'salesperson'].includes(updateData.role)) {
+                    delete updateData.role;
+                }
+            } else if (req.user.role === 'head_of_sales') {
+                // Head of Sales can ONLY update users to salesperson, and ONLY if the target is NOT a higher role
+                if (['admin', 'manager', 'head_of_sales'].includes(user.role)) {
+                    return res.status(403).json({ error: 'Unauthorized to update higher or equal roles' });
+                }
+                if (updateData.role && updateData.role !== 'salesperson') {
+                    updateData.role = 'salesperson';
+                }
             }
         }
 

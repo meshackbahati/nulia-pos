@@ -11,7 +11,7 @@ const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 // Upload image to Cloudinary
-router.post('/upload-image', authenticate, authorize('manager'), upload.single('image'), async (req, res) => {
+router.post('/upload-image', authenticate, authorize('head_of_sales'), upload.single('image'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No image file provided' });
@@ -42,7 +42,7 @@ router.post('/upload-image', authenticate, authorize('manager'), upload.single('
 });
 
 // Import products via CSV
-router.post('/import-csv', authenticate, authorize('manager'), upload.single('file'), async (req, res) => {
+router.post('/import-csv', authenticate, authorize('head_of_sales'), upload.single('file'), async (req, res) => {
     let t;
     try {
         t = await sequelize.transaction();
@@ -239,7 +239,7 @@ router.get('/list', authenticate, async (req, res) => {
 });
 
 // Create product
-router.post('/create', authenticate, authorize('manager'), async (req, res) => {
+router.post('/create', authenticate, authorize('head_of_sales'), async (req, res) => {
     let t;
     try {
         t = await sequelize.transaction();
@@ -331,7 +331,7 @@ router.post('/create', authenticate, authorize('manager'), async (req, res) => {
 });
 
 // Update product
-router.put('/update/:id', authenticate, authorize('manager'), async (req, res) => {
+router.put('/update/:id', authenticate, authorize('head_of_sales'), async (req, res) => {
     try {
         const { id } = req.params;
         const product = await models.Product.findByPk(id);
@@ -346,7 +346,7 @@ router.put('/update/:id', authenticate, authorize('manager'), async (req, res) =
 });
 
 // Delete product
-router.delete('/delete/:id', authenticate, authorize('manager'), async (req, res) => {
+router.delete('/delete/:id', authenticate, authorize('head_of_sales'), async (req, res) => {
     try {
         const { id } = req.params;
         const product = await models.Product.findByPk(id);
@@ -361,7 +361,7 @@ router.delete('/delete/:id', authenticate, authorize('manager'), async (req, res
 });
 
 // Low stock (aliased here to match /products/low-stock)
-router.get('/low-stock', authenticate, authorize('manager'), async (req, res) => {
+router.get('/low-stock', authenticate, authorize('head_of_sales'), async (req, res) => {
     try {
         const { threshold = 10, branchId } = req.query;
         const targetBranchId = branchId || req.user.branchId;

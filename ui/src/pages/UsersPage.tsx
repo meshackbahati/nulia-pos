@@ -21,6 +21,9 @@ interface User {
         lastName: string;
         role: string;
     };
+    permissions?: {
+        canManageInventory: boolean;
+    };
 }
 
 export default function UsersPage() {
@@ -36,6 +39,9 @@ export default function UsersPage() {
         lastName: '',
         role: 'salesperson',
         branchId: '',
+        permissions: {
+            canManageInventory: false
+        }
     });
     const [branches, setBranches] = useState<any[]>([]);
     const [submitting, setSubmitting] = useState(false);
@@ -86,6 +92,9 @@ export default function UsersPage() {
                 lastName: '',
                 role: 'salesperson',
                 branchId: '',
+                permissions: {
+                    canManageInventory: false
+                }
             });
             toast.success('Agent updated successfully');
             fetchUsers();
@@ -118,6 +127,7 @@ export default function UsersPage() {
             lastName: user.lastName,
             role: user.role,
             branchId: user.branch?.id || '',
+            permissions: user.permissions || { canManageInventory: false }
         });
         setShowEditModal(true);
     };
@@ -233,20 +243,26 @@ export default function UsersPage() {
                                         </p>
                                     </div>
                                     <div className="flex gap-2">
-                                        <button
-                                            onClick={() => openEditModal(user)}
-                                            className="text-muted-foreground hover:text-primary transition-colors"
-                                            title="Edit Agent"
-                                        >
-                                            <Edit2 className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeactivate(user)}
-                                            className={`text-xs font-bold uppercase transition-colors ${user.isActive ? 'text-destructive hover:text-destructive/80' : 'text-emerald-500 hover:text-emerald-600'}`}
-                                            title={user.isActive ? "Deactivate Agent" : "Reactivate Agent"}
-                                        >
-                                            {user.isActive ? <UserMinus className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                                        </button>
+                                        {(currentUser?.role === 'admin' ||
+                                            (currentUser?.role === 'manager' && ['head_of_sales', 'salesperson'].includes(user.role)) ||
+                                            (currentUser?.role === 'head_of_sales' && user.role === 'salesperson')) && (
+                                                <>
+                                                    <button
+                                                        onClick={() => openEditModal(user)}
+                                                        className="text-muted-foreground hover:text-primary transition-colors"
+                                                        title="Edit Agent"
+                                                    >
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeactivate(user)}
+                                                        className={`text-xs font-bold uppercase transition-colors ${user.isActive ? 'text-destructive hover:text-destructive/80' : 'text-emerald-500 hover:text-emerald-600'}`}
+                                                        title={user.isActive ? "Deactivate Agent" : "Reactivate Agent"}
+                                                    >
+                                                        {user.isActive ? <UserMinus className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                                                    </button>
+                                                </>
+                                            )}
                                     </div>
                                 </div>
                             </div>
@@ -277,7 +293,7 @@ export default function UsersPage() {
                                 }
                                 await api.createUser(formData);
                                 setShowAddModal(false);
-                                setFormData({ email: '', password: '', firstName: '', lastName: '', role: 'salesperson', branchId: '' });
+                                setFormData({ email: '', password: '', firstName: '', lastName: '', role: 'salesperson', branchId: '', permissions: { canManageInventory: false } });
                                 toast.success('Agent created successfully');
                                 fetchUsers();
                             } catch (error: any) {
@@ -319,13 +335,37 @@ export default function UsersPage() {
                                         <option value="head_of_sales">Head of Sales</option>
                                     )}
                                     {currentUser?.role === 'admin' && (
-                                        <option value="manager">Manager</option>
-                                    )}
-                                    {currentUser?.role === 'admin' && (
-                                        <option value="admin">Administrator</option>
+                                        <>
+                                            <option value="manager">Manager</option>
+                                            <option value="admin">Administrator</option>
+                                        </>
                                     )}
                                 </select>
                             </div>
+
+                            {formData.role === 'head_of_sales' && (
+                                <div className="space-y-4 p-4 bg-muted/30 rounded-lg border border-border">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-xs font-bold text-foreground">Inventory Write Access</p>
+                                            <p className="text-[10px] text-muted-foreground">Allow restocking and making orders</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({
+                                                ...formData,
+                                                permissions: {
+                                                    ...formData.permissions,
+                                                    canManageInventory: !formData.permissions?.canManageInventory
+                                                }
+                                            })}
+                                            className={`w-10 h-5 rounded-full transition-colors relative ${formData.permissions?.canManageInventory ? 'bg-primary' : 'bg-muted'}`}
+                                        >
+                                            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${formData.permissions?.canManageInventory ? 'translate-x-5.5' : 'translate-x-0.5'}`}></div>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             {formData.role !== 'admin' && (
                                 <div className="space-y-2">
@@ -414,13 +454,37 @@ export default function UsersPage() {
                                         <option value="head_of_sales">Head of Sales</option>
                                     )}
                                     {currentUser?.role === 'admin' && (
-                                        <option value="manager">Manager</option>
-                                    )}
-                                    {currentUser?.role === 'admin' && (
-                                        <option value="admin">Administrator</option>
+                                        <>
+                                            <option value="manager">Manager</option>
+                                            <option value="admin">Administrator</option>
+                                        </>
                                     )}
                                 </select>
                             </div>
+
+                            {formData.role === 'head_of_sales' && (
+                                <div className="space-y-4 p-4 bg-muted/30 rounded-lg border border-border">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-xs font-bold text-foreground">Inventory Write Access</p>
+                                            <p className="text-[10px] text-muted-foreground">Allow restocking and making orders</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({
+                                                ...formData,
+                                                permissions: {
+                                                    ...formData.permissions,
+                                                    canManageInventory: !formData.permissions?.canManageInventory
+                                                }
+                                            })}
+                                            className={`w-10 h-5 rounded-full transition-colors relative ${formData.permissions?.canManageInventory ? 'bg-primary' : 'bg-muted'}`}
+                                        >
+                                            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${formData.permissions?.canManageInventory ? 'translate-x-5.5' : 'translate-x-0.5'}`}></div>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             {formData.role !== 'admin' && (
                                 <div className="space-y-2">
@@ -444,8 +508,9 @@ export default function UsersPage() {
                             </button>
                         </form>
                     </div>
-                </div>
-            )}
-        </div>
+                </div >
+            )
+            }
+        </div >
     );
 }

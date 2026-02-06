@@ -28,6 +28,23 @@ router.get('/list', authenticate, async (req, res) => {
     }
 });
 
+// Get current user's branch
+router.get('/me', authenticate, async (req, res) => {
+    try {
+        if (!req.user.branchId) {
+            return res.status(404).json({ error: 'User is not assigned to a branch' });
+        }
+        const branch = await models.Branch.findByPk(req.user.branchId);
+        if (!branch) {
+            return res.status(404).json({ error: 'Branch not found' });
+        }
+        res.json({ branch });
+    } catch (error) {
+        console.error('Get branch/me error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Create new branch
 router.post('/create', authenticate, authorize('manager'), async (req, res) => {
     try {

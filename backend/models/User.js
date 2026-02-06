@@ -82,6 +82,11 @@ class User extends Model {
                     type: DataTypes.DATE,
                     allowNull: true,
                 },
+                permissions: {
+                    type: DataTypes.JSONB,
+                    allowNull: true,
+                    defaultValue: {},
+                },
             },
             {
                 sequelize,

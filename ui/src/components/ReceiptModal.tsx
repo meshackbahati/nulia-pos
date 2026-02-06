@@ -3,6 +3,7 @@ import { X, Download, Printer, Mail, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
+import { useCurrency } from '../hooks/useCurrency';
 
 interface ReceiptModalProps {
     sale: {
@@ -23,6 +24,7 @@ interface ReceiptModalProps {
 }
 
 export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModalProps) {
+    const { formatPrice, symbol } = useCurrency();
     const [customerEmail, setCustomerEmail] = useState('');
     const [sending, setSending] = useState(false);
 
@@ -62,8 +64,8 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
         sale.items.forEach((item) => {
             doc.text(item.name, 20, y);
             doc.text(item.quantity.toString(), pageWidth - 80, y);
-            doc.text(`$${item.price.toFixed(2)}`, pageWidth - 60, y);
-            doc.text(`$${(item.quantity * item.price).toFixed(2)}`, pageWidth - 30, y, {
+            doc.text(`${symbol}${item.price.toFixed(2)}`, pageWidth - 60, y);
+            doc.text(`${symbol}${(item.quantity * item.price).toFixed(2)}`, pageWidth - 30, y, {
                 align: 'right',
             });
             y += 7;
@@ -76,17 +78,17 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
 
         // Totals
         doc.text('Subtotal:', pageWidth - 80, y);
-        doc.text(`$${sale.subtotal.toFixed(2)}`, pageWidth - 30, y, { align: 'right' });
+        doc.text(`${symbol}${sale.subtotal.toFixed(2)}`, pageWidth - 30, y, { align: 'right' });
         y += 7;
 
         doc.text('Tax (16%):', pageWidth - 80, y);
-        doc.text(`$${sale.tax.toFixed(2)}`, pageWidth - 30, y, { align: 'right' });
+        doc.text(`${symbol}${sale.tax.toFixed(2)}`, pageWidth - 30, y, { align: 'right' });
         y += 7;
 
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
         doc.text('Total:', pageWidth - 80, y);
-        doc.text(`$${sale.total.toFixed(2)}`, pageWidth - 30, y, { align: 'right' });
+        doc.text(`${symbol}${sale.total.toFixed(2)}`, pageWidth - 30, y, { align: 'right' });
 
         // Footer
         doc.setFont('helvetica', 'normal');
@@ -155,24 +157,24 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
                             <div key={idx} className="flex justify-between items-start text-xs border-b border-border/10 pb-2 last:border-0 last:pb-0">
                                 <div className="min-w-0 pr-4">
                                     <p className="font-bold text-foreground truncate">{item.name}</p>
-                                    <p className="text-muted-foreground mt-0.5">{item.quantity} units @ ${item.price.toFixed(2)}</p>
+                                    <p className="text-muted-foreground mt-0.5">{item.quantity} units @ {formatPrice(item.price)}</p>
                                 </div>
-                                <span className="font-bold text-foreground">${(item.quantity * item.price).toFixed(2)}</span>
+                                <span className="font-bold text-foreground">{formatPrice(item.quantity * item.price)}</span>
                             </div>
                         ))}
 
                         <div className="pt-4 border-t border-border space-y-2">
                             <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>Subtotal</span>
-                                <span>${sale.subtotal.toFixed(2)}</span>
+                                <span>{formatPrice(sale.subtotal)}</span>
                             </div>
                             <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>Tax (16%)</span>
-                                <span>${sale.tax.toFixed(2)}</span>
+                                <span>{formatPrice(sale.tax)}</span>
                             </div>
                             <div className="flex justify-between text-base font-bold text-foreground pt-2 border-t border-border border-dashed">
                                 <span>Amount Total</span>
-                                <span>${sale.total.toFixed(2)}</span>
+                                <span>{formatPrice(sale.total)}</span>
                             </div>
                         </div>
                     </div>

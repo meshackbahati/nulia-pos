@@ -1,15 +1,16 @@
 import { useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
-export const useCurrency = () => {
+export const useCurrency = (customBranch?: any) => {
     const { user } = useAuth();
+    const branch = customBranch || user?.branch;
 
     const branchSettings = useMemo(() => {
-        if (user?.branch) {
+        if (branch) {
             return {
-                currency: user.branch.currency || 'USD',
-                symbol: user.branch.currencySymbol || '$',
-                exchangeRate: user.branch.exchangeRate || 1.0
+                currency: branch.currency || 'USD',
+                symbol: branch.symbol || branch.currencySymbol || '$',
+                exchangeRate: branch.exchangeRate || 1.0
             };
         }
         return {
@@ -17,7 +18,7 @@ export const useCurrency = () => {
             symbol: '$',
             exchangeRate: 1.0
         };
-    }, [user?.branch]);
+    }, [branch]);
 
     const formatPrice = (amount: number) => {
         return `${branchSettings.symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

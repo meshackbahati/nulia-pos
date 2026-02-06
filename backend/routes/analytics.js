@@ -66,7 +66,7 @@ router.get('/dashboard', authenticate, async (req, res) => {
                 }],
                 where: { createdAt: { [Op.gte]: today } },
                 group: ['productId', 'product.id'],
-                order: [[sequelize.literal('quantity'), 'DESC']],
+                order: [[sequelize.literal('"quantity"'), 'DESC']],
                 limit: 5
             }),
             models.Sale.findAll({
@@ -136,7 +136,7 @@ router.get('/summary', authenticate, async (req, res) => {
                 }],
                 where: { createdAt: dateRange },
                 group: ['productId', 'product.id'],
-                order: [[sequelize.literal('totalQty'), 'DESC']],
+                order: [[sequelize.literal('"totalQty"'), 'DESC']],
                 limit: 5
             })
         ]);
@@ -207,6 +207,50 @@ router.get('/leaderboard', authenticate, async (req, res) => {
     }
 });
 
+// Top Products (Detailed)
+router.get('/top-products', authenticate, async (req, res) => {
+    try {
+        const { period = 'week', limit = 10, branchId } = req.query;
+        const dateRange = getDateRange(period);
+        const where = { createdAt: dateRange };
+
+        if (branchId) where.branchId = branchId;
+        else if (req.user.role !== 'admin') where.branchId = req.user.branchId;
+
+        const topProducts = await models.SaleItem.findAll({
+            attributes: [
+                'productId',
+                [sequelize.fn('SUM', sequelize.col('quantity')), 'totalQty'],
+                [sequelize.fn('SUM', sequelize.col('totalPrice')), 'totalRevenue']
+            ],
+            include: [{
+                model: models.Product,
+                as: 'product',
+                attributes: ['id', 'name', 'sku', 'price']
+            }],
+            where,
+            group: ['productId', 'product.id'],
+            order: [[sequelize.literal('"totalQty"'), 'DESC']],
+            limit: parseInt(limit)
+        });
+
+        res.json({
+            success: true,
+            products: topProducts.map(p => ({
+                id: p.productId,
+                name: p.product.name,
+                sku: p.product.sku,
+                price: parseFloat(p.product.price),
+                quantity: parseInt(p.get('totalQty')),
+                revenue: parseFloat(p.get('totalRevenue'))
+            }))
+        });
+    } catch (error) {
+        console.error('Top products error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Branch Comparison (Admin Only)
 router.get('/branch-comparison', authenticate, authorize('admin'), async (req, res) => {
     try {
@@ -237,19 +281,23 @@ router.get('/branch-comparison', authenticate, authorize('admin'), async (req, r
 // Supplier Stats
 router.get('/suppliers', authenticate, authorize('manager'), async (req, res) => {
     try {
+        const branchId = req.user.role === 'admin' ? req.query.branchId : req.user.branchId;
+        const where = branchId ? { branchId } : {};
+
         const stats = await models.PurchaseOrder.findAll({
             attributes: [
                 'supplierId',
                 [sequelize.fn('COUNT', sequelize.col('PurchaseOrder.id')), 'orderCount'],
                 [sequelize.fn('SUM', sequelize.col('totalAmount')), 'totalSpent']
             ],
+            where,
             include: [{
                 model: models.Supplier,
                 as: 'supplier',
                 attributes: ['name']
             }],
             group: ['supplierId', 'supplier.id'],
-            order: [[sequelize.literal('totalSpent'), 'DESC']]
+            order: [[sequelize.literal('"totalSpent"'), 'DESC']]
         });
 
         res.json({

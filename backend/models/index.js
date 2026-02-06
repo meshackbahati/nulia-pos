@@ -1,3 +1,4 @@
+import { Sequelize, Op } from 'sequelize';
 import sequelize from '../lib/database.js';
 
 // Import all models
@@ -40,6 +41,9 @@ Object.values(models).forEach((model) => {
         model.associate(models);
     }
 });
+
+models.Sequelize = Sequelize;
+models.Op = Op;
 
 export { sequelize };
 export default models;

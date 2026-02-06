@@ -12,9 +12,16 @@ class Branch extends Model {
         };
     }
 
+    getPaystackCredentials() {
+        return {
+            publicKey: this.paystackPublicKey,
+            secretKey: this.paystackSecretKey ? decrypt(this.paystackSecretKey) : null,
+        };
+    }
+
     generateCallbackUrl() {
-        const baseUrl = process.env.MPESA_CALLBACK_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-        return `${baseUrl}/branch/${this.id}/callback`;
+        const baseUrl = process.env.MPESA_CALLBACK_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5000';
+        return `${baseUrl}/api/mpesa/callback/${this.id}`;
     }
 
     static initialize(sequelize) {
@@ -69,6 +76,15 @@ class Branch extends Model {
                     allowNull: true,
                     defaultValue: 1.0,
                 },
+                taxRate: {
+                    type: DataTypes.DECIMAL(5, 2),
+                    allowNull: false,
+                    defaultValue: 0.0,
+                },
+                vatNumber: {
+                    type: DataTypes.STRING,
+                    allowNull: true,
+                },
                 timezone: {
                     type: DataTypes.STRING,
                     allowNull: false,
@@ -92,6 +108,14 @@ class Branch extends Model {
                 },
                 mpesaCallbackUrl: {
                     type: DataTypes.STRING,
+                    allowNull: true,
+                },
+                paystackPublicKey: {
+                    type: DataTypes.STRING,
+                    allowNull: true,
+                },
+                paystackSecretKey: {
+                    type: DataTypes.TEXT,
                     allowNull: true,
                 },
                 isActive: {
@@ -129,6 +153,11 @@ class Branch extends Model {
                         }
                         // Generate callback URL
                         branch.mpesaCallbackUrl = branch.generateCallbackUrl();
+
+                        // Encrypt Paystack secret key
+                        if (branch.paystackSecretKey) {
+                            branch.paystackSecretKey = encrypt(branch.paystackSecretKey);
+                        }
                     },
                     beforeUpdate: async (branch) => {
                         // Encrypt M-Pesa credentials if changed
@@ -140,6 +169,13 @@ class Branch extends Model {
                         }
                         if (branch.changed('mpesaPasskey') && branch.mpesaPasskey) {
                             branch.mpesaPasskey = encrypt(branch.mpesaPasskey);
+                        }
+                        // Always regenerate callback URL to ensure it stays in sync with potential environment changes
+                        branch.mpesaCallbackUrl = branch.generateCallbackUrl();
+
+                        // Encrypt Paystack secret key if changed
+                        if (branch.changed('paystackSecretKey') && branch.paystackSecretKey) {
+                            branch.paystackSecretKey = encrypt(branch.paystackSecretKey);
                         }
                     },
                 },

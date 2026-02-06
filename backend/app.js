@@ -18,6 +18,7 @@ import installRoutes from './routes/install.js';
 import supplierRoutes from './routes/suppliers.js';
 import poRoutes from './routes/purchase-orders.js';
 import receiptRoutes from './routes/receipts.js';
+import paystackRoutes from './routes/paystack.js';
 
 dotenv.config();
 
@@ -46,6 +47,7 @@ app.use('/api/install', installRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/purchase-orders', poRoutes);
 app.use('/api/receipts', receiptRoutes);
+app.use('/api/paystack', paystackRoutes);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {

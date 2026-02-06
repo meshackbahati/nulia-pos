@@ -23,8 +23,12 @@ router.get('/', authenticate, async (req, res) => {
         // Role-based restrictions
         if (req.user.role === 'salesperson') {
             where.userId = req.user.userId;
-        } else if (req.user.role === 'manager' && !branchId) {
-            if (req.user.branchId) where.branchId = req.user.branchId;
+        } else if (req.user.role === 'manager') {
+            // Managers are ALWAYS restricted to their assigned branch
+            where.branchId = req.user.branchId;
+        } else if (branchId) {
+            // Admins can filter by branchId
+            where.branchId = branchId;
         }
 
         const { count, rows } = await models.Sale.findAndCountAll({
@@ -34,7 +38,8 @@ router.get('/', authenticate, async (req, res) => {
             order: [['createdAt', 'DESC']],
             include: [
                 { model: models.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
-                { model: models.Branch, as: 'branch', attributes: ['id', 'name'] }
+                { model: models.Branch, as: 'branch', attributes: ['id', 'name'] },
+                { model: models.Payment, as: 'payments' }
             ]
         });
 
@@ -46,6 +51,53 @@ router.get('/', authenticate, async (req, res) => {
         });
     } catch (error) {
         console.error('List sales error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Alias for list sales
+router.get('/list', authenticate, async (req, res) => {
+    // Redirect to root route which handles listing
+    const { page = 1, limit = 20, branchId, startDate, endDate } = req.query;
+    try {
+        const offset = (Number(page) - 1) * Number(limit);
+
+        const where = {};
+        if (branchId) where.branchId = branchId;
+        if (startDate && endDate) {
+            where.createdAt = {
+                [Op.between]: [new Date(startDate), new Date(endDate)]
+            };
+        }
+
+        // Role-based restrictions
+        if (req.user.role === 'salesperson') {
+            where.userId = req.user.userId;
+        } else if (req.user.role === 'manager') {
+            where.branchId = req.user.branchId;
+        } else if (branchId) {
+            where.branchId = branchId;
+        }
+
+        const { count, rows } = await models.Sale.findAndCountAll({
+            where,
+            limit: Number(limit),
+            offset,
+            order: [['createdAt', 'DESC']],
+            include: [
+                { model: models.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
+                { model: models.Branch, as: 'branch', attributes: ['id', 'name'] },
+                { model: models.Payment, as: 'payments' }
+            ]
+        });
+
+        res.json({
+            sales: rows,
+            total: count,
+            page: Number(page),
+            totalPages: Math.ceil(count / Number(limit))
+        });
+    } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
@@ -91,7 +143,8 @@ router.post('/', authenticate, async (req, res) => {
 
         // 2. Calculate totals
         const subtotal = items.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0);
-        const taxAmount = subtotal * 0.1; // 10% tax
+        const taxRate = branch.taxRate || 0;
+        const taxAmount = subtotal * (taxRate / 100);
         const discountAmount = 0;
         const finalTotal = subtotal + taxAmount - discountAmount;
 

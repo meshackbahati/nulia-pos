@@ -4,6 +4,7 @@ import PaymentModal from '../components/PaymentModal';
 import ReceiptModal from '../components/ReceiptModal';
 import BarcodeScanner from '../components/BarcodeScanner';
 import ThemeToggle from '../components/ThemeToggle';
+import TransactionHistoryModal from '../components/TransactionHistoryModal';
 import {
     Plus,
     ShoppingCart,
@@ -15,7 +16,8 @@ import {
     Package,
     Trash2,
     Minus,
-    CreditCard
+    CreditCard,
+    History
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCurrency } from '../hooks/useCurrency';
@@ -57,11 +59,55 @@ export default function POSPage() {
     const [showScanner, setShowScanner] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [showReceipt, setShowReceipt] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
     const [currentSale, setCurrentSale] = useState<any>(null);
+    const [branchData, setBranchData] = useState<any>(null);
 
     useEffect(() => {
         fetchProducts();
+        fetchBranchData();
+
+        // Global Scanner listener (for physical HID scanners)
+        let scannerBuffer = '';
+        let lastKeyTime = Date.now();
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Ignore if the user is typing in an input or textarea
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+                return;
+            }
+
+            const currentTime = Date.now();
+
+            // Physical scanners are very fast (usually < 50ms between characters)
+            if (currentTime - lastKeyTime > 50) {
+                scannerBuffer = '';
+            }
+
+            if (e.key === 'Enter') {
+                if (scannerBuffer.length > 3) {
+                    handleScan(scannerBuffer);
+                    scannerBuffer = '';
+                }
+            } else if (e.key.length === 1) {
+                scannerBuffer += e.key;
+            }
+
+            lastKeyTime = currentTime;
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
+
+    const fetchBranchData = async () => {
+        try {
+            const response = await api.get('/branches/me');
+            setBranchData(response.data.branch);
+        } catch (error) {
+            console.error('Error fetching branch data:', error);
+        }
+    };
 
     const fetchProducts = async () => {
         try {
@@ -198,6 +244,14 @@ export default function POSPage() {
                             Terminal: {user?.branchId || 'Main Branch'}
                         </div>
                     </div>
+                    <button
+                        onClick={() => setShowHistory(true)}
+                        className="p-2.5 bg-secondary/50 text-foreground hover:bg-primary/10 hover:text-primary rounded-xl transition-all flex items-center gap-2 group"
+                        title="Transaction History"
+                    >
+                        <History className="w-5 h-5 transition-transform group-hover:rotate-12" />
+                        <span className="text-xs font-bold hidden lg:inline">History</span>
+                    </button>
                     <ThemeToggle />
                     <button
                         onClick={() => window.location.href = '/dashboard'}
@@ -430,8 +484,17 @@ export default function POSPage() {
                 showPaymentModal && (
                     <PaymentModal
                         total={total}
+                        branchConfig={branchData}
                         onComplete={onPaymentComplete}
                         onClose={() => setShowPaymentModal(false)}
+                    />
+                )
+            }
+
+            {
+                showHistory && (
+                    <TransactionHistoryModal
+                        onClose={() => setShowHistory(false)}
                     />
                 )
             }
