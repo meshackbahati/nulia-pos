@@ -236,12 +236,13 @@ router.get('/top-products', authenticate, async (req, res) => {
 
         res.json({
             success: true,
-            products: topProducts.map(p => ({
-                id: p.productId,
-                name: p.product.name,
-                sku: p.product.sku,
-                price: parseFloat(p.product.price),
-                quantity: parseInt(p.get('totalQty')),
+            topProducts: topProducts.map(p => ({
+                product: {
+                    name: p.product.name,
+                    sku: p.product.sku,
+                    price: parseFloat(p.product.price)
+                },
+                quantitySold: parseInt(p.get('totalQty')),
                 revenue: parseFloat(p.get('totalRevenue'))
             }))
         });
@@ -371,12 +372,27 @@ router.get('/trends', authenticate, async (req, res) => {
             raw: true
         });
 
+        const paymentMethods = await models.Sale.findAll({
+            where,
+            attributes: [
+                'paymentMethod',
+                [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+                [sequelize.fn('SUM', sequelize.col('totalAmount')), 'value']
+            ],
+            group: ['paymentMethod'],
+            raw: true
+        });
+
         res.json({
             success: true,
-            trends: trends.map(t => ({
-                time: t.time,
+            revenueTrend: trends.map(t => ({
+                day: new Date(t.time).toLocaleDateString('en-US', { weekday: 'short' }), // Format for formatting
                 revenue: parseFloat(t.revenue),
-                count: parseInt(t.count)
+                sales: parseInt(t.count)
+            })),
+            paymentMethods: paymentMethods.map(p => ({
+                name: p.paymentMethod,
+                value: parseFloat(p.value)
             }))
         });
     } catch (error) {

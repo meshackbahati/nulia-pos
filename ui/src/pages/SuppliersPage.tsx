@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Phone, Mail, Globe, Truck, X } from 'lucide-react';
+import { Plus, Search, Phone, Mail, Globe, Truck, X, Building2 } from 'lucide-react';
 import api from '../lib/api-client';
 import { toast } from 'react-hot-toast';
 import ThemeToggle from '../components/ThemeToggle';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Supplier {
     id: string;
@@ -13,10 +14,21 @@ interface Supplier {
     address?: string;
     website?: string;
     isActive: boolean;
+    branchId?: string;
 }
 
+// Helper to check permissions
+const canManageSuppliers = (user: any) => {
+    if (!user) return false;
+    if (user.role === 'admin' || user.role === 'manager') return true;
+    if (user.role === 'head_of_sales') return user.permissions?.canManageInventory;
+    return false;
+};
+
 export default function SuppliersPage() {
+    const { user } = useAuth();
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+    const [branches, setBranches] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -27,7 +39,19 @@ export default function SuppliersPage() {
 
     useEffect(() => {
         fetchSuppliers();
-    }, []);
+        if (user?.role === 'admin') {
+            fetchBranches();
+        }
+    }, [user]);
+
+    const fetchBranches = async () => {
+        try {
+            const response = await api.getBranches();
+            setBranches(response.data.branches || []);
+        } catch (error) {
+            console.error('Failed to fetch branches', error);
+        }
+    };
 
     const fetchSuppliers = async () => {
         try {
@@ -81,13 +105,15 @@ export default function SuppliersPage() {
 
                     <div className="flex items-center gap-4">
                         <ThemeToggle />
-                        <button
-                            onClick={() => setShowModal(true)}
-                            className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all shadow-sm active:scale-[0.98]"
-                        >
-                            <Plus className="w-4 h-4" />
-                            <span className="hidden md:inline">Add Vendor</span>
-                        </button>
+                        {canManageSuppliers(user) && (
+                            <button
+                                onClick={() => setShowModal(true)}
+                                className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all shadow-sm active:scale-[0.98]"
+                            >
+                                <Plus className="w-4 h-4" />
+                                <span className="hidden md:inline">Add Vendor</span>
+                            </button>
+                        )}
                     </div>
                 </div>
             </header>
@@ -167,9 +193,11 @@ export default function SuppliersPage() {
                                     )}
                                 </div>
 
-                                <button className="mt-auto h-8 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground px-3 rounded-lg text-[10px] uppercase font-bold transition-colors">
-                                    Edit Vendor
-                                </button>
+                                {canManageSuppliers(user) && (
+                                    <button className="mt-auto h-8 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground px-3 rounded-lg text-[10px] uppercase font-bold transition-colors">
+                                        Edit Vendor
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -188,6 +216,29 @@ export default function SuppliersPage() {
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
+                            {user?.role === 'admin' && (
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Assign Branch</label>
+                                    <div className="relative">
+                                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <select
+                                            className="w-full h-10 rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 appearance-none"
+                                            value={formData.branchId || ''}
+                                            onChange={e => setFormData({ ...formData, branchId: e.target.value })}
+                                            required
+                                        >
+                                            <option value="">Select a Branch...</option>
+                                            {branches.map(branch => (
+                                                <option key={branch.id} value={branch.id}>
+                                                    {branch.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground">Admins must select a branch for the supplier.</p>
+                                </div>
+                            )}
+
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Company Name</label>
                                 <input

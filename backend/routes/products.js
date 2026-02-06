@@ -12,6 +12,9 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // Upload image to Cloudinary
 router.post('/upload-image', authenticate, authorize('head_of_sales'), upload.single('image'), async (req, res) => {
+    if (req.user.role === 'head_of_sales' && !req.user.permissions?.canManageInventory) {
+        return res.status(403).json({ error: 'Head of Sales requires explicit permission to upload images' });
+    }
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No image file provided' });
@@ -43,6 +46,9 @@ router.post('/upload-image', authenticate, authorize('head_of_sales'), upload.si
 
 // Import products via CSV
 router.post('/import-csv', authenticate, authorize('head_of_sales'), upload.single('file'), async (req, res) => {
+    if (req.user.role === 'head_of_sales' && !req.user.permissions?.canManageInventory) {
+        return res.status(403).json({ error: 'Head of Sales requires explicit permission to create products' });
+    }
     let t;
     try {
         t = await sequelize.transaction();
@@ -259,6 +265,11 @@ router.get('/categories', authenticate, async (req, res) => {
 
 // Create product
 router.post('/create', authenticate, authorize('head_of_sales'), async (req, res) => {
+    // Check for specific permission if Head of Sales
+    if (req.user.role === 'head_of_sales' && !req.user.permissions?.canManageInventory) {
+        return res.status(403).json({ error: 'Head of Sales requires explicit permission to create products' });
+    }
+
     let t;
     try {
         t = await sequelize.transaction();
@@ -351,6 +362,9 @@ router.post('/create', authenticate, authorize('head_of_sales'), async (req, res
 
 // Update product
 router.put('/update/:id', authenticate, authorize('head_of_sales'), async (req, res) => {
+    if (req.user.role === 'head_of_sales' && !req.user.permissions?.canManageInventory) {
+        return res.status(403).json({ error: 'Head of Sales requires explicit permission to update products' });
+    }
     try {
         const { id } = req.params;
         const product = await models.Product.findByPk(id);
@@ -366,6 +380,9 @@ router.put('/update/:id', authenticate, authorize('head_of_sales'), async (req, 
 
 // Delete product
 router.delete('/delete/:id', authenticate, authorize('head_of_sales'), async (req, res) => {
+    if (req.user.role === 'head_of_sales' && !req.user.permissions?.canManageInventory) {
+        return res.status(403).json({ error: 'Head of Sales requires explicit permission to delete products' });
+    }
     try {
         const { id } = req.params;
         const product = await models.Product.findByPk(id);

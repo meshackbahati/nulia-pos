@@ -152,6 +152,7 @@ router.post('/create', authenticate, async (req, res) => {
         const sale = await models.Sale.create({
             branchId,
             userId,
+            receiptId: models.Sale.generateReceiptId(), // Explicitly generate to satisfy notNull validation
             subtotal,
             taxAmount,
             discountAmount,
