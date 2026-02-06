@@ -28,7 +28,7 @@ export default function AnalyticsPage() {
     const [paymentData, setPaymentData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const { theme } = useTheme();
-    const { formatPrice } = useCurrency();
+    const { formatPrice, symbol } = useCurrency();
 
     useEffect(() => {
         fetchAnalytics();
@@ -173,7 +173,7 @@ export default function AnalyticsPage() {
                                                 boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                                             }}
                                         />
-                                        <Area type="monotone" dataKey="revenue" stroke="#F59E0B" strokeWidth={2} fillOpacity={1} fill="url(#colorRevenue)" name="Revenue ($)" />
+                                        <Area type="monotone" dataKey="revenue" stroke="#F59E0B" strokeWidth={2} fillOpacity={1} fill="url(#colorRevenue)" name={`Revenue (${symbol})`} />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </div>

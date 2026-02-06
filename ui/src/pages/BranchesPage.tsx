@@ -3,6 +3,7 @@ import { Plus, Search, MapPin, Phone, Building, CreditCard, Globe, Edit, X } fro
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import ThemeToggle from '../components/ThemeToggle';
+import { useCurrency } from '../hooks/useCurrency';
 
 interface Branch {
     id: string;
@@ -17,6 +18,7 @@ interface Branch {
 }
 
 export default function BranchesPage() {
+    const { currency: defaultCurrency } = useCurrency();
     const [branches, setBranches] = useState<Branch[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -36,7 +38,7 @@ export default function BranchesPage() {
         address: '',
         phone: '',
         email: '',
-        currency: 'USD',
+        currency: defaultCurrency || 'KES',
         secondaryCurrency: '',
         exchangeRate: 1,
     });

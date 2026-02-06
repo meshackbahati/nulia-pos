@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '../lib/api-client';
+import { useCurrency } from '../hooks/useCurrency';
 import {
     Users,
     TrendingUp,
@@ -33,6 +34,7 @@ interface LeaderboardEntry {
 }
 
 export default function HeadOfSalesDashboard() {
+    const { formatPrice } = useCurrency();
     const [stats, setStats] = useState<TeamStats | null>(null);
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(true);
@@ -94,7 +96,7 @@ export default function HeadOfSalesDashboard() {
                         <DollarSign className="w-4 h-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">${stats?.totalRevenue.toFixed(2)}</div>
+                        <div className="text-2xl font-bold">{formatPrice(stats?.totalRevenue || 0)}</div>
                         <div className="flex items-center text-xs text-emerald-500 mt-1 font-medium">
                             <ArrowUpRight className="w-3 h-3 mr-1" />
                             +12.5% from last week
@@ -119,7 +121,7 @@ export default function HeadOfSalesDashboard() {
                         <Award className="w-4 h-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">${stats?.averageSale.toFixed(2)}</div>
+                        <div className="text-2xl font-bold">{formatPrice(stats?.averageSale || 0)}</div>
                         <p className="text-xs text-muted-foreground mt-1">Per transaction average</p>
                     </CardContent>
                 </Card>
@@ -162,9 +164,9 @@ export default function HeadOfSalesDashboard() {
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-sm font-bold text-primary">${entry.totalRevenue.toFixed(2)}</p>
+                                    <p className="text-sm font-bold text-primary">{formatPrice(entry.totalRevenue)}</p>
                                     <Badge variant="secondary" className="text-[10px] h-4">
-                                        {Math.round((entry.totalRevenue / stats!.totalRevenue) * 100)}% of total
+                                        {stats?.totalRevenue ? Math.round((entry.totalRevenue / stats.totalRevenue) * 100) : 0}% of total
                                     </Badge>
                                 </div>
                             </div>

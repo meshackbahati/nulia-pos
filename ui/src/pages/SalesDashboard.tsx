@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useCurrency } from '../hooks/useCurrency';
 import api from '../lib/api-client';
 import { DollarSign, TrendingUp, Trophy, Package, LayoutDashboard } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
@@ -23,6 +24,7 @@ interface LeaderboardEntry {
 
 export default function SalesDashboard() {
     const { user } = useAuth();
+    const { formatPrice } = useCurrency();
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [myPosition, setMyPosition] = useState<number | null>(null);
@@ -98,7 +100,7 @@ export default function SalesDashboard() {
                             <div>
                                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Today's Revenue</p>
                                 <p className="text-2xl font-bold text-foreground mt-0.5">
-                                    ${stats.today.revenue.toFixed(2)}
+                                    {formatPrice(stats.today.revenue)}
                                 </p>
                             </div>
                         </div>
@@ -172,7 +174,7 @@ export default function SalesDashboard() {
 
                                     <div className="text-right">
                                         <p className="font-bold text-primary">
-                                            ${entry.totalRevenue.toFixed(2)}
+                                            {formatPrice(entry.totalRevenue)}
                                         </p>
                                     </div>
                                 </div>
