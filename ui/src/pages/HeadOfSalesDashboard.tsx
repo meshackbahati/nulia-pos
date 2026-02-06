@@ -22,13 +22,12 @@ interface TeamStats {
 
 interface LeaderboardEntry {
     rank: number;
-    user: {
-        id: string;
-        firstName: string;
-        lastName: string;
-    };
-    salesCount: number;
-    totalRevenue: number;
+    userId: string;
+    name: string;
+    role: string;
+    branch: string;
+    count: number;
+    revenue: number;
 }
 
 export default function HeadOfSalesDashboard() {
@@ -142,7 +141,7 @@ export default function HeadOfSalesDashboard() {
                 <CardContent>
                     <div className="space-y-4">
                         {leaderboard.map((entry) => (
-                            <div key={entry.user.id} className="flex items-center justify-between p-3 rounded-lg border border-border/50 hover:bg-secondary/20 transition-colors">
+                            <div key={entry.userId} className="flex items-center justify-between p-3 rounded-lg border border-border/50 hover:bg-secondary/20 transition-colors">
                                 <div className="flex items-center gap-4">
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${entry.rank === 1 ? 'bg-amber-100 text-amber-600 shadow-sm' : 'bg-muted text-muted-foreground'
                                         }`}>
@@ -150,18 +149,19 @@ export default function HeadOfSalesDashboard() {
                                     </div>
                                     <div>
                                         <p className="text-sm font-bold text-foreground">
-                                            {/* API returns 'name' directly for leaderboard entries */}
-                                            {(entry as any).name || `${entry.user?.firstName} ${entry.user?.lastName}`}
+                                            {entry.name}
                                         </p>
-                                        <p className="text-xs text-muted-foreground">{entry.salesCount || (entry as any).count} transactions</p>
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <span>{entry.branch}</span>
+                                            <span>•</span>
+                                            <span>{entry.count} transactions</span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-sm font-bold text-primary">{formatPrice(entry.totalRevenue || (entry as any).revenue || 0)}</p>
+                                    <p className="text-sm font-bold text-primary">{formatPrice(entry.revenue)}</p>
                                     <Badge variant="secondary" className="text-[10px] h-4">
-                                        {leaderboard.reduce((acc, curr) => acc + (curr.totalRevenue || (curr as any).revenue || 0), 0) > 0
-                                            ? Math.round(((entry.totalRevenue || (entry as any).revenue || 0) / leaderboard.reduce((acc, curr) => acc + (curr.totalRevenue || (curr as any).revenue || 0), 0)) * 100)
-                                            : 0}% of total
+                                        {stats?.totalRevenue ? Math.round((entry.revenue / stats.totalRevenue) * 100) : 0}% of total
                                     </Badge>
                                 </div>
                             </div>

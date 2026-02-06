@@ -91,14 +91,17 @@ export default function PurchaseOrdersPage() {
         const product = products.find(p => p.id === selectedProduct);
         const variant = product?.variants?.find((v: any) => v.id === selectedVariant);
 
+        const qty = parseInt(quantity) || 0;
+        const cost = parseFloat(unitCost) || 0;
+
         const newItem = {
             productId: selectedProduct,
             productName: product?.name,
             variantId: selectedVariant || null,
             variantName: variant?.name || '',
-            quantity: parseInt(quantity),
-            unitCost: parseFloat(unitCost),
-            totalCost: parseInt(quantity) * parseFloat(unitCost)
+            quantity: qty,
+            unitCost: cost,
+            totalCost: qty * cost
         };
 
         setOrderItems([...orderItems, newItem]);
@@ -237,8 +240,8 @@ export default function PurchaseOrdersPage() {
                                         </h3>
                                     </div>
                                     <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${order.status === 'received' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-                                            order.status === 'cancelled' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-                                                'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                        order.status === 'cancelled' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                                            'bg-amber-500/10 text-amber-500 border-amber-500/20'
                                         }`}>
                                         {order.status}
                                     </span>
