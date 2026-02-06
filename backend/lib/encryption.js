@@ -42,8 +42,18 @@ export function decrypt(encryptedData) {
 
         return decrypted;
     } catch (error) {
-        console.error('Decryption error:', error);
-        throw new Error('Failed to decrypt data');
+        // Handle specific decryption errors gracefully
+        if (error.message.includes('Unsupported state or unable to authenticate data')) {
+            console.error('Decryption failed: Key mismatch or tampered data (AuthTag mismatch)');
+            return null;
+        }
+        if (error.message.includes('Invalid encrypted data format')) {
+            console.error('Decryption failed: Invalid format');
+            return null;
+        }
+
+        console.error('Unexpected decryption error:', error);
+        return null;
     }
 }
 

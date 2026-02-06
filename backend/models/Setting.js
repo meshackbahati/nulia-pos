@@ -6,7 +6,8 @@ class Setting extends Model {
     getDecryptedValue() {
         if (!this.value) return null;
         if (this.isEncrypted) {
-            return decrypt(this.value);
+            const decrypted = decrypt(this.value);
+            return decrypted === null ? '[DECRYPTION_ERROR]' : decrypted;
         }
         return this.value;
     }
