@@ -33,6 +33,14 @@ class SaleItem extends Model {
                         key: 'id',
                     },
                 },
+                branchId: {
+                    type: DataTypes.UUID,
+                    allowNull: true,
+                    references: {
+                        model: 'branches',
+                        key: 'id',
+                    },
+                },
                 quantity: {
                     type: DataTypes.INTEGER,
                     allowNull: false,
@@ -91,6 +99,10 @@ class SaleItem extends Model {
         this.belongsTo(models.ProductVariant, {
             foreignKey: 'variantId',
             as: 'variant',
+        });
+        this.belongsTo(models.Branch, {
+            foreignKey: 'branchId',
+            as: 'branch',
         });
     }
 }

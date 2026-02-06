@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { formatCurrency } from '../lib/utils';
+import { useCurrency } from '../hooks/useCurrency';
 
 interface BranchStats {
   todaySales: number;
@@ -55,6 +55,7 @@ export function ManagerDashboard() {
   const [stats, setStats] = useState<BranchStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
+  const { formatPrice } = useCurrency();
   const navigate = useNavigate();
   const userRole = user?.role || '';
   const [branchName, setBranchName] = useState<string>('');
@@ -162,7 +163,7 @@ export function ManagerDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-display text-primary">
-              {formatCurrency(stats?.todayRevenue || 0, user?.branch?.currency)}
+              {formatPrice(stats?.todayRevenue || 0)}
             </div>
             <p className="text-xs text-muted-foreground">
               Revenue today
@@ -230,7 +231,7 @@ export function ManagerDashboard() {
               Manage Staff
             </Button>
             <Button
-              onClick={() => navigate('/manager/analytics')}
+              onClick={() => navigate('/analytics')}
               variant="outline"
               className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-secondary"
             >
@@ -260,7 +261,7 @@ export function ManagerDashboard() {
                       </div>
                     </div>
                     <span className="text-sm font-bold font-mono">
-                      {formatCurrency(product.revenue, user?.branch?.currency)}
+                      {formatPrice(product.revenue)}
                     </span>
                   </div>
                 ))}
@@ -294,7 +295,7 @@ export function ManagerDashboard() {
                     <div key={branch.id} className="flex justify-between items-center p-3 rounded-lg bg-secondary/20 hover:bg-secondary/30 transition-colors">
                       <span className="text-sm font-medium">{branch.name}</span>
                       <div className="text-right">
-                        <p className="text-sm font-bold text-primary">{formatCurrency(branch.revenue, user?.branch?.currency)}</p>
+                        <p className="text-sm font-bold text-primary">{formatPrice(branch.revenue)}</p>
                         <p className="text-[10px] text-muted-foreground">{branch.salesCount} sales</p>
                       </div>
                     </div>
@@ -324,7 +325,7 @@ export function ManagerDashboard() {
                       <span className="text-muted-foreground">{item.supplier.name}</span>
                       <div className="text-right">
                         <p className="font-bold">{item.orderCount} Orders</p>
-                        <p className="text-[10px] text-muted-foreground">{formatCurrency(item.totalSpent, user?.branch?.currency)}</p>
+                        <p className="text-[10px] text-muted-foreground">{formatPrice(item.totalSpent)}</p>
                       </div>
                     </div>
                   ))
@@ -366,7 +367,7 @@ export function ManagerDashboard() {
                   </div>
                   <div className="text-right flex items-center gap-3">
                     <span className="text-sm font-bold">
-                      {formatCurrency(sale.totalAmount, user?.branch?.currency)}
+                      {formatPrice(sale.totalAmount)}
                     </span>
                     <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20">
                       Completed

@@ -38,7 +38,7 @@ export default function AnalyticsPage() {
         try {
             setLoading(true);
             const [statsRes, productsRes, , trendsRes] = await Promise.all([
-                api.getDashboardStats(),
+                api.getAnalyticsSummary({ period }),
                 api.getTopProducts(period, 10),
                 api.getLeaderboard(period),
                 api.getTrends(period),
@@ -54,7 +54,6 @@ export default function AnalyticsPage() {
             setLoading(false);
         }
     };
-
     const handleExportPDF = () => {
         const doc = new jsPDF();
         doc.text('BorderShop Business Report', 20, 20);
@@ -122,15 +121,14 @@ export default function AnalyticsPage() {
                     </div>
                 </div>
             </header>
-
             <main className="max-w-7xl mx-auto w-full px-6 py-8 space-y-8 animate-in fade-in zoom-in-95 duration-500">
                 {/* Metrics Matrix */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {[
-                        { label: 'Total Revenue', value: formatPrice(stats[period].revenue), icon: DollarSign, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-                        { label: 'Sales Count', value: stats[period].salesCount, icon: ShoppingCart, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                        { label: 'Average Order', value: formatPrice(stats[period].salesCount > 0 ? (stats[period].revenue / stats[period].salesCount) : 0), icon: TrendingUp, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-                        { label: 'Period', value: period === 'week' ? 'This Week' : 'This Month', icon: Calendar, color: 'text-purple-500', bg: 'bg-purple-500/10' }
+                        { label: 'Total Revenue', value: formatPrice(stats.revenue || 0), icon: DollarSign, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+                        { label: 'Sales Count', value: stats.salesCount || 0, icon: ShoppingCart, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+                        { label: 'Average Order', value: formatPrice(stats.salesCount > 0 ? (stats.revenue / stats.salesCount) : 0), icon: TrendingUp, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+                        { label: 'Date Range', value: period === 'week' ? 'This Week' : 'This Month', icon: Calendar, color: 'text-purple-500', bg: 'bg-purple-500/10' }
                     ].map((item, i) => (
                         <div key={i} className="rounded-xl border border-border/50 bg-card p-6 flex items-center gap-4 shadow-sm hover:border-primary/20 transition-colors">
                             <div className={`w-12 h-12 ${item.bg} rounded-lg flex items-center justify-center ${item.color}`}>
@@ -266,6 +264,6 @@ export default function AnalyticsPage() {
                     </div>
                 </div>
             </main>
-        </div>
+        </div >
     );
 }

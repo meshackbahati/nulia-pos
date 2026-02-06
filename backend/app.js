@@ -33,6 +33,18 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Security Headers
+app.use((req, res, next) => {
+    // Fix Permissions-Policy warning
+    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+
+    // Fix Content-Security-Policy path warning (if backend serves anything)
+    // Note: This is more relevant for frontend, but setting it here doesn't hurt for API responses
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';");
+
+    next();
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/sales', salesRoutes);
