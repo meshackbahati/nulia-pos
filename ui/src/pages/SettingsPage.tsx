@@ -51,7 +51,10 @@ export default function SettingsPage() {
     const fetchSettings = async () => {
         try {
             const response = await api.getSettings();
-            setSettings(response.data.settings || settings);
+            const s = response.data.settings || settings;
+            setSettings(s);
+            // Cache for other components (like useCurrency)
+            localStorage.setItem('globalSettings', JSON.stringify(s));
         } catch (error) {
             console.error('Error fetching settings:', error);
         } finally {

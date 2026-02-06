@@ -36,8 +36,8 @@ app.use(express.urlencoded({ extended: true }));
 // Security Headers
 app.use((req, res, next) => {
     // Fix Permissions-Policy warning
-    // We only set the standard ones. The browser might warn about others if used by third-party scripts.
-    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+    // Removed strict Permissions-Policy to avoid browser warnings about unrecognized features
+    // res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
 
     // Fix Content-Security-Policy path warning
     // Removed specific paths with queries which are invalid in CSP source lists.

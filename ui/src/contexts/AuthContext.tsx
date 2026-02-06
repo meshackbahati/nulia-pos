@@ -91,10 +91,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 };
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
     const context = useContext(AuthContext);
     if (context === undefined) {
         throw new Error('useAuth must be used within an AuthProvider');
     }
     return context;
+};
+
+// Add Global Settings Context for currency and other app-wide configs
+// Ideally this would be separate but for now we can piggyback or just allow useCurrency to fetch
+export const useGlobalSettings = () => {
+    // This is a placeholder. For now, useCurrency will implement the fallback logic.
+    // Real implementation requires a strict Context.
 };

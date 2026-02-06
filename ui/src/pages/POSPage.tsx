@@ -49,8 +49,10 @@ interface CartItem {
 }
 
 export default function POSPage() {
+    const [branchData, setBranchData] = useState<any>(null);
     const { user } = useAuth();
-    const { formatPrice } = useCurrency();
+    // Use fetched branchData for currency settings (live from DB) instead of potentially stale user context
+    const { formatPrice } = useCurrency(branchData);
     const [products, setProducts] = useState<Product[]>([]);
     const [cart, setCart] = useState<CartItem[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -61,7 +63,6 @@ export default function POSPage() {
     const [showReceipt, setShowReceipt] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [currentSale, setCurrentSale] = useState<any>(null);
-    const [branchData, setBranchData] = useState<any>(null);
 
     useEffect(() => {
         fetchProducts();
@@ -141,12 +142,41 @@ export default function POSPage() {
     const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     const total = subtotal;
 
-    const onPaymentComplete = async (_paymentMethod: string, sale: any) => {
-        setCurrentSale(sale);
-        setShowPaymentModal(false);
-        setShowReceipt(true);
-        setCart([]);
-        fetchProducts();
+    const onPaymentComplete = async (paymentMethod: string, paymentDetails: any) => {
+        try {
+            setLoading(true);
+            const saleData = {
+                items: cart.map(item => ({
+                    productId: item.product_id,
+                    variantId: item.variant_id,
+                    quantity: item.quantity,
+                    price: item.price,
+                    name: item.name
+                })),
+                paymentMethod,
+                ...paymentDetails, // amountReceived, change, customerPhone, etc.
+                totalAmount: total,
+                branchId: user?.branchId
+            };
+
+            const response = await api.createSale(saleData);
+            const completedSale = response.data.sale;
+
+            setCurrentSale(completedSale);
+            setShowPaymentModal(false);
+            setShowReceipt(true);
+            setCart([]);
+            fetchProducts(); // Refresh stock
+            // toast.success('Sale completed!');
+        } catch (error) {
+            console.error('Error processing sale:', error);
+            // toast.error('Failed to process sale');
+            // Re-throw or handle error so PaymentModal knows? 
+            // PaymentModal catches errors from onComplete, so we throw.
+            throw error;
+        } finally {
+            setLoading(false);
+        }
     };
 
 

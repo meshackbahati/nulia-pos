@@ -40,7 +40,7 @@ export default function Layout({ children }: LayoutProps) {
         { label: 'Inventory', icon: ShoppingBag, path: '/manager/purchase-orders' },
         { label: 'Suppliers', icon: Truck, path: '/manager/suppliers' },
         { label: 'People', icon: Users, path: '/users' },
-        { label: 'Analytics', icon: TrendingUp, path: '/manager/analytics' },
+        { label: 'Analytics', icon: TrendingUp, path: '/analytics' },
         { label: 'Settings', icon: Settings, path: '/manager/settings' },
     ];
 
