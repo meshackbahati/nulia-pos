@@ -3,12 +3,13 @@ import crypto from 'crypto';
 const ***REMOVED*** = process.env.***REMOVED*** || 'default-key-for-development-only-32';
 const ALGORITHM = 'aes-256-gcm';
 
+// Derive a fixed-length key (32 bytes for aes-256)
+const KEY = crypto.scryptSync(***REMOVED***, 'salt', 32);
+
 export function encrypt(text) {
     try {
-        const iv = crypto.randomBytes(16);
-        // Note: crypto.createCipher is deprecated, using createCipheriv for better ESM compatibility if we were refactoring for real,
-        // but sticking to the logic provided while removing types.
-        const cipher = crypto.createCipher(ALGORITHM, ***REMOVED***);
+        const iv = crypto.randomBytes(12); // Standard IV length for GCM
+        const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
 
         let encrypted = cipher.update(text, 'utf8', 'hex');
         encrypted += cipher.final('hex');
@@ -33,7 +34,7 @@ export function decrypt(encryptedData) {
         const authTag = Buffer.from(parts[1], 'hex');
         const encrypted = parts[2];
 
-        const decipher = crypto.createDecipher(ALGORITHM, ***REMOVED***);
+        const decipher = crypto.createDecipheriv(ALGORITHM, KEY, iv);
         decipher.setAuthTag(authTag);
 
         let decrypted = decipher.update(encrypted, 'hex', 'utf8');

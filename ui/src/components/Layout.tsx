@@ -68,12 +68,12 @@ export default function Layout({ children }: LayoutProps) {
                     {/* Logo & Toggle */}
                     <div className="flex items-center justify-between mb-10 px-2 overflow-hidden">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20 shrink-0">
-                                <Store className="w-6 h-6" />
+                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-lg shadow-primary/20 shrink-0 border border-primary/20 p-1">
+                                <img src="/logo.png" alt="RetailPro" className="w-full h-full object-contain" />
                             </div>
                             {!isCollapsed && (
                                 <div className="animate-in fade-in slide-in-from-left-2">
-                                    <h1 className="text-xl font-display font-bold tracking-tight">BorderShop</h1>
+                                    <h1 className="text-xl font-display font-bold tracking-tight">RetailPro POS</h1>
                                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
                                         {user?.role?.replace(/_/g, ' ') || 'Manager'}
                                     </p>

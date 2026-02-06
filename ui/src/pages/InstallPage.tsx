@@ -66,7 +66,7 @@ export default function InstallPage() {
                         <ShieldCheck className="w-10 h-10 text-primary" />
                     </div>
                     <h1 className="text-4xl font-black text-foreground uppercase tracking-tighter mb-2">
-                        BorderShop <span className="text-primary">System</span>
+                        RetailPro <span className="text-primary">System</span>
                     </h1>
                     <p className="text-muted-foreground font-medium">Initial System Configuration & Setup</p>
                 </div>
@@ -189,7 +189,7 @@ export default function InstallPage() {
                 </div>
 
                 <p className="text-center mt-8 text-sm text-muted-foreground font-medium">
-                    Secure Setup • BorderShop POS v2.0
+                    Secure Setup • RetailPro POS v2.0
                 </p>
             </div>
         </div>
