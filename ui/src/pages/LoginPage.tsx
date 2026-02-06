@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lock, Mail, ArrowRight, Loader2, Store, Shield } from 'lucide-react';
+import { Mail, ArrowRight, Loader2, Store, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginPage() {
@@ -31,11 +31,11 @@ export default function LoginPage() {
 
             <div className="w-full max-w-md relative z-10 animate-in">
                 <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-primary/30">
-                        <Lock className="w-8 h-8 text-primary-foreground" />
+                    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-primary/30 border border-primary/20 p-2 transform hover:scale-105 transition-transform">
+                        <img src="/logo.png" alt="RetailPro Logo" className="w-full h-full object-contain" />
                     </div>
                     <h1 className="text-3xl font-display font-bold text-foreground mb-2">
-                        Welcome Back
+                        RetailPro POS
                     </h1>
                     <p className="text-muted-foreground font-medium">Secure Terminal Access</p>
                 </div>
@@ -103,7 +103,7 @@ export default function LoginPage() {
                 <div className="mt-8 flex items-center justify-center gap-6 opacity-40 hover:opacity-100 transition-opacity duration-300">
                     <div className="flex items-center gap-2">
                         <Store className="w-4 h-4" />
-                        <span className="text-xs font-bold uppercase tracking-widest">BorderShop OS</span>
+                        <span className="text-xs font-bold uppercase tracking-widest">RetailPro POS</span>
                     </div>
                 </div>
             </div>
