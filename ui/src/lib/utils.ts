@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(amount: number, currency: string = 'USD', symbol?: string): string {
+export function formatCurrency(amount: number, currency: string = 'KES', symbol?: string): string {
   // Use provided symbol, or default to branch setting, or fallback to currency code
   const displaySymbol = symbol || (typeof window !== 'undefined' ? (window as any)._BRANCH_CURRENCY_SYMBOL : null) || currency;
 

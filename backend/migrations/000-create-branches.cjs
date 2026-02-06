@@ -8,7 +8,7 @@
     - `address` (text, not null)
     - `phone` (text, not null)
     - `email` (text, not null)
-    - `currency` (text, default USD)
+    - `currency` (text, default KES)
     - `currencySymbol` (text, default $)
     - `timezone` (text, default UTC)
     - `mpesaConsumerKey` (encrypted text, nullable)
@@ -60,7 +60,7 @@ module.exports = {
       currency: {
         type: Sequelize.STRING(3),
         allowNull: false,
-        defaultValue: 'USD',
+        defaultValue: 'KES',
       },
       currencySymbol: {
         type: Sequelize.STRING(5),

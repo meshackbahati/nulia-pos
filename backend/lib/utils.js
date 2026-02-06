@@ -1,4 +1,4 @@
-export function formatCurrency(amount, currency = 'USD', symbol = '$') {
+export function formatCurrency(amount, currency = 'KES', symbol = '$') {
     return `${symbol}${amount.toFixed(2)}`;
 }
 

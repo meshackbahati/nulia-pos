@@ -79,7 +79,7 @@ export default function BranchesPage() {
                 address: '',
                 phone: '',
                 email: '',
-                currency: 'USD',
+                currency: 'KES',
                 secondaryCurrency: '',
                 exchangeRate: 1,
             });
@@ -286,7 +286,7 @@ export default function BranchesPage() {
                                             value={formData.currency}
                                             onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
                                         >
-                                            <option value="USD">USD ($)</option>
+                                            <option value="KES">KES ($)</option>
                                             <option value="KES">KES (KSh)</option>
                                             <option value="EUR">EUR (€)</option>
                                         </select>
@@ -299,7 +299,7 @@ export default function BranchesPage() {
                                             onChange={(e) => setFormData({ ...formData, secondaryCurrency: e.target.value })}
                                         >
                                             <option value="">-- None --</option>
-                                            <option value="USD">USD ($)</option>
+                                            <option value="KES">KES ($)</option>
                                             <option value="KES">KES (KSh)</option>
                                         </select>
                                     </div>

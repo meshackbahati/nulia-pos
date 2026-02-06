@@ -50,7 +50,7 @@ module.exports = {
             },
             currency: {
                 type: Sequelize.STRING(3),
-                defaultValue: 'USD',
+                defaultValue: 'KES',
             },
             customerPhone: {
                 type: Sequelize.STRING,

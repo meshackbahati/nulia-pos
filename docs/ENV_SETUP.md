@@ -65,7 +65,7 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
 # Optional
 NEXT_PUBLIC_APP_NAME="BorderShop POS"
-DEFAULT_CURRENCY="USD"
+DEFAULT_CURRENCY="KES"
 NODE_ENV="development"
 DEBUG_MODE="true"
 ```

@@ -50,7 +50,7 @@ class Payment extends Model {
                 currency: {
                     type: DataTypes.STRING(3),
                     allowNull: false,
-                    defaultValue: 'USD',
+                    defaultValue: 'KES',
                 },
                 method: {
                     type: DataTypes.ENUM('cash', 'mpesa_stk', 'mpesa_c2b', 'card'),

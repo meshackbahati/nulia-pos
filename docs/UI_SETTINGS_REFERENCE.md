@@ -85,7 +85,7 @@ All settings are managed through the Dashboard UI under **Settings** page.
 | `company_address` | Registered address | Text | "123 Main St" |
 | `company_phone` | Support phone | Text | "+254712345678" |
 | `company_email` | Support email | Text | "support@bordershop.com" |
-| `default_currency` | System-wide currency | Text | `USD` or `KES` |
+| `default_currency` | System-wide currency | Text | `KES` or `KES` |
 | `enable_multi_currency` | Support multiple currencies | Boolean | `true` |
 
 ---
@@ -256,7 +256,7 @@ await apiClient.deleteSetting('payment', 'old_gateway_key', branchId);
 ### General Settings
 - Tax rate: 0-100 (percentage)
 - Low stock threshold: positive integer
-- Currency: 3-letter ISO code (USD, KES, EUR, etc.)
+- Currency: 3-letter ISO code (KES, KES, EUR, etc.)
 
 ---
 
@@ -287,7 +287,7 @@ When system is first installed, these defaults are created:
 ```sql
 -- Default currency
 INSERT INTO settings (branchId, category, key, value, isEncrypted)
-VALUES (NULL, 'general', 'default_currency', 'USD', false);
+VALUES (NULL, 'general', 'default_currency', 'KES', false);
 
 -- Default tax rate
 INSERT INTO settings (branchId, category, key, value, isEncrypted)

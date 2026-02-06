@@ -45,9 +45,11 @@ router.post('/create', authenticate, async (req, res) => {
         const po = await models.PurchaseOrder.create({
             supplierId,
             branchId: req.user.branchId,
+            orderNumber: `PO-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
             status: 'pending',
             totalAmount: items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0),
-            notes
+            notes,
+            createdBy: req.user.id || req.user.userId
         }, { transaction: t });
 
         for (const item of items) {

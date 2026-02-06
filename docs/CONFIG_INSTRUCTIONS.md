@@ -95,7 +95,7 @@ NEXT_PUBLIC_COMPANY_NAME="Your Company Name"
 NEXT_PUBLIC_SUPPORT_EMAIL="support@yourdomain.com"
 
 # Default Currency (can be overridden per branch)
-DEFAULT_CURRENCY="USD"
+DEFAULT_CURRENCY="KES"
 DEFAULT_CURRENCY_SYMBOL="$"
 
 # Feature Flags

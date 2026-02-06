@@ -7,7 +7,7 @@
     - `branchId` (uuid, foreign key to branches)
     - `saleId` (uuid, foreign key to sales, nullable)
     - `amount` (decimal, not null)
-    - `currency` (text, not null, default USD)
+    - `currency` (text, not null, default KES)
     - `method` (enum: cash, mpesa_stk, mpesa_c2b, card)
     - `status` (enum: pending, completed, failed, cancelled, refunded)
     - `reference` (text, unique, not null)
@@ -71,7 +71,7 @@ module.exports = {
       currency: {
         type: Sequelize.STRING(3),
         allowNull: false,
-        defaultValue: 'USD',
+        defaultValue: 'KES',
       },
       method: {
         type: Sequelize.ENUM('cash', 'mpesa_stk', 'mpesa_c2b', 'card'),

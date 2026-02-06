@@ -60,7 +60,7 @@ class Branch extends Model {
                 currency: {
                     type: DataTypes.STRING(3),
                     allowNull: false,
-                    defaultValue: process.env.DEFAULT_CURRENCY || 'USD',
+                    defaultValue: process.env.DEFAULT_CURRENCY || 'KES',
                 },
                 currencySymbol: {
                     type: DataTypes.STRING(5),

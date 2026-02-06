@@ -160,7 +160,7 @@ export default function SettingsPage() {
                                     value={settings.currency?.base || 'KES'}
                                     onChange={(e) => setSettings({ ...settings, currency: { ...(settings.currency || {}), base: e.target.value } })}
                                 >
-                                    <option value="USD">USD ($)</option>
+                                    <option value="KES">KES ($)</option>
                                     <option value="KES">KES (KSh)</option>
                                     <option value="EUR">EUR (€)</option>
                                     <option value="GBP">GBP (£)</option>

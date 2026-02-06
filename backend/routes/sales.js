@@ -195,6 +195,7 @@ router.post('/create', authenticate, async (req, res) => {
             currency: branch.currency,
             method: paymentMethod === 'mpesa' ? 'mpesa_stk' : paymentMethod,
             status: paymentMethod === 'cash' ? 'completed' : 'pending',
+            reference: models.Payment.generateReference(), // Explicitly generate to satisfy notNull validation
             customerPhone,
         }, { transaction });
 

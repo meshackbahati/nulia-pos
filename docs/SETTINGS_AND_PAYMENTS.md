@@ -144,7 +144,7 @@ Comprehensive payment logging for:
 | transactionType | STRING | `mpesa_stk`, `mpesa_c2b`, `cash`, `card`, `offline` |
 | transactionId | STRING | M-Pesa code, card ref, etc. |
 | amount | DECIMAL | Payment amount |
-| currency | STRING | `USD`, `KES`, etc. |
+| currency | STRING | `KES`, `KES`, etc. |
 | customerPhone | STRING | Customer'sphone |
 | customerName | STRING | Customer name |
 | status | STRING | `pending`, `completed`, `failed`, `cancelled`, `verified` |
