@@ -57,7 +57,7 @@ router.get('/dashboard', authenticate, async (req, res) => {
                 attributes: [
                     'productId',
                     [sequelize.fn('SUM', sequelize.col('quantity')), 'quantity'],
-                    [sequelize.fn('SUM', sequelize.col('subtotal')), 'revenue']
+                    [sequelize.fn('SUM', sequelize.col('totalPrice')), 'revenue']
                 ],
                 include: [{
                     model: models.Product,
@@ -127,7 +127,7 @@ router.get('/summary', authenticate, async (req, res) => {
                 attributes: [
                     'productId',
                     [sequelize.fn('SUM', sequelize.col('quantity')), 'totalQty'],
-                    [sequelize.fn('SUM', sequelize.col('subtotal')), 'totalRevenue']
+                    [sequelize.fn('SUM', sequelize.col('totalPrice')), 'totalRevenue']
                 ],
                 include: [{
                     model: models.Product,
@@ -240,7 +240,7 @@ router.get('/suppliers', authenticate, authorize('manager'), async (req, res) =>
         const stats = await models.PurchaseOrder.findAll({
             attributes: [
                 'supplierId',
-                [sequelize.fn('COUNT', sequelize.col('id')), 'orderCount'],
+                [sequelize.fn('COUNT', sequelize.col('PurchaseOrder.id')), 'orderCount'],
                 [sequelize.fn('SUM', sequelize.col('totalAmount')), 'totalSpent']
             ],
             include: [{

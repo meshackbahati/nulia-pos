@@ -88,13 +88,21 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                     );
                     const selectedDeviceId = backCamera ? backCamera.deviceId : videoDevices[0].deviceId;
 
-                    await activeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.current, (result, _err) => {
-                        if (result) {
-                            handleAddBarcode(result.getText());
-                            toast.success('Barcode scanned!');
-                            setIsScanning(false);
+                    try {
+                        await activeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.current, (result, _err) => {
+                            if (result) {
+                                handleAddBarcode(result.getText());
+                                toast.success('Barcode scanned!');
+                                setIsScanning(false);
+                            }
+                        });
+                    } catch (err: any) {
+                        if (err.name === 'NotReadableError' || (err instanceof Error && err.message?.includes('already playing'))) {
+                            console.log('Video already playing or busy, ignoring.');
+                        } else {
+                            throw err; // Re-throw other errors to be caught by the outer catch block
                         }
-                    });
+                    }
                 } catch (err) {
                     console.error('Camera access error:', err);
                     toast.error('Could not access camera. Please check permissions.');

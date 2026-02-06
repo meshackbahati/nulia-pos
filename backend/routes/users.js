@@ -7,8 +7,8 @@ const router = express.Router();
 // List users
 router.get('/list', authenticate, async (req, res) => {
     try {
-        const { branchId } = req.query;
-        const where = { isActive: true };
+        const { branchId, includeInactive } = req.query;
+        const where = includeInactive === 'true' ? {} : { isActive: true };
 
         if (req.user.role === 'manager') {
             // Managers can seen users in their branch OR users they created
@@ -84,6 +84,55 @@ router.post('/create', authenticate, authorize('manager'), async (req, res) => {
         res.json({ success: true, user: userObj });
     } catch (error) {
         console.error('Create user error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Update user
+router.put('/update/:id', authenticate, authorize('manager'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { password, ...updateData } = req.body;
+
+        const user = await models.User.findByPk(id);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Role-based authorization
+        if (req.user.role !== 'admin') {
+            // Managers can only update users in their branch or users they created
+            const isAuthorized = user.branchId === req.user.branchId || user.createdBy === req.user.userId;
+            if (!isAuthorized) {
+                return res.status(403).json({ error: 'Unauthorized to update this user' });
+            }
+
+            // Managers cannot promote others to admin
+            if (updateData.role === 'admin' && user.role !== 'admin') {
+                delete updateData.role;
+            }
+        }
+
+        // If password is provided, it will be hashed by the model hook `beforeUpdate`
+        if (password) {
+            user.password = password;
+        }
+
+        // Update other fields
+        Object.keys(updateData).forEach(key => {
+            if (updateData[key] !== undefined) {
+                user[key] = updateData[key];
+            }
+        });
+
+        await user.save();
+
+        const userObj = user.toJSON();
+        delete userObj.password;
+
+        res.json({ success: true, user: userObj });
+    } catch (error) {
+        console.error('Update user error:', error);
         res.status(500).json({ error: error.message });
     }
 });

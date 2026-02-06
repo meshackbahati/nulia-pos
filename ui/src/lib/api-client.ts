@@ -44,6 +44,7 @@ export const api = {
 
     // Users
     createUser: (data: any) => apiClient.post('/users/create', data),
+    updateUser: (id: string, data: any) => apiClient.put(`/users/update/${id}`, data),
     listUsers: (params?: any) => apiClient.get('/users/list', { params }),
 
     // Products

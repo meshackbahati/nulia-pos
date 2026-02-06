@@ -1,5 +1,5 @@
 import express from 'express';
-import models from '../models/index.js';
+import models, { sequelize } from '../models/index.js';
 import { authenticate, authorize } from '../lib/auth.js';
 import { createAuditLog, AUDIT_ACTIONS, AUDIT_RESOURCES } from '../lib/audit.js';
 import { Op } from 'sequelize';
@@ -43,8 +43,9 @@ router.post('/upload-image', authenticate, authorize('manager'), upload.single('
 
 // Import products via CSV
 router.post('/import-csv', authenticate, authorize('manager'), upload.single('file'), async (req, res) => {
-    const t = await models.sequelize.transaction();
+    let t;
     try {
+        t = await sequelize.transaction();
         if (!req.file) {
             return res.status(400).json({ error: 'No CSV file provided' });
         }
@@ -239,8 +240,9 @@ router.get('/list', authenticate, async (req, res) => {
 
 // Create product
 router.post('/create', authenticate, authorize('manager'), async (req, res) => {
-    const t = await models.sequelize.transaction();
+    let t;
     try {
+        t = await sequelize.transaction();
         const { branchId, stockQuantity, lowStockThreshold, variants, ...productData } = req.body;
 
         // Enforce branchId scoping
