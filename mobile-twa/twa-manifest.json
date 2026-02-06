@@ -1,0 +1,49 @@
+{
+    "packageId": "com.retailpro.pos",
+    "host": "v0-supermarket-management-system-eight-swart.vercel.app",
+    "name": "RetailPro POS",
+    "launcherName": "RetailPro",
+    "display": "standalone",
+    "themeColor": "#111827",
+    "navigationColor": "#111827",
+    "navigationColorDark": "#111827",
+    "navigationDividerColor": "#111827",
+    "navigationDividerColorDark": "#111827",
+    "backgroundColor": "#111827",
+    "enableNotifications": true,
+    "startUrl": "/",
+    "iconUrl": "https://v0-supermarket-management-system-eight-swart.vercel.app/logo.png",
+    "maskableIconUrl": "https://v0-supermarket-management-system-eight-swart.vercel.app/logo.png",
+    "splashScreenFadeOutDuration": 300,
+    "signingKey": {
+        "path": "./android.keystore",
+        "alias": "android"
+    },
+    "appVersionName": "1.0.0",
+    "appVersionCode": 1,
+    "shortcuts": [],
+    "generatorApp": "bubblewrap-cli",
+    "webManifestUrl": "https://v0-supermarket-management-system-eight-swart.vercel.app/manifest.json",
+    "fallbackType": "customtabs",
+    "features": {
+        "playBilling": {
+            "enabled": false
+        },
+        "locationDelegation": {
+            "enabled": true
+        },
+        "firstRunFlag": false,
+        "log": {
+            "enabled": false
+        }
+    },
+    "alphaDependencies": {
+        "enabled": false
+    },
+    "enableSiteSettingsShortcut": true,
+    "isChromeOSOnly": false,
+    "isMetaQuest": false,
+    "fullScopeUrl": "https://v0-supermarket-management-system-eight-swart.vercel.app/",
+    "minSdkVersion": 21,
+    "targetSdkVersion": 34
+}
