@@ -17,8 +17,8 @@ COPY backend/ .
 
 # Ensure standard cloud environment variables are set
 # Northflank will override PORT with its own value if specified
-ENV PORT=5000
-EXPOSE 5000
+ENV PORT=3000
+EXPOSE 3000
 
 # Set execution environment to production
 ENV NODE_ENV=production
