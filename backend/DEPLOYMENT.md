@@ -93,6 +93,30 @@ Functions available at: `http://localhost:8888/.netlify/functions/`
 
 ✅ **Database**: Uses Neon PostgreSQL (serverless)
 
+## PM2 Production Management (Virtual Private Server / VPS)
+
+If you are deploying to a standard VPS (like Ubuntu, CentOS) instead of Netlify, use PM2 to manage the backend process.
+
+### 1. Requirements
+Ensure PM2 is installed globally:
+```bash
+npm install -g pm2
+```
+
+### 2. Available PM2 Commands
+From the `backend` directory, you can use:
+
+- **Start production**: `npm run pm2:start`
+- **Restart service**: `npm run pm2:restart`
+- **Stop service**: `npm run pm2:stop`
+- **View logs**: `npm run pm2:logs`
+- **Check status**: `npm run pm2:status`
+
+### 3. Monitoring
+PM2 will automatically restart the backend if it crashes. It is configured to run in **cluster mode** for high availability, utilizing all available CPU cores.
+
+---
+
 ## Frontend Configuration
 
 After deploying backend, update frontend `.env`:
