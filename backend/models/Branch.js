@@ -65,7 +65,7 @@ class Branch extends Model {
                 currencySymbol: {
                     type: DataTypes.STRING(5),
                     allowNull: false,
-                    defaultValue: process.env.DEFAULT_CURRENCY_SYMBOL || '$',
+                    defaultValue: process.env.DEFAULT_CURRENCY_SYMBOL || 'KSh',
                 },
                 secondaryCurrency: {
                     type: DataTypes.STRING(3),
