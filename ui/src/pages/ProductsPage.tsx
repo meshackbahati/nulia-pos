@@ -20,6 +20,7 @@ interface Product {
     costPrice: number;
     sku: string;
     barcode?: string;
+    barcodes?: string[];
     imageUrl?: string;
     stockQuantity: number;
     lowStockThreshold: number;
@@ -123,7 +124,9 @@ export default function ProductsPage() {
 
     const filteredProducts = products.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.sku.toLowerCase().includes(searchTerm.toLowerCase())
+        p.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.barcode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.barcodes || []).some(b => b.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     return (

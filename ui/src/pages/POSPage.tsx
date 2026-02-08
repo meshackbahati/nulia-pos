@@ -33,6 +33,8 @@ interface Product {
     stockQty: number;
     category: string;
     sku: string;
+    barcode?: string;
+    barcodes: string[];
     lowStockAlert: number;
     variantName?: string;
 }
@@ -190,6 +192,8 @@ export default function POSPage() {
                 stockQty: p.stockQuantity || 0,
                 category: p.category || 'Uncategorized',
                 sku: p.sku || '',
+                barcode: p.barcode || '',
+                barcodes: p.barcodes || [],
                 lowStockAlert: p.lowStockAlert || 5
             }));
             setProducts(mappedProducts);
@@ -283,7 +287,9 @@ export default function POSPage() {
 
     const filteredProducts = products.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.sku.toLowerCase().includes(searchTerm.toLowerCase());
+            p.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.barcode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.barcodes.some(b => b.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
         return matchesSearch && matchesCategory;
     });
@@ -300,9 +306,13 @@ export default function POSPage() {
     });
 
     const handleScan = (barcode: string) => {
-        // Try to find product by SKU or Barcode (assuming we map them or they are same)
-        // In this mock, we check SKU 
-        const product = products.find(p => p.sku === barcode || p.id === barcode); // Basic check
+        // Try to find product by SKU, Primary Barcode, or the barcodes array
+        const product = products.find(p =>
+            p.sku === barcode ||
+            p.barcode === barcode ||
+            p.barcodes.includes(barcode) ||
+            p.id === barcode
+        );
 
         if (product) {
             addToCart(product);
