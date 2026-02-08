@@ -48,6 +48,105 @@ interface CartItem {
     variantName?: string;
 }
 
+interface CartContentProps {
+    cart: CartItem[];
+    setCart: (cart: CartItem[]) => void;
+    updateQuantity: (productId: string, variant_id: string | null, delta: number) => void;
+    formatPrice: (price: number) => string;
+    subtotal: number;
+    total: number;
+    setShowPaymentModal: (show: boolean) => void;
+}
+
+function CartContent({ cart, setCart, updateQuantity, formatPrice, subtotal, total, setShowPaymentModal }: CartContentProps) {
+    return (
+        <>
+            <div className="p-4 lg:p-5 border-b flex items-center justify-between bg-card/50 backdrop-blur">
+                <div className="flex items-center gap-2">
+                    <ShoppingCart className="w-5 h-5 text-primary" />
+                    <h2 className="font-bold text-lg text-foreground">Current Order</h2>
+                </div>
+                <button
+                    onClick={() => setCart([])}
+                    disabled={cart.length === 0}
+                    className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors disabled:opacity-50"
+                >
+                    <Trash2 className="w-4 h-4" />
+                </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {cart.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-50">
+                        <ShoppingCart className="w-16 h-16 mb-4 text-muted-foreground/50" />
+                        <p className="text-sm font-medium text-foreground">Cart is empty</p>
+                        <p className="text-xs text-muted-foreground mt-1">Scan items or select from grid</p>
+                    </div>
+                ) : (
+                    cart.map(item => (
+                        <div key={item.product_id + (item.variant_id || '')} className="flex gap-4 p-3 rounded-xl bg-secondary/30 border border-transparent hover:border-border transition-colors group">
+                            <div className="w-16 h-16 rounded-lg bg-white overflow-hidden shadow-sm flex-shrink-0">
+                                {item.imageUrl ? (
+                                    <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-secondary">
+                                        <Package className="w-6 h-6 text-muted-foreground" />
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex-1 min-w-0 flex flex-col justify-between">
+                                <div>
+                                    <h4 className="text-sm font-bold text-foreground line-clamp-1">{item.name}</h4>
+                                    <p className="text-xs font-medium text-primary mt-0.5">{formatPrice(item.price)}</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => updateQuantity(item.product_id, item.variant_id || null, -1)}
+                                        className="w-6 h-6 rounded flex items-center justify-center bg-white dark:bg-black border shadow-sm hover:bg-secondary transition-colors"
+                                    >
+                                        <Minus className="w-3 h-3 text-foreground" />
+                                    </button>
+                                    <span className="text-sm font-bold w-4 text-center text-foreground">{item.quantity}</span>
+                                    <button
+                                        onClick={() => updateQuantity(item.product_id, item.variant_id || null, 1)}
+                                        className="w-6 h-6 rounded flex items-center justify-center bg-white dark:bg-black border shadow-sm hover:bg-secondary transition-colors"
+                                    >
+                                        <Plus className="w-3 h-3 text-foreground" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="flex flex-col justify-between items-end">
+                                <p className="font-bold text-foreground">{formatPrice(item.price * item.quantity)}</p>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            <div className="p-4 lg:p-5 border-t bg-card shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+                <div className="space-y-3 mb-4">
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Subtotal</span>
+                        <span className="font-medium text-foreground">{formatPrice(subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between items-end pt-2 border-t border-dashed">
+                        <span className="text-lg font-bold text-foreground">Total</span>
+                        <span className="text-2xl font-black text-primary font-display">{formatPrice(total)}</span>
+                    </div>
+                </div>
+                <button
+                    onClick={() => setShowPaymentModal(true)}
+                    disabled={cart.length === 0}
+                    className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:scale-100 disabled:shadow-none"
+                >
+                    <CreditCard className="w-5 h-5" />
+                    Checkout
+                </button>
+            </div>
+        </>
+    );
+}
+
 export default function POSPage() {
     const [branchData, setBranchData] = useState<any>(null);
     const { user } = useAuth();
@@ -62,6 +161,7 @@ export default function POSPage() {
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [showReceipt, setShowReceipt] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
+    const [showCart, setShowCart] = useState(false);
     const [currentSale, setCurrentSale] = useState<any>(null);
 
     useEffect(() => {
@@ -219,40 +319,42 @@ export default function POSPage() {
     return (
         <div className="h-full bg-background flex flex-col overflow-hidden font-body">
             {/* Header */}
-            <header className="flex-none h-16 bg-card border-b px-4 lg:px-6 flex items-center justify-between z-20 shadow-sm">
-                <div className="flex items-center gap-4">
-                    <Link to="/dashboard" className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
-                        <Store className="w-5 h-5" />
+            <header className="flex-none h-16 bg-card border-b px-3 lg:px-6 flex items-center justify-between z-20 shadow-sm">
+                <div className="flex items-center gap-3 lg:gap-4">
+                    <Link to="/dashboard" className="w-9 h-9 lg:w-10 lg:h-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 transition-transform shrink-0">
+                        <Store className="w-4 h-4 lg:w-5 lg:h-5" />
                     </Link>
-                    <div>
-                        <h1 className="text-xl font-bold font-display tracking-tight text-foreground">
-                            BorderShop <span className="text-primary">POS</span>
+                    <div className="min-w-0">
+                        <h1 className="text-lg lg:text-xl font-bold font-display tracking-tight text-foreground truncate">
+                            BorderShop <span className="text-primary lg:inline hidden">POS</span>
                         </h1>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            Online • {user?.firstName || 'User'}
+                        <div className="flex items-center gap-1.5 lg:gap-2 text-[10px] lg:text-xs text-muted-foreground font-medium">
+                            <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                            <span className="truncate">{user?.firstName || 'User'}</span>
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
-                    <div className="hidden md:flex flex-col items-end gap-0.5 bg-secondary/30 px-3 py-1 rounded-lg">
-                        <div className="flex items-center gap-1.5 text-xs font-mono font-medium text-foreground">
+                <div className="flex items-center gap-2 lg:gap-3">
+                    <div className="hidden sm:flex flex-col items-end gap-0.5 bg-secondary/30 px-2 lg:px-3 py-1 rounded-lg">
+                        <div className="flex items-center gap-1.5 text-[10px] lg:text-xs font-mono font-medium text-foreground">
                             <Clock className="w-3 h-3 text-primary" />
                             {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
-                        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">
+                        <div className="text-[9px] lg:text-[10px] font-bold text-muted-foreground uppercase tracking-tight hidden lg:block">
                             Terminal: {user?.branchId || 'Main Branch'}
                         </div>
                     </div>
                     <button
                         onClick={() => setShowHistory(true)}
-                        className="p-2.5 bg-secondary/50 text-foreground hover:bg-primary/10 hover:text-primary rounded-xl transition-all flex items-center gap-2 group"
+                        className="p-2 lg:p-2.5 bg-secondary/50 text-foreground hover:bg-primary/10 hover:text-primary rounded-xl transition-all flex items-center gap-2 group"
                         title="Transaction History"
                     >
                         <History className="w-5 h-5 transition-transform group-hover:rotate-12" />
                         <span className="text-xs font-bold hidden lg:inline">History</span>
                     </button>
-                    <ThemeToggle />
+                    <div className="hidden sm:block">
+                        <ThemeToggle />
+                    </div>
                     <button
                         onClick={() => window.location.href = '/dashboard'}
                         className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
@@ -372,132 +474,95 @@ export default function POSPage() {
                     </div>
                 </div>
 
-                {/* Sidebar Cart */}
-                <div className="w-96 bg-card border-l flex flex-col shadow-2xl z-30">
-                    <div className="p-5 border-b flex items-center justify-between bg-card/50 backdrop-blur">
-                        <div className="flex items-center gap-2">
-                            <ShoppingCart className="w-5 h-5 text-primary" />
-                            <h2 className="font-bold text-lg">Current Order</h2>
-                        </div>
-                        <button
-                            onClick={() => setCart([])}
-                            disabled={cart.length === 0}
-                            className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors disabled:opacity-50"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                        {cart.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-50">
-                                <ShoppingCart className="w-16 h-16 mb-4 text-muted-foreground/50" />
-                                <p className="text-sm font-medium">Cart is empty</p>
-                                <p className="text-xs text-muted-foreground mt-1">Scan items or select from grid</p>
-                            </div>
-                        ) : (
-                            cart.map(item => (
-                                <div key={item.product_id + (item.variant_id || '')} className="flex gap-4 p-3 rounded-xl bg-secondary/30 border border-transparent hover:border-border transition-colors group">
-                                    <div className="w-16 h-16 rounded-lg bg-white overflow-hidden shadow-sm flex-shrink-0">
-                                        {item.imageUrl ? (
-                                            <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-secondary">
-                                                <Package className="w-6 h-6 text-muted-foreground" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="flex-1 min-w-0 flex flex-col justify-between">
-                                        <div>
-                                            <h4 className="text-sm font-bold text-foreground line-clamp-1">{item.name}</h4>
-                                            <p className="text-xs font-medium text-primary mt-0.5">{formatPrice(item.price)}</p>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <button
-                                                onClick={() => updateQuantity(item.product_id, item.variant_id || null, -1)}
-                                                className="w-6 h-6 rounded flex items-center justify-center bg-white dark:bg-black border shadow-sm hover:bg-secondary transition-colors"
-                                            >
-                                                <Minus className="w-3 h-3" />
-                                            </button>
-                                            <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
-                                            <button
-                                                onClick={() => updateQuantity(item.product_id, item.variant_id || null, 1)}
-                                                className="w-6 h-6 rounded flex items-center justify-center bg-white dark:bg-black border shadow-sm hover:bg-secondary transition-colors"
-                                            >
-                                                <Plus className="w-3 h-3" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col justify-between items-end">
-                                        <p className="font-bold text-foreground">{formatPrice(item.price * item.quantity)}</p>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-
-                    <div className="p-5 border-t bg-card shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-                        <div className="space-y-3 mb-4">
-                            <div className="flex justify-between text-sm text-muted-foreground">
-                                <span>Subtotal</span>
-                                <span className="font-medium text-foreground">{formatPrice(subtotal)}</span>
-                            </div>
-                            <div className="flex justify-between items-end pt-2 border-t border-dashed">
-                                <span className="text-lg font-bold">Total</span>
-                                <span className="text-2xl font-black text-primary font-display">{formatPrice(total)}</span>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setShowPaymentModal(true)}
-                            disabled={cart.length === 0}
-                            className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:scale-100 disabled:shadow-none"
-                        >
-                            <CreditCard className="w-5 h-5" />
-                            Checkout
-                        </button>
-                    </div>
+                {/* Sidebar Cart - Desktop */}
+                <div className="hidden lg:flex w-96 bg-card border-l flex-col shadow-2xl z-20">
+                    <CartContent
+                        cart={cart}
+                        setCart={setCart}
+                        updateQuantity={updateQuantity}
+                        formatPrice={formatPrice}
+                        subtotal={subtotal}
+                        total={total}
+                        setShowPaymentModal={setShowPaymentModal}
+                    />
                 </div>
+
+                {/* Mobile Cart Drawer Overlay */}
+                {showCart && (
+                    <div className="fixed inset-0 z-50 lg:hidden">
+                        <div
+                            className="absolute inset-0 bg-background/80 backdrop-blur-sm transition-opacity"
+                            onClick={() => setShowCart(false)}
+                        />
+                        <div className="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-card shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+                            <div className="flex-none p-4 flex items-center justify-between border-b">
+                                <h3 className="font-bold">Cart Items ({cart.length})</h3>
+                                <button onClick={() => setShowCart(false)} className="p-2 hover:bg-secondary rounded-lg">
+                                    <Plus className="w-5 h-5 rotate-45" />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-hidden">
+                                <CartContent
+                                    cart={cart}
+                                    setCart={setCart}
+                                    updateQuantity={updateQuantity}
+                                    formatPrice={formatPrice}
+                                    subtotal={subtotal}
+                                    total={total}
+                                    setShowPaymentModal={setShowPaymentModal}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
+            {/* Floating Cart Button (Mobile Only) */}
+            <button
+                onClick={() => setShowCart(true)}
+                className="lg:hidden fixed bottom-6 right-6 w-16 h-16 bg-primary text-primary-foreground rounded-full shadow-2xl shadow-primary/40 flex items-center justify-center z-40 hover:scale-110 active:scale-95 transition-all"
+            >
+                <div className="relative">
+                    <ShoppingCart className="w-7 h-7" />
+                    {cart.length > 0 && (
+                        <span className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center ring-2 ring-primary">
+                            {cart.length}
+                        </span>
+                    )}
+                </div>
+            </button>
+
             {/* Modals */}
-            {
-                showScanner && (
-                    <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
-                )
-            }
+            {showScanner && (
+                <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
+            )}
 
-            {
-                showReceipt && currentSale && (
-                    <ReceiptModal
-                        sale={currentSale}
-                        companyName="BorderShop"
-                        onClose={() => {
-                            setShowReceipt(false);
-                            setCurrentSale(null);
-                            setCart([]);
-                        }}
-                    />
-                )
-            }
+            {showReceipt && currentSale && (
+                <ReceiptModal
+                    sale={currentSale}
+                    companyName="BorderShop"
+                    onClose={() => {
+                        setShowReceipt(false);
+                        setCurrentSale(null);
+                        setCart([]);
+                    }}
+                />
+            )}
 
-            {
-                showPaymentModal && (
-                    <PaymentModal
-                        total={total}
-                        branchConfig={branchData}
-                        onComplete={onPaymentComplete}
-                        onClose={() => setShowPaymentModal(false)}
-                    />
-                )
-            }
+            {showPaymentModal && (
+                <PaymentModal
+                    total={total}
+                    branchConfig={branchData}
+                    onComplete={onPaymentComplete}
+                    onClose={() => setShowPaymentModal(false)}
+                />
+            )}
 
-            {
-                showHistory && (
-                    <TransactionHistoryModal
-                        onClose={() => setShowHistory(false)}
-                    />
-                )
-            }
-        </div >
+            {showHistory && (
+                <TransactionHistoryModal
+                    onClose={() => setShowHistory(false)}
+                />
+            )}
+        </div>
     );
 }
