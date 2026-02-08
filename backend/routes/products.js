@@ -15,6 +15,8 @@ const upload = multer({
 
 // Upload image to Cloudinary
 router.post('/upload-image', authenticate, authorize('head_of_sales'), upload.single('image'), async (req, res) => {
+    console.log(`[ROUTE] /upload-image hit. Method: ${req.method}. File: ${req.file ? req.file.originalname : 'none'}`);
+
     if (req.user.role === 'head_of_sales' && !req.user.permissions?.canManageInventory) {
         return res.status(403).json({ error: 'Head of Sales requires explicit permission to upload images' });
     }

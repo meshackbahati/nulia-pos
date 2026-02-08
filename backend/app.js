@@ -24,29 +24,33 @@ dotenv.config();
 
 const app = express();
 
-// Middleware - CORS MUST BE FIRST
+// 1. GLOBAL REQUEST LOGGER (DEBUG)
+app.use((req, res, next) => {
+    console.log(`[TRAFFIC] ${new Date().toISOString()} ${req.method} ${req.url}`);
+    console.log(`[TRAFFIC] Headers: ${JSON.stringify(req.headers)}`);
+    next();
+});
+
+// 2. ULTRA-PERMISSIVE CORS FOR DEBUGGING
 app.use(cors({
-    origin: true,
+    origin: (origin, callback) => {
+        // Allow all origins, including those with subdomains or local/hosted
+        callback(null, true);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Branch-ID']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Branch-ID', 'Cache-Control', 'X-Requested-With'],
+    exposedHeaders: ['Set-Cookie']
 }));
 
 app.use(morgan('dev'));
-app.use(express.json({ limit: '15mb' }));
-app.use(express.urlencoded({ extended: true, limit: '15mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Security Headers
+// 3. MINIMAL SECURITY HEADERS
 app.use((req, res, next) => {
-    // Removed specific paths with queries which are invalid in CSP source lists.
-    res.setHeader(
-        'Content-Security-Policy',
-        "default-src 'self' https: data:; " +
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; " +
-        "style-src 'self' 'unsafe-inline' https:; " +
-        "connect-src 'self' https:;"
-    );
-
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Content-Security-Policy', "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;");
     next();
 });
 
