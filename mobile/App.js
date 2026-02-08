@@ -59,7 +59,14 @@ export default function App() {
     return null;
   }
 
+  const [isProcessing, setIsProcessing] = React.useState(false);
+
   const handleBarCodeScanned = ({ type, data }) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+
+    // Vibrate or beep could be added here if needed
+
     setScannerVisible(false);
     // Send the result back to the webview
     const script = `
@@ -70,6 +77,9 @@ export default function App() {
       window.dispatchEvent(new CustomEvent('nativeBarcodeScanned', { detail: { data: "${data}" } }));
     `;
     webViewRef.current.injectJavaScript(script);
+
+    // Reset processing state after a delay
+    setTimeout(() => setIsProcessing(false), 1000);
   };
 
   // Inject Device Info and Scanner Trigger into WebView
@@ -110,6 +120,7 @@ export default function App() {
         return;
       }
     }
+    setIsProcessing(false); // Reset before opening
     setScannerVisible(true);
   };
 
@@ -130,6 +141,10 @@ export default function App() {
         backgroundColor="#111827"
         startInLoadingState={true}
         injectedJavaScript={injectedJavaScript}
+        scalesPageToFit={false}
+        useWideViewPort={true}
+        setSupportZoom={false}
+        overScrollMode="never"
         onLoadEnd={async () => {
           await SplashScreen.hideAsync();
         }}
@@ -149,7 +164,7 @@ export default function App() {
       />
 
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent={false}
         visible={scannerVisible}
         onRequestClose={() => setScannerVisible(false)}
@@ -161,6 +176,10 @@ export default function App() {
               barcodeTypes: ['qr', 'ean13', 'ean8', 'code128', 'code39', 'upc_a', 'upc_e'],
             }}
             style={StyleSheet.absoluteFillObject}
+            onMountError={(error) => {
+              Alert.alert('Camera Error', 'Could not start camera: ' + error.message);
+              setScannerVisible(false);
+            }}
           />
           <View style={styles.overlay}>
             <View style={styles.unfocusedContainer}></View>
@@ -169,12 +188,15 @@ export default function App() {
               <View style={styles.focusedContainer}>
                 <View style={styles.cornerTopLeft}></View>
                 <View style={styles.cornerTopRight}></View>
+                <View style={styles.scanLine} />
                 <View style={styles.cornerBottomLeft}></View>
                 <View style={styles.cornerBottomRight}></View>
               </View>
               <View style={styles.unfocusedContainer}></View>
             </View>
-            <View style={styles.unfocusedContainer}></View>
+            <View style={styles.unfocusedContainer}>
+              <Text style={styles.instructionText}>Align barcode inside the box</Text>
+            </View>
           </View>
           <TouchableOpacity
             style={styles.cancelButton}
@@ -226,15 +248,41 @@ const styles = StyleSheet.create({
   },
   unfocusedContainer: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  instructionText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 20,
+    textAlign: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
   middleContainer: {
     flexDirection: 'row',
-    height: 250,
+    height: 180, // Narrower height for barcode
   },
   focusedContainer: {
-    width: 250,
+    width: 280, // Wider for barcode
     position: 'relative',
+  },
+  scanLine: {
+    position: 'absolute',
+    left: '10%',
+    right: '10%',
+    top: '50%',
+    height: 2,
+    backgroundColor: '#ef4444', // Red line
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 5,
   },
   cornerTopLeft: {
     position: 'absolute',

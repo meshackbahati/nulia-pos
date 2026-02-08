@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import api from '../lib/api-client';
 import ProductModal from '../components/ProductModal';
 import RestockModal from '../components/RestockModal';
-import { Plus, Package, AlertTriangle, PlusCircle, Search, FileUp, Building } from 'lucide-react';
+import BarcodeScanner from '../components/BarcodeScanner';
+import { Plus, Package, AlertTriangle, PlusCircle, Search, FileUp, Building, Barcode } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 import { useCurrency } from '../hooks/useCurrency';
 import toast from 'react-hot-toast';
@@ -32,12 +33,19 @@ export default function ProductsPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showScanner, setShowScanner] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [restockingProduct, setRestockingProduct] = useState<Product | null>(null);
     const { formatPrice } = useCurrency();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [branches, setBranches] = useState<any[]>([]);
     const [selectedImportBranch, setSelectedImportBranch] = useState('');
+
+    const handleScan = (barcode: string) => {
+        setSearchTerm(barcode);
+        setShowScanner(false);
+        toast.success(`Scanned: ${barcode}`);
+    };
 
     useEffect(() => {
         fetchProducts();
@@ -183,15 +191,24 @@ export default function ProductsPage() {
             <main className="max-w-7xl mx-auto w-full px-6 py-8 space-y-8 animate-in fade-in duration-500">
                 {/* Search & Stats */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
-                        <input
-                            type="text"
-                            placeholder="Search catalog..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="flex h-11 w-full rounded-md border border-input bg-background pl-12 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        />
+                    <div className="relative flex-1 max-w-md flex gap-2">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
+                            <input
+                                type="text"
+                                placeholder="Search catalog..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="flex h-11 w-full rounded-md border border-input bg-background pl-12 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            />
+                        </div>
+                        <button
+                            onClick={() => setShowScanner(true)}
+                            className="h-11 px-4 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md transition-colors flex items-center justify-center gap-2"
+                            title="Scan Barcode"
+                        >
+                            <Barcode className="w-5 h-5" />
+                        </button>
                     </div>
                     <div className="flex items-center gap-3">
                         <span className="text-[10px] font-bold text-muted-foreground uppercase">Catalog Size:</span>
@@ -271,6 +288,13 @@ export default function ProductsPage() {
                     </div>
                 )}
             </main>
+
+            {showScanner && (
+                <BarcodeScanner
+                    onScan={handleScan}
+                    onClose={() => setShowScanner(false)}
+                />
+            )}
 
             {/* Modals */}
             {(showAddModal || editingProduct) && (

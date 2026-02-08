@@ -78,47 +78,70 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
     };
 
     useEffect(() => {
+        const handleNativeScan = (event: any) => {
+            const barcode = event.detail.data;
+            if (barcode) {
+                handleAddBarcode(barcode);
+                toast.success('Barcode scanned!');
+                setIsScanning(false);
+            }
+        };
+
+        window.addEventListener('nativeBarcodeScanned', handleNativeScan);
+        return () => window.removeEventListener('nativeBarcodeScanned', handleNativeScan);
+    }, []);
+
+    useEffect(() => {
         let activeReader: BrowserMultiFormatReader | null = null;
 
         const startScanning = async () => {
-            if (isScanning && videoRef.current) {
-                try {
-                    activeReader = new BrowserMultiFormatReader();
-                    codeReader.current = activeReader;
+            if (isScanning) {
+                // Check for native scanner first
+                const device = (window as any).RetailProDevice;
+                if (device?.hasNativeScanner && (window as any).startNativeScan) {
+                    (window as any).startNativeScan();
+                    return;
+                }
 
-                    const videoDevices = await activeReader.listVideoInputDevices();
-                    if (videoDevices.length === 0) {
-                        toast.error('No camera found');
-                        setIsScanning(false);
-                        return;
-                    }
-
-                    // Prefer back camera if available
-                    const backCamera = videoDevices.find(device =>
-                        device.label.toLowerCase().includes('back') ||
-                        device.label.toLowerCase().includes('rear')
-                    );
-                    const selectedDeviceId = backCamera ? backCamera.deviceId : videoDevices[0].deviceId;
-
+                if (videoRef.current) {
                     try {
-                        await activeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.current, (result, _err) => {
-                            if (result) {
-                                handleAddBarcode(result.getText());
-                                toast.success('Barcode scanned!');
-                                setIsScanning(false);
-                            }
-                        });
-                    } catch (err: any) {
-                        if (err.name === 'NotReadableError' || (err instanceof Error && err.message?.includes('already playing'))) {
-                            console.log('Video already playing or busy, ignoring.');
-                        } else {
-                            throw err; // Re-throw other errors to be caught by the outer catch block
+                        activeReader = new BrowserMultiFormatReader();
+                        codeReader.current = activeReader;
+
+                        const videoDevices = await activeReader.listVideoInputDevices();
+                        if (videoDevices.length === 0) {
+                            toast.error('No camera found');
+                            setIsScanning(false);
+                            return;
                         }
+
+                        // Prefer back camera if available
+                        const backCamera = videoDevices.find(device =>
+                            device.label.toLowerCase().includes('back') ||
+                            device.label.toLowerCase().includes('rear')
+                        );
+                        const selectedDeviceId = backCamera ? backCamera.deviceId : videoDevices[0].deviceId;
+
+                        try {
+                            await activeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.current, (result, _err) => {
+                                if (result) {
+                                    handleAddBarcode(result.getText());
+                                    toast.success('Barcode scanned!');
+                                    setIsScanning(false);
+                                }
+                            });
+                        } catch (err: any) {
+                            if (err.name === 'NotReadableError' || (err instanceof Error && err.message?.includes('already playing'))) {
+                                console.log('Video already playing or busy, ignoring.');
+                            } else {
+                                throw err; // Re-throw other errors to be caught by the outer catch block
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Camera access error:', err);
+                        toast.error('Could not access camera. Please check permissions.');
+                        setIsScanning(false);
                     }
-                } catch (err) {
-                    console.error('Camera access error:', err);
-                    toast.error('Could not access camera. Please check permissions.');
-                    setIsScanning(false);
                 }
             }
         };
