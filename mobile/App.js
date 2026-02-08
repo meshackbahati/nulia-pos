@@ -32,8 +32,8 @@ export default function App() {
         return false;
       };
 
-      BackHandler.addEventListener('hardwareBackPress', onBackPress);
-      return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
     }
   }, [scannerVisible]);
 
@@ -66,19 +66,26 @@ export default function App() {
 
     // Vibrate or beep could be added here if needed
 
-    setScannerVisible(false);
-    // Send the result back to the webview
-    const script = `
-      if (window.onNativeScan) {
-        window.onNativeScan("${data}");
+    try {
+      setScannerVisible(false);
+      // Send the result back to the webview
+      const script = `
+        if (window.onNativeScan) {
+          window.onNativeScan("${data}");
+        }
+        // Trigger a custom event for easier integration
+        window.dispatchEvent(new CustomEvent('nativeBarcodeScanned', { detail: { data: "${data}" } }));
+      `;
+      if (webViewRef.current) {
+        webViewRef.current.injectJavaScript(script);
       }
-      // Trigger a custom event for easier integration
-      window.dispatchEvent(new CustomEvent('nativeBarcodeScanned', { detail: { data: "${data}" } }));
-    `;
-    webViewRef.current.injectJavaScript(script);
-
-    // Reset processing state after a delay
-    setTimeout(() => setIsProcessing(false), 1000);
+    } catch (error) {
+      console.error('Error handling barcode scan:', error);
+      Alert.alert('Scanner Error', 'Failed to process barcode: ' + error.message);
+    } finally {
+      // Reset processing state after a delay
+      setTimeout(() => setIsProcessing(false), 1000);
+    }
   };
 
   // Inject Device Info and Scanner Trigger into WebView
@@ -146,6 +153,14 @@ export default function App() {
         onLoadEnd={async () => {
           await SplashScreen.hideAsync();
         }}
+        onError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.warn('WebView error: ', nativeEvent);
+        }}
+        onHttpError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.warn('WebView HTTP error: ', nativeEvent);
+        }}
         onMessage={(event) => {
           try {
             const data = JSON.parse(event.nativeEvent.data);
@@ -155,7 +170,7 @@ export default function App() {
               triggerScan();
             }
           } catch (e) {
-            console.log('WebView message:', event.nativeEvent.data);
+            console.log('WebView message (raw):', event.nativeEvent.data);
           }
         }}
         originWhitelist={['*']}
@@ -171,10 +186,11 @@ export default function App() {
           <CameraView
             onBarcodeScanned={handleBarCodeScanned}
             barcodeScannerSettings={{
-              barcodeTypes: ['qr', 'ean13', 'ean8', 'code128', 'code39', 'upc_a', 'upc_e'],
+              barcodeTypes: ['qr', 'ean13', 'ean8', 'code128', 'code39'],
             }}
             style={StyleSheet.absoluteFillObject}
             onMountError={(error) => {
+              console.error('Camera onMountError:', error);
               Alert.alert('Camera Error', 'Could not start camera: ' + error.message);
               setScannerVisible(false);
             }}
