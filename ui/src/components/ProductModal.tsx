@@ -257,7 +257,7 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                                         {uploading ? <Loader2 className="w-10 h-10 animate-spin text-primary" /> : <Upload className="w-10 h-10" />}
                                         <div className="text-center">
                                             <p className="text-xs font-bold uppercase tracking-wider">Click to upload</p>
-                                            <p className="text-[10px] font-medium opacity-60">JPG, PNG or WEBP (Max 5MB)</p>
+                                            <p className="text-[10px] font-medium opacity-60">JPG, PNG or WEBP (Max 15MB)</p>
                                         </div>
                                     </div>
                                 )}

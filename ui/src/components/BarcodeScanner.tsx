@@ -17,21 +17,44 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
     const [useCamera, setUseCamera] = useState(true);
     const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
     const [isMobileApp, setIsMobileApp] = useState(false);
+    const [hasNativeScanner, setHasNativeScanner] = useState(false);
 
     useEffect(() => {
-        if ((window as any).RetailProDevice) {
+        const device = (window as any).RetailProDevice;
+        if (device) {
             setIsMobileApp(true);
+            if (device.hasNativeScanner) {
+                setHasNativeScanner(true);
+            }
         }
-    }, []);
+
+        // Bridge for native scan results
+        (window as any).onNativeScan = (barcode: string) => {
+            onScan(barcode);
+            onClose();
+        };
+
+        return () => {
+            delete (window as any).onNativeScan;
+        };
+    }, [onScan, onClose]);
 
     useEffect(() => {
-        if (useCamera && scanning) {
+        if (useCamera && scanning && !hasNativeScanner) {
             startCamera();
         } else {
             stopCamera();
         }
         return () => stopCamera();
-    }, [useCamera, scanning, selectedDeviceId]); // Re-start if device changes
+    }, [useCamera, scanning, selectedDeviceId, hasNativeScanner]);
+
+    const handleStartScanning = () => {
+        if (hasNativeScanner && (window as any).startNativeScan) {
+            (window as any).startNativeScan();
+        } else {
+            setScanning(true);
+        }
+    };
 
     const startCamera = async () => {
         try {
@@ -173,10 +196,11 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
 
                         {!scanning && (
                             <button
-                                onClick={() => setScanning(true)}
-                                className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                onClick={handleStartScanning}
+                                className="w-full py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg font-bold flex items-center justify-center gap-2"
                             >
-                                Start Scanning
+                                <Camera className="w-5 h-5" />
+                                {hasNativeScanner ? 'Open Smart Scanner' : 'Start Camera Scan'}
                             </button>
                         )}
                     </div>

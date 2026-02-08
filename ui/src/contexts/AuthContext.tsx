@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api-client';
+import { persistSession, clearSession, getCookie } from '../lib/cookie-utils';
 
 interface User {
     id: string;
@@ -35,13 +36,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Check for existing session
-        const storedToken = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
+        // Check for existing session (localStorage first, then cookie fallback)
+        let storedToken = localStorage.getItem('token');
+        let storedUser = localStorage.getItem('user');
+
+        // Fallback to cookies if localStorage is empty
+        if (!storedToken || !storedUser) {
+            const cookieToken = getCookie('token');
+            const cookieUserString = getCookie('user');
+
+            if (cookieToken && cookieUserString) {
+                storedToken = cookieToken;
+                storedUser = cookieUserString;
+
+                // Repopulate localStorage from cookies for consistency
+                localStorage.setItem('token', storedToken);
+                localStorage.setItem('user', storedUser);
+            }
+        }
 
         if (storedToken && storedUser) {
-            setToken(storedToken);
-            setUser(JSON.parse(storedUser));
+            try {
+                setToken(storedToken);
+                setUser(JSON.parse(storedUser));
+            } catch (e) {
+                console.error('Failed to parse stored user:', e);
+                clearSession();
+            }
         }
         setIsLoading(false);
 
@@ -59,8 +80,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const response = await api.login(email, password);
             const { token: newToken, user: newUser } = response.data;
 
-            localStorage.setItem('token', newToken);
-            localStorage.setItem('user', JSON.stringify(newUser));
+            // Use the utility to persist session for 7 days
+            persistSession(newToken, newUser);
 
             setToken(newToken);
             setUser(newUser);
@@ -77,8 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const logout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        clearSession();
         setToken(null);
         setUser(null);
         navigate('/auth/login');
