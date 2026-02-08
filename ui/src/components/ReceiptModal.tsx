@@ -4,6 +4,7 @@ import jsPDF from 'jspdf';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import { useCurrency } from '../hooks/useCurrency';
+import { useEffect } from 'react';
 
 interface ReceiptModalProps {
     sale: {
@@ -27,6 +28,16 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
     const { formatPrice, symbol } = useCurrency();
     const [customerEmail, setCustomerEmail] = useState('');
     const [sending, setSending] = useState(false);
+
+    // AUTO-PRINT Logic
+    useEffect(() => {
+        // Trigger print after a short delay to ensure modal is rendered
+        const timer = setTimeout(() => {
+            handlePrint();
+        }, 800);
+        return () => clearTimeout(timer);
+    }, []);
+
 
     const generatePDF = () => {
         const doc = new jsPDF();
@@ -64,8 +75,8 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
         sale.items.forEach((item) => {
             doc.text(item.name, 20, y);
             doc.text(item.quantity.toString(), pageWidth - 80, y);
-            doc.text(`${symbol}${item.price.toFixed(2)}`, pageWidth - 60, y);
-            doc.text(`${symbol}${(item.quantity * item.price).toFixed(2)}`, pageWidth - 30, y, {
+            doc.text(`${symbol} ${item.price.toFixed(2)}`, pageWidth - 60, y);
+            doc.text(`${symbol} ${(item.quantity * item.price).toFixed(2)}`, pageWidth - 30, y, {
                 align: 'right',
             });
             y += 7;
@@ -78,17 +89,17 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
 
         // Totals
         doc.text('Subtotal:', pageWidth - 80, y);
-        doc.text(`${symbol}${sale.subtotal.toFixed(2)}`, pageWidth - 30, y, { align: 'right' });
+        doc.text(`${symbol} ${sale.subtotal.toFixed(2)}`, pageWidth - 30, y, { align: 'right' });
         y += 7;
 
-        doc.text('Tax (16%):', pageWidth - 80, y);
-        doc.text(`${symbol}${sale.tax.toFixed(2)}`, pageWidth - 30, y, { align: 'right' });
+        doc.text('Tax:', pageWidth - 80, y);
+        doc.text(`${symbol} ${sale.tax.toFixed(2)}`, pageWidth - 30, y, { align: 'right' });
         y += 7;
 
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
         doc.text('Total:', pageWidth - 80, y);
-        doc.text(`${symbol}${sale.total.toFixed(2)}`, pageWidth - 30, y, { align: 'right' });
+        doc.text(`${symbol} ${sale.total.toFixed(2)}`, pageWidth - 30, y, { align: 'right' });
 
         // Footer
         doc.setFont('helvetica', 'normal');
@@ -175,7 +186,7 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
                                 <span>{formatPrice(sale.subtotal)}</span>
                             </div>
                             <div className="flex justify-between text-xs text-muted-foreground">
-                                <span>Tax (16%)</span>
+                                <span>Tax</span>
                                 <span>{formatPrice(sale.tax)}</span>
                             </div>
                             <div className="flex justify-between text-base font-bold text-foreground pt-2 border-t border-border border-dashed">

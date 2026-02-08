@@ -106,7 +106,7 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
                 <div className="bg-muted/30 rounded-xl p-6 mb-8 text-center border border-border/50 divide-y divide-border/20">
                     <div className="pb-4">
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-1">Subtotal</p>
-                        <p className="text-2xl font-bold text-foreground">${total.toFixed(2)}</p>
+                        <p className="text-2xl font-bold text-foreground">{formatPrice(total)}</p>
                     </div>
                     {taxRate > 0 && (
                         <div className="py-4 flex justify-between items-center bg-primary/5 px-4 rounded-lg my-2">
@@ -114,12 +114,12 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
                                 <Percent className="w-3 h-3 text-primary" />
                                 <span className="text-[10px] font-bold text-primary uppercase">Tax ({taxRate}%)</span>
                             </div>
-                            <span className="text-sm font-bold text-primary">${taxAmount.toFixed(2)}</span>
+                            <span className="text-sm font-bold text-primary">{formatPrice(taxAmount)}</span>
                         </div>
                     )}
                     <div className="pt-4">
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-1">Final Amount</p>
-                        <p className="text-4xl font-extrabold text-primary">${finalTotal.toFixed(2)}</p>
+                        <p className="text-4xl font-extrabold text-primary">{formatPrice(finalTotal)}</p>
                     </div>
                 </div>
 
@@ -183,11 +183,11 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
                                     autoFocus
                                 />
                             </div>
-                            {branchConfig?.secondaryCurrency === 'KES' && (
+                            {branchConfig?.secondaryCurrency && (
                                 <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
                                     <p className="text-[10px] font-bold text-primary uppercase mb-1">Exchange Logic</p>
                                     <p className="text-xs font-bold text-foreground">
-                                        Amount: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'KES' }).format(total * branchConfig.exchangeRate)}
+                                        Equivalent: {new Intl.NumberFormat(undefined, { style: 'currency', currency: branchConfig.secondaryCurrency }).format(finalTotal * branchConfig.exchangeRate)}
                                     </p>
                                 </div>
                             )}

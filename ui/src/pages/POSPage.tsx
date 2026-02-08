@@ -540,7 +540,7 @@ export default function POSPage() {
             {showReceipt && currentSale && (
                 <ReceiptModal
                     sale={currentSale}
-                    companyName="BorderShop"
+                    companyName="RetailPro POS"
                     onClose={() => {
                         setShowReceipt(false);
                         setCurrentSale(null);
