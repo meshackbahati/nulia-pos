@@ -4,7 +4,6 @@ import jsPDF from 'jspdf';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import { useCurrency } from '../hooks/useCurrency';
-import { useEffect } from 'react';
 
 interface ReceiptModalProps {
     sale: {
@@ -29,14 +28,6 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
     const [customerEmail, setCustomerEmail] = useState('');
     const [sending, setSending] = useState(false);
 
-    // AUTO-PRINT Logic
-    useEffect(() => {
-        // Trigger print after a short delay to ensure modal is rendered
-        const timer = setTimeout(() => {
-            handlePrint();
-        }, 800);
-        return () => clearTimeout(timer);
-    }, []);
 
 
     const generatePDF = () => {
