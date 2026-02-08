@@ -15,6 +15,7 @@ export default function App() {
   const [appIsReady, setAppIsReady] = React.useState(false);
   const [scannerVisible, setScannerVisible] = React.useState(false);
   const [permission, requestPermission] = useCameraPermissions();
+  const [isProcessing, setIsProcessing] = React.useState(false);
 
   // Handle Android hardware back button
   React.useEffect(() => {
@@ -58,8 +59,6 @@ export default function App() {
   if (!appIsReady) {
     return null;
   }
-
-  const [isProcessing, setIsProcessing] = React.useState(false);
 
   const handleBarCodeScanned = ({ type, data }) => {
     if (isProcessing) return;
@@ -143,7 +142,6 @@ export default function App() {
         injectedJavaScript={injectedJavaScript}
         scalesPageToFit={false}
         useWideViewPort={true}
-        setSupportZoom={false}
         overScrollMode="never"
         onLoadEnd={async () => {
           await SplashScreen.hideAsync();
