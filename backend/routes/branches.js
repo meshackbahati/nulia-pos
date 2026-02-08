@@ -31,13 +31,33 @@ router.get('/list', authenticate, async (req, res) => {
 // Get current user's branch
 router.get('/me', authenticate, async (req, res) => {
     try {
-        if (!req.user.branchId) {
-            return res.status(404).json({ error: 'User is not assigned to a branch' });
+        // SMART BRANCH DETECTION:
+        // 1. Try query param (favored by POS terminal)
+        // 2. Try custom header
+        // 3. Fallback to user's assigned branchId from profile
+        const branchId = req.query.branchId || req.headers['x-branch-id'] || req.user.branchId;
+
+        if (!branchId) {
+            console.log(`[BRANCH] No branchId found in request or profile for user ${req.user.userId}`);
+            return res.status(404).json({ error: 'Branch Context Not Found. Please specify a branchId.' });
         }
-        const branch = await models.Branch.findByPk(req.user.branchId);
+
+        const branch = await models.Branch.findByPk(branchId);
         if (!branch) {
+            console.log(`[BRANCH] Branch ${branchId} not found in DB`);
             return res.status(404).json({ error: 'Branch not found' });
         }
+
+        // Security check: If not admin, verify they belong to this branch
+        if (req.user.role !== 'admin' && req.user.branchId !== branchId) {
+            // Check managed branches for managers
+            const isManagerOfThis = branch.managedBy === req.user.userId;
+            if (!isManagerOfThis) {
+                console.log(`[BRANCH] Access Denied: User ${req.user.userId} attempting to access branch ${branchId}`);
+                return res.status(403).json({ error: 'Access denied for this branch' });
+            }
+        }
+
         res.json({ branch });
     } catch (error) {
         console.error('Get branch/me error:', error);

@@ -49,9 +49,12 @@ app.use(morgan('dev'));
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
-// 2. LOOSE SECURITY HEADERS
+// 2. LOOSE SECURITY HEADERS & PERMISSIONS POLICY
 app.use((req, res, next) => {
     res.setHeader('Content-Security-Policy', "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;");
+    // SILENCE Permissions-Policy unrecognized feature errors by providing an explicit empty/narrow policy
+    // We only enable features we actually need, or leave empty if none are used.
+    res.setHeader('Permissions-Policy', 'camera=*, microphone=(), geolocation=(), browsing-topics=()');
     next();
 });
 
