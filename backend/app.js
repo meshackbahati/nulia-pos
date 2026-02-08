@@ -47,9 +47,21 @@ app.use(morgan('dev'));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// 3. MINIMAL SECURITY HEADERS
+// 3. HARDENED CORS HEADERS (MANUAL OVERRIDE)
 app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
     res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Branch-ID, Cache-Control, X-Requested-With');
+
+    // Explicitly handle OPTIONS
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
     res.setHeader('Content-Security-Policy', "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;");
     next();
 });
@@ -88,6 +100,14 @@ app.get('/', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
+
+    // Ensure CORS headers even on error
+    const origin = req.headers.origin;
+    if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+
     res.status(err.status || 500).json({
         error: err.message || 'Internal Server Error',
     });

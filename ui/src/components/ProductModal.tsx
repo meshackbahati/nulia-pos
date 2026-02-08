@@ -150,6 +150,61 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
         }));
     };
 
+    // Utility to compress image before upload to avoid proxy 413 errors
+    const compressImage = (file: File): Promise<File> => {
+        return new Promise((resolve) => {
+            const maxSize = 2 * 1024 * 1024; // 2MB limit for proxy safety
+            if (file.size <= maxSize) {
+                return resolve(file);
+            }
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target?.result as string;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Standardize resolution if very large
+                    const MAX_RES = 2000;
+                    if (width > MAX_RES || height > MAX_RES) {
+                        if (width > height) {
+                            height *= MAX_RES / width;
+                            width = MAX_RES;
+                        } else {
+                            width *= MAX_RES / height;
+                            height = MAX_RES;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob(
+                        (blob) => {
+                            if (blob) {
+                                // Return as a new File object
+                                resolve(new File([blob], file.name, {
+                                    type: 'image/jpeg',
+                                    lastModified: Date.now(),
+                                }));
+                            } else {
+                                resolve(file);
+                            }
+                        },
+                        'image/jpeg',
+                        0.8 // 80% quality
+                    );
+                };
+            };
+        });
+    };
+
     // Handle hardware scan
     useScanDetection({
         onScan: (barcode) => {
@@ -164,7 +219,13 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
 
         try {
             setUploading(true);
-            const response = await api.uploadImage(file);
+
+            // Compress image if it's too large to bypass proxy 413 errors
+            console.log(`[Upload] Original size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+            const compressedFile = await compressImage(file);
+            console.log(`[Upload] Final size: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+
+            const response = await api.uploadImage(compressedFile);
             setFormData({ ...formData, imageUrl: response.data.url });
             toast.success('Image uploaded successfully');
         } catch (error: any) {
