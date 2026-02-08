@@ -2,5 +2,5 @@
 
 -- USERS
 INSERT INTO users (id, email, password, firstName, lastName, role, branchId, isActive, createdAt, updatedAt) VALUES
-  ('e52e7368-07bd-4e14-a7af-73be96cbcbdd', 'bahati@g24sec.com', '@Cutlerkmx701', 'System', 'Administrator', 'admin', NULL, TRUE, '2026-02-08T06:44:01.317Z', '2026-02-08T06:44:01.317Z');
+  ('e52e7368-07bd-4e14-a7af-73be96cbcbdd', 'bahati@g24sec.com', '$2a$12$aDhd5dcEE6hVsEZxsTBvceFXaJFuKLWp1NfYyDSlyAZcor65NwX9W', 'System', 'Administrator', 'admin', NULL, TRUE, '2026-02-08T06:44:01.317Z', '2026-02-08T06:44:01.317Z');
 

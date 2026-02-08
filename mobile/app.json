@@ -11,27 +11,48 @@
       "resizeMode": "contain",
       "backgroundColor": "#111827"
     },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.retailpro.pos"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#111827"
-      },
-      "package": "com.retailpro.pos"
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
     "plugins": [
       [
         "expo-screen-orientation",
         {
           "initialOrientation": "DEFAULT"
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow RetailPro POS to access your camera to scan barcodes.",
+          "microphonePermission": "Allow RetailPro POS to access your microphone."
+        }
+      ],
+      [
+        "expo-barcode-scanner",
+        {
+          "barcodeScannerPermission": "Allow RetailPro POS to access your camera to scan barcodes."
+        }
       ]
-    ]
+    ],
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#111827"
+      },
+      "package": "com.retailpro.pos",
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.retailpro.pos",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow RetailPro POS to access your camera to scan barcodes.",
+        "NSMicrophoneUsageDescription": "Allow RetailPro POS to access your microphone for voice commands or notes.",
+        "NSPhotoLibraryUsageDescription": "Allow RetailPro POS to access your photos to save receipts."
+      }
+    }
   }
 }

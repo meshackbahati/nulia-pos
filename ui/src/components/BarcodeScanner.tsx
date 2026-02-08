@@ -16,6 +16,13 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
     const [manualCode, setManualCode] = useState('');
     const [useCamera, setUseCamera] = useState(true);
     const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
+    const [isMobileApp, setIsMobileApp] = useState(false);
+
+    useEffect(() => {
+        if ((window as any).RetailProDevice) {
+            setIsMobileApp(true);
+        }
+    }, []);
 
     useEffect(() => {
         if (useCamera && scanning) {
@@ -115,6 +122,15 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
                         </div>
                     </button>
                 </div>
+
+                {isMobileApp && (window as any).RetailProDevice && (
+                    <div className="mb-4 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-blue-600 uppercase">Device Detected</span>
+                        <span className="text-[10px] text-blue-700 font-medium">
+                            {(window as any).RetailProDevice.brand} {(window as any).RetailProDevice.modelName}
+                        </span>
+                    </div>
+                )}
 
                 {useCamera ? (
                     <div>

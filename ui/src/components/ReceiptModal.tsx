@@ -102,7 +102,13 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
     };
 
     const handlePrint = () => {
-        window.print();
+        if ((window as any).ReactNativeWebView) {
+            // If we are in the React Native WebView, we might want to trigger a native print or just window.print()
+            // window.print() usually works in most modern WebViews (invoking the system print dialog)
+            window.print();
+        } else {
+            window.print();
+        }
     };
 
     const handleEmailReceipt = async () => {
