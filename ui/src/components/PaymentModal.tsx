@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, CreditCard, DollarSign, Smartphone, ShieldCheck, Percent } from 'lucide-react';
 import usePaystack from '../hooks/usePaystack'; // New hook for card payments
 import { useCurrency } from '../hooks/useCurrency';
+import { useModal } from '../contexts/ModalContext';
 
 interface PaymentModalProps {
     total: number;
@@ -17,6 +18,7 @@ interface PaymentModalProps {
 
 export default function PaymentModal({ total, branchConfig, onClose, onComplete }: PaymentModalProps) {
     const { formatPrice, symbol } = useCurrency(branchConfig);
+    const { showAlert } = useModal();
     const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'mpesa'>('cash');
     const [processing, setProcessing] = useState(false);
     const [customerPhone, setCustomerPhone] = useState('');
@@ -36,7 +38,7 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
             if (paymentMethod === 'cash') {
                 const received = parseFloat(amountReceived);
                 if (received < finalTotal) {
-                    alert('Amount received is less than total!');
+                    showAlert('Insufficient Amount', 'The amount received is less than the total amount due. Please collect the full amount from the customer.', 'warning');
                     setProcessing(false);
                     return;
                 }
@@ -65,7 +67,7 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
                 paymentDetails.cardProcessed = true;
             } else if (paymentMethod === 'mpesa') {
                 if (!customerPhone || customerPhone.length < 10) {
-                    alert('Please enter a valid phone number');
+                    showAlert('Invalid Phone', 'Please enter a valid M-Pesa phone number (at least 10 digits).', 'warning');
                     setProcessing(false);
                     return;
                 }
@@ -75,7 +77,7 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
             await onComplete(paymentMethod, paymentDetails);
         } catch (error) {
             console.error('Payment error:', error);
-            alert('Payment failed. Please try again.');
+            showAlert('Payment Error', 'There was an error processing the payment. Please verify the details and try again.', 'error');
         } finally {
             setProcessing(false);
         }

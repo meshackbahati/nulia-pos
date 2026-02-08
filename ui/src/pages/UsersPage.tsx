@@ -5,6 +5,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useModal } from '../contexts/ModalContext';
 
 interface User {
     id: string;
@@ -29,6 +30,7 @@ interface User {
 export default function UsersPage() {
     const { user: currentUser } = useAuth();
     const navigate = useNavigate();
+    const { showConfirm } = useModal();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -113,15 +115,22 @@ export default function UsersPage() {
 
     const handleDeactivate = async (user: User) => {
         const action = user.isActive ? 'deactivate' : 'reactivate';
-        if (!confirm(`Are you sure you want to ${action} ${user.firstName}?`)) return;
 
-        try {
-            await api.updateUser(user.id, { isActive: !user.isActive });
-            toast.success(`Agent ${action}d successfully`);
-            fetchUsers();
-        } catch (error: any) {
-            toast.error(error.response?.data?.error || `Failed to ${action} agent`);
-        }
+        showConfirm({
+            title: `${user.isActive ? 'Deactivate' : 'Reactivate'} Agent`,
+            message: `Are you sure you want to ${action} ${user.firstName} ${user.lastName}? This will ${user.isActive ? 'suspend' : 'restore'} their access to the system.`,
+            type: user.isActive ? 'warning' : 'confirm',
+            confirmText: `Yes, ${action}`,
+            onConfirm: async () => {
+                try {
+                    await api.updateUser(user.id, { isActive: !user.isActive });
+                    toast.success(`Agent ${action}d successfully`);
+                    fetchUsers();
+                } catch (error: any) {
+                    toast.error(error.response?.data?.error || `Failed to ${action} agent`);
+                }
+            }
+        });
     };
 
     const openEditModal = (user: User) => {

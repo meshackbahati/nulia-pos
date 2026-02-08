@@ -7,6 +7,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import { useCurrency } from '../hooks/useCurrency';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
+import { useModal } from '../contexts/ModalContext';
 
 interface Product {
     id: string;
@@ -26,6 +27,7 @@ interface Product {
 
 export default function ProductsPage() {
     const { user } = useAuth();
+    const { showConfirm } = useModal();
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -92,14 +94,23 @@ export default function ProductsPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Delete this product?')) return;
-        try {
-            await api.deleteProduct(id);
-            setProducts(products.filter((p) => p.id !== id));
-        } catch (error) {
-            console.error('Error deleting product:', error);
-        }
+    const handleDelete = async (product: Product) => {
+        showConfirm({
+            title: 'Delete Product',
+            message: `Are you sure you want to delete ${product.name}? This action will mark the product as inactive and it will no longer appear in the POS or inventory lists.`,
+            type: 'error',
+            confirmText: 'Yes, Delete',
+            onConfirm: async () => {
+                try {
+                    await api.deleteProduct(product.id);
+                    setProducts(products.filter((p) => p.id !== product.id));
+                    toast.success('Product deleted successfully');
+                } catch (error) {
+                    console.error('Error deleting product:', error);
+                    toast.error('Failed to delete product');
+                }
+            }
+        });
     };
 
     const filteredProducts = products.filter(p =>
@@ -252,7 +263,7 @@ export default function ProductsPage() {
 
                                     <div className="flex gap-2">
                                         <button onClick={() => setEditingProduct(product)} className="flex-1 h-8 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md text-[10px] font-bold uppercase transition-colors">Edit</button>
-                                        <button onClick={() => handleDelete(product.id)} className="flex-1 h-8 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-md text-[10px] font-bold uppercase transition-colors">Delete</button>
+                                        <button onClick={() => handleDelete(product)} className="flex-1 h-8 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-md text-[10px] font-bold uppercase transition-colors">Delete</button>
                                     </div>
                                 </div>
                             </div>

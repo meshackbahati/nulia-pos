@@ -4,6 +4,7 @@ import api from '../lib/api-client';
 import { toast } from 'react-hot-toast';
 import { formatCurrency } from '../lib/utils';
 import ThemeToggle from '../components/ThemeToggle';
+import { useModal } from '../contexts/ModalContext';
 
 interface PurchaseOrder {
     id: string;
@@ -28,6 +29,7 @@ interface Product {
 }
 
 export default function PurchaseOrdersPage() {
+    const { showConfirm } = useModal();
     const [orders, setOrders] = useState<PurchaseOrder[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -135,14 +137,21 @@ export default function PurchaseOrdersPage() {
     };
 
     const handleReceive = async (id: string) => {
-        if (!confirm('Mark as received? This updates inventory.')) return;
-        try {
-            await api.receivePurchaseOrder(id);
-            toast.success('Order Received');
-            fetchOrders();
-        } catch (error: any) {
-            toast.error(error.response?.data?.error || 'Failed to receive order');
-        }
+        showConfirm({
+            title: 'Receive Order',
+            message: 'Are you sure you want to mark this order as received? This will update the inventory levels for all items in this order.',
+            type: 'confirm',
+            confirmText: 'Yes, Receive',
+            onConfirm: async () => {
+                try {
+                    await api.receivePurchaseOrder(id);
+                    toast.success('Order Received');
+                    fetchOrders();
+                } catch (error: any) {
+                    toast.error(error.response?.data?.error || 'Failed to receive order');
+                }
+            }
+        });
     };
 
     return (

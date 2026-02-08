@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ModalProvider } from './contexts/ModalContext';
 import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -59,7 +60,8 @@ function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <Routes>
+          <ModalProvider>
+            <Routes>
             <Route path="/" element={needsSetup ? <Navigate to="/install" /> : <Navigate to="/auth/login" />} />
             <Route path="/install" element={<InstallPage />} />
             <Route path="/auth/login" element={<LoginPage />} />
@@ -122,9 +124,10 @@ function App() {
               </ProtectedRoute>
             } />
 
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-          <Toaster position="top-right" />
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+            <Toaster position="top-right" />
+          </ModalProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

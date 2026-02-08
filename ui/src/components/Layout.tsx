@@ -10,7 +10,8 @@ import {
     Menu,
     ShoppingBag,
     TrendingUp,
-    Truck
+    Truck,
+    Globe
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ThemeToggle from './ThemeToggle';
@@ -36,6 +37,7 @@ export default function Layout({ children }: LayoutProps) {
     const menuItems = [
         { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
         { label: 'POS Terminal', icon: Store, path: '/pos' },
+        { label: 'Branches', icon: Globe, path: '/manager/branches' },
         { label: 'Products', icon: Package, path: '/products' },
         { label: 'Inventory', icon: ShoppingBag, path: '/manager/purchase-orders' },
         { label: 'Suppliers', icon: Truck, path: '/manager/suppliers' },
@@ -99,12 +101,17 @@ export default function Layout({ children }: LayoutProps) {
                                 return ['Dashboard', 'POS Terminal', 'Products'].includes(item.label);
                             }
 
-                            // Head of Sales: No Settings
+                            // Head of Sales: No Settings or Branches
                             if (role === 'head_of_sales') {
-                                return item.label !== 'Settings';
+                                return !['Settings', 'Branches'].includes(item.label);
                             }
 
-                            // Managers and Admins see everything
+                            // Manager: No Branches
+                            if (role === 'manager') {
+                                return item.label !== 'Branches';
+                            }
+
+                            // Admins see everything
                             return true;
                         }).map((item) => {
                             const isActive = location.pathname === item.path;
