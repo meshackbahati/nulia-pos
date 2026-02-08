@@ -153,7 +153,7 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
     // Utility to compress image before upload to avoid proxy 413 errors
     const compressImage = (file: File): Promise<File> => {
         return new Promise((resolve) => {
-            const maxSize = 2 * 1024 * 1024; // 2MB limit for proxy safety
+            const maxSize = 0.8 * 1024 * 1024; // 800KB limit for absolute proxy safety
             if (file.size <= maxSize) {
                 return resolve(file);
             }
@@ -169,7 +169,7 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                     let height = img.height;
 
                     // Standardize resolution if very large
-                    const MAX_RES = 2000;
+                    const MAX_RES = 1200;
                     if (width > MAX_RES || height > MAX_RES) {
                         if (width > height) {
                             height *= MAX_RES / width;

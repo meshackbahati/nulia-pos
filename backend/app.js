@@ -24,44 +24,33 @@ dotenv.config();
 
 const app = express();
 
-// 1. GLOBAL REQUEST LOGGER (DEBUG)
+// 1. ULTRA-LOOSE CORS & TRAFFIC LOGGER (DEBUG)
 app.use((req, res, next) => {
-    console.log(`[TRAFFIC] ${new Date().toISOString()} ${req.method} ${req.url}`);
-    console.log(`[TRAFFIC] Headers: ${JSON.stringify(req.headers)}`);
-    next();
-});
-
-// 2. ULTRA-PERMISSIVE CORS FOR DEBUGGING
-app.use(cors({
-    origin: (origin, callback) => {
-        // Allow all origins, including those with subdomains or local/hosted
-        callback(null, true);
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Branch-ID', 'Cache-Control', 'X-Requested-With'],
-    exposedHeaders: ['Set-Cookie']
-}));
-
-app.use(morgan('dev'));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
-// 3. HARDENED CORS HEADERS (MANUAL OVERRIDE)
-app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (origin) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-    }
+    // ALWAYS set CORS headers for every request
+    const origin = req.headers.origin || '*';
+    res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Branch-ID, Cache-Control, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Branch-ID, Cache-Control, X-Requested-With, Accept');
+    res.setHeader('Access-Control-Max-Age', '86400');
 
-    // Explicitly handle OPTIONS
+    // Handle OPTIONS immediately to bypass any other middleware
     if (req.method === 'OPTIONS') {
+        console.log(`[CORS] Short-circuit OPTIONS: ${req.url}`);
         return res.status(200).end();
     }
 
+    // Traffic Log
+    console.log(`[TRAFFIC] ${new Date().toISOString()} ${req.method} ${req.url}`);
+    next();
+});
+
+app.use(morgan('dev'));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+
+// 2. LOOSE SECURITY HEADERS
+app.use((req, res, next) => {
     res.setHeader('Content-Security-Policy', "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;");
     next();
 });
