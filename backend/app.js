@@ -24,31 +24,26 @@ dotenv.config();
 
 const app = express();
 
-// Middleware
+// Middleware - CORS MUST BE FIRST
 app.use(cors({
-    origin: true, // Allow all origins for debugging
-    credentials: true
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Branch-ID']
 }));
+
 app.use(morgan('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
 // Security Headers
 app.use((req, res, next) => {
-    // Fix Permissions-Policy warning
-    // Removed strict Permissions-Policy to avoid browser warnings about unrecognized features
-    // res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-
-    // Fix Content-Security-Policy path warning
     // Removed specific paths with queries which are invalid in CSP source lists.
-    // Added connect-src to allow connections to paystack and other APIs
     res.setHeader(
         'Content-Security-Policy',
-        "default-src 'self' https:; " +
+        "default-src 'self' https: data:; " +
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; " +
         "style-src 'self' 'unsafe-inline' https:; " +
-        "img-src 'self' data: https:; " +
-        "font-src 'self' data: https:; " +
         "connect-src 'self' https:;"
     );
 

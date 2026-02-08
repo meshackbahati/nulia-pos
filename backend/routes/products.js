@@ -8,7 +8,10 @@ import cloudinary from '../lib/cloudinary.js';
 import { parse } from 'csv-parse/sync';
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 15 * 1024 * 1024 } // 15MB limit
+});
 
 // Upload image to Cloudinary
 router.post('/upload-image', authenticate, authorize('head_of_sales'), upload.single('image'), async (req, res) => {
@@ -20,16 +23,14 @@ router.post('/upload-image', authenticate, authorize('head_of_sales'), upload.si
             return res.status(400).json({ error: 'No image file provided' });
         }
 
-        // Initialize Cloudinary with current settings
+        // Get Cloudinary config from settings
         const config = await cloudinary.getCloudinaryConfig();
-        cloudinary.initCloudinary(config);
 
-        // Convert buffer to base64
-        const b64 = Buffer.from(req.file.buffer).toString('base64');
-        const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+        console.log(`[Upload] Processing image: ${req.file.originalname} (${req.file.size} bytes)`);
 
-        const result = await cloudinary.uploadImage(dataURI, {
+        const result = await cloudinary.uploadImage(req.file.buffer, {
             folder: 'bordershop/products',
+            config,
             transformation: [
                 { width: 800, height: 800, crop: 'limit' },
                 { quality: 'auto' },

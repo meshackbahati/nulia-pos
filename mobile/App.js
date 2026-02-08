@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { StyleSheet, BackHandler, Platform, Alert, View } from 'react-native';
+import { StyleSheet, BackHandler, Platform, Alert, View, Modal, TouchableOpacity, Text } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Camera } from 'expo-camera';
+import { Camera, CameraView, useCameraPermissions } from 'expo-camera';
 import * as Device from 'expo-device';
 import * as SplashScreen from 'expo-splash-screen';
 
@@ -13,11 +13,17 @@ SplashScreen.preventAutoHideAsync();
 export default function App() {
   const webViewRef = React.useRef(null);
   const [appIsReady, setAppIsReady] = React.useState(false);
+  const [scannerVisible, setScannerVisible] = React.useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
 
   // Handle Android hardware back button
   React.useEffect(() => {
     if (Platform.OS === 'android') {
       const onBackPress = () => {
+        if (scannerVisible) {
+          setScannerVisible(false);
+          return true;
+        }
         if (webViewRef.current) {
           webViewRef.current.goBack();
           return true; // Prevent default behavior (exit app)
@@ -28,32 +34,24 @@ export default function App() {
       BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
     }
-  }, []);
+  }, [scannerVisible]);
 
-  // Prepare app resources (like camera permissions)
+  // Prepare app resources
   React.useEffect(() => {
     async function prepare() {
       try {
-        // Request Camera Permissions early
-        const { status } = await Camera.requestCameraPermissionsAsync();
-        if (status !== 'granted') {
-          console.warn('Camera permission not granted');
-        }
+        // Just checking state
+        setAppIsReady(true);
       } catch (e) {
         console.warn(e);
-      } finally {
-        // Tell the application to render
-        setAppIsReady(true);
       }
     }
-
     prepare();
   }, []);
 
   const onLayoutRootView = React.useCallback(async () => {
     if (appIsReady) {
-      // This tells the splash screen to hide immediately! If we want a more "Instagram-like" feel
-      // where it hides ONLY after the webview loads, we should move this to the WebView's onLoad.
+      // Logic if needed on layout
     }
   }, [appIsReady]);
 
@@ -61,7 +59,20 @@ export default function App() {
     return null;
   }
 
-  // Inject Device Info into WebView
+  const handleBarCodeScanned = ({ type, data }) => {
+    setScannerVisible(false);
+    // Send the result back to the webview
+    const script = `
+      if (window.onNativeScan) {
+        window.onNativeScan("${data}");
+      }
+      // Trigger a custom event for easier integration
+      window.dispatchEvent(new CustomEvent('nativeBarcodeScanned', { detail: { data: "${data}" } }));
+    `;
+    webViewRef.current.injectJavaScript(script);
+  };
+
+  // Inject Device Info and Scanner Trigger into WebView
   const injectedJavaScript = `
     (function() {
       window.RetailProDevice = {
@@ -71,14 +82,36 @@ export default function App() {
         osVersion: "${Device.osVersion}",
         isDevice: ${Device.isDevice},
         platform: "${Platform.OS}",
-        appVersion: "1.0.0"
+        appVersion: "1.2.0",
+        hasNativeScanner: true
       };
       
-      // Notify mobile app when ready
+      // Native scan trigger
+      window.startNativeScan = function() {
+        window.ReactNativeWebView.postMessage(JSON.stringify({type: 'SCAN'}));
+      };
+
       window.ReactNativeWebView.postMessage(JSON.stringify({type: 'READY'}));
     })();
     true;
   `;
+
+  const triggerScan = async () => {
+    if (!permission) {
+      const { status } = await requestPermission();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Camera permission is required to scan barcodes.');
+        return;
+      }
+    } else if (!permission.granted) {
+      const { status } = await requestPermission();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Camera permission is required to scan barcodes.');
+        return;
+      }
+    }
+    setScannerVisible(true);
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']} onLayout={onLayoutRootView}>
@@ -87,21 +120,17 @@ export default function App() {
         ref={webViewRef}
         source={{ uri: 'https://v0-supermarket-management-system-eight-swart.vercel.app' }}
         style={styles.webview}
-        // Enable file selection for uploads
         allowFileAccess={true}
         allowsInlineMediaPlayback={true}
         mediaPlaybackRequiresUserAction={false}
-        // Persistence - Crucial for "next time it asks for login" issue
         domStorageEnabled={true}
         javaScriptEnabled={true}
         thirdPartyCookiesEnabled={true}
         sharedCookiesEnabled={true}
-        // Force dark mode background
         backgroundColor="#111827"
         startInLoadingState={true}
         injectedJavaScript={injectedJavaScript}
         onLoadEnd={async () => {
-          // Hide splash screen only when WebView finishes loading
           await SplashScreen.hideAsync();
         }}
         onMessage={(event) => {
@@ -109,6 +138,8 @@ export default function App() {
             const data = JSON.parse(event.nativeEvent.data);
             if (data.type === 'alert') {
               Alert.alert('RetailPro POS', data.message);
+            } else if (data.type === 'SCAN') {
+              triggerScan();
             }
           } catch (e) {
             console.log('WebView message:', event.nativeEvent.data);
@@ -116,6 +147,43 @@ export default function App() {
         }}
         originWhitelist={['*']}
       />
+
+      <Modal
+        animationType="slide"
+        transparent={false}
+        visible={scannerVisible}
+        onRequestClose={() => setScannerVisible(false)}
+      >
+        <View style={styles.scannerContainer}>
+          <CameraView
+            onBarcodeScanned={handleBarCodeScanned}
+            barcodeScannerSettings={{
+              barcodeTypes: ['qr', 'ean13', 'ean8', 'code128', 'code39', 'upc_a', 'upc_e'],
+            }}
+            style={StyleSheet.absoluteFillObject}
+          />
+          <View style={styles.overlay}>
+            <View style={styles.unfocusedContainer}></View>
+            <View style={styles.middleContainer}>
+              <View style={styles.unfocusedContainer}></View>
+              <View style={styles.focusedContainer}>
+                <View style={styles.cornerTopLeft}></View>
+                <View style={styles.cornerTopRight}></View>
+                <View style={styles.cornerBottomLeft}></View>
+                <View style={styles.cornerBottomRight}></View>
+              </View>
+              <View style={styles.unfocusedContainer}></View>
+            </View>
+            <View style={styles.unfocusedContainer}></View>
+          </View>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => setScannerVisible(false)}
+          >
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -123,10 +191,89 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#111827', // Obsidian dark theme
+    backgroundColor: '#111827',
   },
   webview: {
     flex: 1,
     backgroundColor: '#111827',
   },
+  scannerContainer: {
+    flex: 1,
+    backgroundColor: 'black',
+  },
+  cancelButton: {
+    position: 'absolute',
+    bottom: 40,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  cancelButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  unfocusedContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  middleContainer: {
+    flexDirection: 'row',
+    height: 250,
+  },
+  focusedContainer: {
+    width: 250,
+    position: 'relative',
+  },
+  cornerTopLeft: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 40,
+    height: 40,
+    borderTopWidth: 4,
+    borderLeftWidth: 4,
+    borderColor: '#3b82f6',
+  },
+  cornerTopRight: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 40,
+    height: 40,
+    borderTopWidth: 4,
+    borderRightWidth: 4,
+    borderColor: '#3b82f6',
+  },
+  cornerBottomLeft: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    width: 40,
+    height: 40,
+    borderBottomWidth: 4,
+    borderLeftWidth: 4,
+    borderColor: '#3b82f6',
+  },
+  cornerBottomRight: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 40,
+    height: 40,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderColor: '#3b82f6',
+  }
 });
