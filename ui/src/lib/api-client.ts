@@ -90,7 +90,7 @@ export const api = {
         apiClient.get('/analytics/trends', { params: { period } }),
 
     // Branches
-    getBranches: () => apiClient.get('/branches/list'),
+    getBranches: (params?: any) => apiClient.get('/branches/list', { params }),
     createBranch: (data: any) => apiClient.post('/branches/create', data),
     updateBranch: (data: any) => apiClient.post('/branches/update', data),
 

@@ -7,7 +7,12 @@ const router = express.Router();
 // List all branches
 router.get('/list', authenticate, async (req, res) => {
     try {
-        const where = { isActive: true };
+        const { includeInactive } = req.query;
+        const where = {};
+
+        if (includeInactive !== 'true') {
+            where.isActive = true;
+        }
 
         // Non-admins only see branches they belong to or manage
         if (req.user.role !== 'admin') {
@@ -15,6 +20,8 @@ router.get('/list', authenticate, async (req, res) => {
                 { id: req.user.branchId },
                 { managedBy: req.user.userId }
             ];
+            // Non-admins can NEVER see inactive branches
+            where.isActive = true;
         }
 
         const branches = await models.Branch.findAll({
