@@ -27,7 +27,7 @@ RetailPro is a high-performance, resilient, and multi-platform Point of Sale (PO
 *   **Mobile:** Capacitor + MLKit Vision.
 *   **Desktop:** Electron + Native Printer Bridge.
 
-## 🛠️ Getting Started
+## 🛠️ Getting Started.
 
 Refer to [QUICKSTART.md](./QUICKSTART.md) for detailed installation and deployment instructions.
 
