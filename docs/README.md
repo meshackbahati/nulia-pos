@@ -1,23 +1,23 @@
-# Documentation
+# RetailPro Documentation Core
 
-All project documentation is organized here.
+Welcome to the RetailPro technical documentation. This directory contains detailed specifications and configuration guides for the system.
 
-## Setup & Configuration
-- [Environment Setup](ENV_SETUP.md) - Complete environment variables guide
-- [Database Options](DATABASE_OPTIONS.md) - Free database comparison
-- [Configuration Instructions](CONFIG_INSTRUCTIONS.md) - Detailed setup
+## 📖 Key Documents
 
-## Features & Systems
-- [Settings & Payments](SETTINGS_AND_PAYMENTS.md) - Settings management & payment tracking
-- [UI Settings Reference](UI_SETTINGS_REFERENCE.md) - All UI-managed settings
+*   [**Config Instructions**](./CONFIG_INSTRUCTIONS.md) - How to configure the environment and API endpoints.
+*   [**Settings & Payments**](./SETTINGS_AND_PAYMENTS.md) - Guide on M-Pesa, Paystack, and Multi-currency logic.
+*   [**Running Locally**](./RUNNING_LOCALLY.md) - Development environment setup for Web, Mobile, and Desktop.
+*   [**UI Reference**](./UI_SETTINGS_REFERENCE.md) - Understanding the "Natural Glass" design system and components.
+*   [**Database Options**](./DATABASE_OPTIONS.md) - PostgreSQL schema and migration overview.
 
-## Migration Guides
-- [Environment Migration](ENV_MIGRATION_SUMMARY.md) - .env changes summary
-- [Frontend Upgrades](FRONTEND_UPGRADES.md) - Next.js to Vite migration
-- [Running Locally](RUNNING_LOCALLY.md) - Local development guide
+## 🛠️ Build Matrix
 
-## Quick Links
-- [Root README](../README.md) - Project overview
-- [Quick Start](../QUICKSTART.md) - Get started fast
-- [Backend Docs](../backend/README.md) - Backend API docs
-- [Frontend Docs](../ui/README.md) - UI docs
+| Platform | Technology | Output |
+| :--- | :--- | :--- |
+| **Web** | Vite PWA | `ui/dist/` |
+| **Android** | Capacitor | `.apk` / `.aab` |
+| **Windows** | Electron | `.exe` (NSIS) |
+| **Linux** | Electron | `.AppImage` / `.pkg.tar.zst` |
+
+---
+*Proprietary Documentation - RetailPro Node v2.0*

@@ -1,109 +1,63 @@
-# BorderShop POS - Quick Start Guide
+# Quickstart Guide: RetailPro Deployment
 
-## Project Structure
+This guide covers the setup and build process for the RetailPro ecosystem.
 
-This project has **two separate applications**:
+## 1. Prerequisites
+*   Node.js (v18+)
+*   PostgreSQL
+*   Standard Build Tools (for Electron)
 
-1. **backend/** - Netlify Functions API
-2. **ui/** - React + Vite Frontend
-
-Each is **self-contained** with its own dependencies and configuration.
-
-## Running Locally
-
-### Terminal 1 - Backend
+## 2. Backend Setup
 ```bash
 cd backend
-npm install    # First time only
-npm run dev    # Starts on port 8888
-```
-
-Wait for: `◈ Server now ready on http://localhost:8888`
-
-### Terminal 2 - Frontend  
-```bash
-cd ui
-npm install    # First time only
-npm run dev    # Starts on port 3000
-```
-
-Wait for: `➜ Local: http://localhost:3000/`
-
-## First Time Setup
-
-### 1. Get Neon PostgreSQL (FREE)
-1. Sign up at https://neon.tech
-2. Create project: `bordershop-pos`
-3. Copy connection string
-
-### 2. Configure Backend
-```bash
-cd backend
-cp .env.example .env
-# Edit .env and add your Neon connection string
-```
-
-### 3. Run Migrations
-```bash
-cd backend
+npm install
+# Create .env based on the production database provided
 npm run db:migrate
-npm run db:seed  # Optional demo data
+npm start
 ```
 
-### 4. Configure Frontend
+## 3. Terminal (UI) Setup & Build
+The UI folder contains the core terminal logic for Web, Mobile, and Desktop.
+
 ```bash
 cd ui
-cp .env.example .env
-# Default config should work for local development
+npm install
 ```
 
-### 5. Start Both Servers
+### Build for Web (PWA)
 ```bash
-# Terminal 1
-cd backend && npm run dev
-
-# Terminal 2  
-cd ui && npm run dev
+npm run build
+# Deploy 'dist' folder to your web server (Netlify/Vercel/S3)
 ```
 
-### 6. Open Browser
-Go to http://localhost:3000
-
-## Deployment
-
-### Backend → Netlify
+### Build for Desktop (Windows/Linux)
+No special tools required besides standard Node.js.
 ```bash
-cd backend
-netlify deploy --prod
+# For development
+npm run electron:dev
+
+# For production packages (setup.exe / AppImage / Pacman)
+npm run electron:build
 ```
 
-Add environment variables in Netlify dashboard.
+### Build for Android (CLI - No Android Studio)
+To build the Android app without Android Studio, you can use the bundled Gradle wrapper directly if the Android SDK is installed.
 
-### Frontend → Netlify/Vercel
 ```bash
 cd ui
 npm run build
-# Deploy dist/ folder
+npx cap sync android
+cd android
+./gradlew assembleDebug # For testing
+./gradlew assembleRelease # For production
 ```
+The APK will be generated in `ui/android/app/build/outputs/apk/`.
 
-Update `.env` with production backend URL.
+## 4. Key Deployment URLs
+*   **Primary API:** `https://api2.g24sec.space/api`
+*   **Fallback API:** `https://api2.g24sec.com/api`
 
-## Common Issues
-
-### "Port already in use"
-- Kill the process: `lsof -ti:8888 | xargs kill -9`
-- Or let it use a different port
-
-### "Cannot connect to database"
-- Check `***REMOVED***` in `backend/.env`
-- Verify Neon connection string is correct
-
-### "API calls failing"
-- Ensure backend is running on port 8888
-- Check `VITE_API_URL` in `ui/.env`
-
-## Need Help?
-
-- Backend docs: `backend/DEPLOYMENT.md`
-- Settings: `SETTINGS_AND_PAYMENTS.md`
-- Environment: `ENV_SETUP.md`
+## 5. Hardware Configuration
+*   **Thermal Printer (Desktop):** Ensure your printer name includes the word "Thermal" or set it in `localStorage.setItem('defaultPrinter', 'Your_Printer_Name')`.
+*   **Scanner:** HID scanners work globally. No configuration needed.
+*   **Mobile Scanning:** Capacitor MLKit is automatically utilized on native devices.

@@ -503,6 +503,8 @@ export default function POSPage() {
                                 className="glass-input w-full h-14 pl-12 pr-12 text-sm font-bold shadow-2xl focus:ring-4 focus:ring-primary/20 outline-none"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
+                                inputMode="search"
+                                enterKeyHint="search"
                             />
                             <button
                                 onClick={() => setShowScanner(true)}

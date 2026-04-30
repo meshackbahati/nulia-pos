@@ -173,7 +173,9 @@ export default function AnalyticsPage() {
                             <h1 className="text-2xl font-black tracking-tighter text-foreground uppercase">
                                 Intelligence <span className="text-primary italic">Node</span>
                             </h1>
-                            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-1">Cross-Branch Performance Ledger</p>
+                            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-1">
+                                {user?.role === 'admin' ? 'Cross-Branch Performance Ledger' : 'Branch Performance Ledger'}
+                            </p>
                         </div>
                     </div>
 

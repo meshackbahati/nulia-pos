@@ -26,22 +26,32 @@
       "public/**/*"
     ],
     "win": {
-      "target": "nsis",
+      "target": [
+        "nsis"
+      ],
       "icon": "public/logo.png"
     },
     "mac": {
-      "target": "dmg",
+      "target": [
+        "dmg"
+      ],
       "icon": "public/logo.png"
     },
     "linux": {
-      "target": "AppImage",
-      "icon": "public/logo.png"
+      "target": [
+        "AppImage",
+        "pacman"
+      ],
+      "icon": "public/logo.png",
+      "category": "Office"
     }
   },
   "dependencies": {
     "@capacitor-mlkit/barcode-scanning": "^8.0.1",
     "@capacitor/android": "^8.3.1",
     "@capacitor/core": "^8.3.1",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/share": "^8.0.1",
     "@radix-ui/react-toast": "^1.2.15",
     "@zxing/library": "^0.21.3",
     "axios": "^1.13.4",

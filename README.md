@@ -1,61 +1,36 @@
-# BorderShop POS
+# RetailPro POS - Unified Commerce System
 
-**Modern serverless POS system with clean architecture**
+RetailPro is a high-performance, resilient, and multi-platform Point of Sale (POS) ecosystem designed for cross-border trade and modern retail environments. Built with a local-first philosophy, it ensures your business stays operational even in zero-connectivity environments.
 
-## Quick Start
+## 🚀 Key Features
 
-```bash
-# 1. Install dependencies
-npm run install:all
+*   **Multi-Platform Native Support:**
+    *   **Mobile (Android):** High-performance Capacitor-based app with native MLKit barcode scanning.
+    *   **Desktop (Windows/Linux):** Electron-based terminal with silent thermal printing and HID scanner isolation.
+    *   **Web:** Fully responsive PWA (Progressive Web App).
+*   **Offline-First Architecture:**
+    *   Full product catalog caching via IndexedDB (Dexie).
+    *   Sales queueing during network outages with automatic background synchronization.
+*   **Advanced Financial Engine:**
+    *   **Split-Currency Payments:** Accept multiple currencies in a single transaction (e.g., USD + KES + UGX).
+    *   **Daily Exchange Rates:** Real-time rate management with automatic whole-number rounding.
+    *   **Idempotent API:** Prevents duplicate sales or stock deductions during network retries.
+*   **Intelligence Node (The Ledger):**
+    *   Uneditable transaction history for Admins and Managers.
+    *   Personnel efficiency leaderboards and branch performance rankings.
+    *   Professional PDF Intelligence Report generation.
 
-# 2. Setup backend (see backend/README.md)
-cd backend && cp .env.example .env
-# Add your Neon database URL to backend/.env
+## 🏗️ Technical Architecture
 
-# 3. Run migrations
-cd backend && npm run db:migrate
+*   **Frontend:** React 19, Vite, Tailwind CSS (Natural Glassmorphism UI).
+*   **Backend:** Node.js, Express, Sequelize ORM (PostgreSQL).
+*   **Mobile:** Capacitor + MLKit Vision.
+*   **Desktop:** Electron + Native Printer Bridge.
 
-# 4. Start backend (Terminal 1)
-cd backend && npm run dev
+## 🛠️ Getting Started
 
-# 5. Start frontend (Terminal 2)
-cd ui && npm run dev
-```
+Refer to [QUICKSTART.md](./QUICKSTART.md) for detailed installation and deployment instructions.
 
-Open http://localhost:3000
+## 📄 License
 
-## Architecture
-
-```
-bordershop/
-├── backend/        # Netlify Functions API (port 8888)
-├── ui/             # React + Vite Frontend (port 3000)
-└── docs/           # Documentation
-```
-
-## Documentation
-
-- [Quick Start Guide](QUICKSTART.md)
-- [Backend Setup](backend/README.md)
-- [Backend Deployment](backend/DEPLOYMENT.md)
-- [Settings & Payments](docs/SETTINGS_AND_PAYMENTS.md)
-- [Database Options](docs/DATABASE_OPTIONS.md)
-
-## Tech Stack
-
-**Backend**: Netlify Functions + Neon PostgreSQL + Sequelize  
-**Frontend**: React 19 + Vite + TailwindCSS + React Router
-
-## Features
-
-✅ Multi-branch POS  
-✅ Product management  
-✅ Sales tracking  
-✅ M-Pesa integration  
-✅ Payment verification  
-✅ Database-stored settings  
-✅ Role-based access
-
----
-
-**Two separate deployments**: Backend → Netlify | Frontend → Netlify/Vercel
+Proprietary Software - All Rights Reserved.

@@ -1,6 +1,16 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const getBaseURL = () => {
+    // Production domains provided by user
+    const PRIMARY_API = 'https://api2.g24sec.space/api';
+    
+    if (import.meta.env.DEV) {
+        return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    }
+    return PRIMARY_API;
+};
+
+const API_URL = getBaseURL();
 
 // Create axios instance
 const apiClient = axios.create({
@@ -8,7 +18,27 @@ const apiClient = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
+    timeout: 15000, // 15s timeout
 });
+
+// Fallback Interceptor
+apiClient.interceptors.response.use(
+    response => response,
+    async (error) => {
+        const originalRequest = error.config;
+        if (
+            !import.meta.env.DEV && 
+            (error.code === 'ECONNABORTED' || error.message === 'Network Error') && 
+            !originalRequest._retry &&
+            originalRequest.url && !originalRequest.url.includes('https://api2.g24sec.com')
+        ) {
+            originalRequest._retry = true;
+            originalRequest.baseURL = 'https://api2.g24sec.com/api';
+            return apiClient(originalRequest);
+        }
+        return Promise.reject(error);
+    }
+);
 
 // Add a request interceptor to inject auth token and branch ID
 apiClient.interceptors.request.use(

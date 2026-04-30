@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
-import { X, Download, Printer, Mail, FileText } from 'lucide-react';
+import { X, Download, Printer, Mail, FileText, Share2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import { useCurrency } from '../hooks/useCurrency';
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Capacitor } from '@capacitor/core';
 
 interface ReceiptModalProps {
     sale: {
@@ -29,22 +32,21 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
     const [customerEmail, setCustomerEmail] = useState('');
     const [sending, setSending] = useState(false);
     const [isElectron, setIsElectron] = useState(false);
+    const isMobile = Capacitor.isNativePlatform();
 
     useEffect(() => {
-        // Detect if running in Electron
         const userAgent = navigator.userAgent.toLowerCase();
         if (userAgent.indexOf(' electron/') > -1) {
             setIsElectron(true);
         }
     }, []);
 
-    const generatePDF = () => {
+    const getReceiptPDF = () => {
         const doc = new jsPDF({
             unit: 'mm',
-            format: [80, 200] // 80mm roll format
+            format: [80, 200]
         });
 
-        // Simple Thermal-style Layout
         doc.setFontSize(12);
         doc.text(companyName.toUpperCase(), 40, 10, { align: 'center' });
         doc.setFontSize(8);
@@ -66,33 +68,58 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
         doc.text('TOTAL:', 5, y);
         doc.setFontSize(10);
         doc.text(formatPrice(sale.total), 75, y, { align: 'right' });
+        
+        return doc;
+    };
 
+    const handleDownload = () => {
+        const doc = getReceiptPDF();
         doc.save(`receipt-${sale.receiptId}.pdf`);
+        toast.success('Receipt Saved');
+    };
+
+    const handleShare = async () => {
+        if (!isMobile) return;
+        
+        try {
+            const doc = getReceiptPDF();
+            const pdfBase64 = doc.output('datauristring').split(',')[1];
+            const fileName = `receipt-${sale.receiptId}.pdf`;
+            
+            const result = await Filesystem.writeFile({
+                path: fileName,
+                data: pdfBase64,
+                directory: Directory.Cache
+            });
+            
+            await Share.share({
+                title: 'RetailPro Receipt',
+                text: `Receipt for ${sale.receiptId}`,
+                url: result.uri,
+                dialogTitle: 'Share Receipt (Send to Thermal Printer)',
+            });
+        } catch (err) {
+            console.error('Share failed:', err);
+            toast.error('Sharing not supported');
+        }
     };
 
     const handlePrint = async () => {
         if (isElectron && (window as any).electronAPI) {
-            // Electron "One-Click" Thermal Print via safe bridge
             toast.loading('Sending to printer...', { id: 'print-toast' });
-            
             try {
                 const result = await (window as any).electronAPI.printReceipt({
                     printerName: localStorage.getItem('defaultPrinter') || undefined
                 });
-                
-                if (result.success) {
-                    toast.success('Printing...', { id: 'print-toast' });
-                } else {
-                    throw new Error(result.error);
-                }
+                if (result.success) toast.success('Printing...', { id: 'print-toast' });
+                else throw new Error(result.error);
             } catch (err: any) {
-                console.error('Native print failed, falling back:', err);
                 toast.error('Printer link failed, using system print', { id: 'print-toast' });
                 window.print();
             }
+        } else if (isMobile) {
+            handleShare();
         } else {
-            // Fallback for Web/Mobile
-            toast('Opening System Print', { icon: '🖨️' });
             window.print();
         }
     };
@@ -102,19 +129,16 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
             toast.error('Please enter an email address');
             return;
         }
-
         if (!sale.id) {
             toast.error('Cannot email receipt - sale ID not found');
             return;
         }
-
         setSending(true);
         try {
             await api.emailReceipt(sale.id, customerEmail);
             toast.success(`Receipt emailed to ${customerEmail}`);
             setCustomerEmail('');
         } catch (error) {
-            console.error('Email error:', error);
             toast.error('Failed to send email');
         } finally {
             setSending(false);
@@ -126,7 +150,6 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
             <div className="glass-card max-w-md w-full p-8 shadow-2xl border-white/10 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl" />
                 
-                {/* Header */}
                 <div className="flex items-center justify-between mb-8 relative z-10">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/20">
@@ -140,7 +163,6 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
                     <button onClick={onClose} className="p-3 hover:bg-secondary/50 rounded-2xl transition-all"><X className="w-5 h-5" /></button>
                 </div>
 
-                {/* Receipt Thermal Visualization */}
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-inner border border-black/5 dark:border-white/5 mb-8 font-mono">
                     <div className="text-center mb-6 space-y-1">
                         <p className="text-xs font-black uppercase tracking-[0.2em] text-foreground">{companyName}</p>
@@ -179,7 +201,6 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
                     </div>
                 </div>
 
-                {/* Secure Dispatch */}
                 <div className="space-y-4 mb-8">
                     <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest ml-1">Dispatch Digitally</label>
                     <div className="flex gap-3">
@@ -200,17 +221,16 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
                     </div>
                 </div>
 
-                {/* Hardware Interaction */}
                 <div className="grid grid-cols-2 gap-4">
                     <button 
                         onClick={handlePrint} 
                         className="h-14 bg-secondary/50 text-foreground hover:bg-primary/20 hover:text-primary rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all"
                     >
-                        <Printer className="w-5 h-5" /> 
-                        {isElectron ? 'Direct Print' : 'System Print'}
+                        {isMobile ? <Share2 className="w-5 h-5" /> : <Printer className="w-5 h-5" />}
+                        {isElectron ? 'Direct Print' : (isMobile ? 'Share/Print' : 'System Print')}
                     </button>
                     <button 
-                        onClick={generatePDF} 
+                        onClick={handleDownload} 
                         className="h-14 bg-foreground text-background hover:bg-foreground/90 rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-[1.02] active:scale-95 transition-all"
                     >
                         <Download className="w-5 h-5" /> Save PDF
