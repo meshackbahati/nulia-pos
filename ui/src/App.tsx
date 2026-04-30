@@ -10,6 +10,8 @@ import './index.css';
 
 // Pages
 import LoginPage from './pages/LoginPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import InstallPage from './pages/InstallPage';
 import ManagerDashboard from './pages/ManagerDashboard';
 import SalesDashboard from './pages/SalesDashboard';
@@ -65,6 +67,8 @@ function App() {
             <Route path="/" element={needsSetup ? <Navigate to="/install" /> : <Navigate to="/auth/login" />} />
             <Route path="/install" element={<InstallPage />} />
             <Route path="/auth/login" element={<LoginPage />} />
+            <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
 
             {/* Manager & Head of Sales Routes */}
             <Route path="/dashboard" element={

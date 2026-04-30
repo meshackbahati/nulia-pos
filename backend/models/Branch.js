@@ -122,6 +122,16 @@ class Branch extends Model {
                     type: DataTypes.BOOLEAN,
                     defaultValue: true,
                 },
+                preferredGateway: {
+                    type: DataTypes.ENUM('mpesa', 'paystack', 'none'),
+                    defaultValue: 'none',
+                    allowNull: false,
+                },
+                gatewayEnabled: {
+                    type: DataTypes.BOOLEAN,
+                    defaultValue: false,
+                    allowNull: false,
+                },
                 managedBy: {
                     type: DataTypes.UUID,
                     allowNull: true,

@@ -16,6 +16,7 @@ import Supplier from './Supplier.js';
 import PurchaseOrder from './PurchaseOrder.js';
 import PurchaseOrderItem from './PurchaseOrderItem.js';
 import Setting from './Setting.js';
+import ExchangeRate from './ExchangeRate.js';
 
 // Initialize models
 const models = {
@@ -33,6 +34,7 @@ const models = {
     PurchaseOrder: PurchaseOrder.initialize(sequelize),
     PurchaseOrderItem: PurchaseOrderItem.initialize(sequelize),
     Setting: Setting.initialize(sequelize),
+    ExchangeRate: ExchangeRate.initialize(sequelize),
 };
 
 // Define associations

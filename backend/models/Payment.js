@@ -66,6 +66,22 @@ class Payment extends Model {
                     allowNull: false,
                     unique: true,
                 },
+                paidAmount: {
+                    type: DataTypes.DECIMAL(18, 2),
+                    allowNull: true,
+                },
+                paidCurrency: {
+                    type: DataTypes.STRING(3),
+                    allowNull: true,
+                },
+                exchangeRate: {
+                    type: DataTypes.DECIMAL(18, 6),
+                    allowNull: true,
+                },
+                baseCurrencyAmount: {
+                    type: DataTypes.DECIMAL(18, 2),
+                    allowNull: true,
+                },
                 externalReference: {
                     type: DataTypes.STRING,
                     allowNull: true,

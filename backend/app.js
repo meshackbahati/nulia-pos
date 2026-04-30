@@ -19,6 +19,8 @@ import supplierRoutes from './routes/suppliers.js';
 import poRoutes from './routes/purchase-orders.js';
 import receiptRoutes from './routes/receipts.js';
 import paystackRoutes from './routes/paystack.js';
+import exchangeRateRoutes from './routes/exchange-rates.js';
+import { idempotency } from './lib/idempotency.js';
 
 dotenv.config();
 
@@ -49,6 +51,9 @@ app.use(morgan('dev'));
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
+// Apply idempotency check
+app.use(idempotency);
+
 // 2. LOOSE SECURITY HEADERS & PERMISSIONS POLICY
 app.use((req, res, next) => {
     res.setHeader('Content-Security-Policy', "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;");
@@ -73,6 +78,7 @@ app.use('/api/suppliers', supplierRoutes);
 app.use('/api/purchase-orders', poRoutes);
 app.use('/api/receipts', receiptRoutes);
 app.use('/api/paystack', paystackRoutes);
+app.use('/api/exchange-rates', exchangeRateRoutes);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {

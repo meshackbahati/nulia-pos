@@ -106,11 +106,15 @@ router.get('/list', authenticate, async (req, res) => {
 router.post('/create', authenticate, async (req, res) => {
     const transaction = await sequelize.transaction();
     try {
-        const { items, paymentMethod, customerPhone, customerEmail, notes } = req.body;
+        const { items, payments, customerPhone, customerEmail, notes } = req.body;
         const { userId, branchId } = req.user;
 
         if (!items || items.length === 0) {
             return res.status(400).json({ error: 'No items in cart' });
+        }
+
+        if (!payments || payments.length === 0) {
+            return res.status(400).json({ error: 'Payment details required' });
         }
 
         if (!branchId) {
@@ -141,24 +145,31 @@ router.post('/create', authenticate, async (req, res) => {
             }
         }
 
-        // 2. Calculate totals
+        // 2. Calculate totals in base currency
         const subtotal = items.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0);
         const taxRate = branch.taxRate || 0;
         const taxAmount = subtotal * (taxRate / 100);
         const discountAmount = 0;
         const finalTotal = subtotal + taxAmount - discountAmount;
 
+        // Verify total payment matches total due (with 0.01 tolerance)
+        const totalPaidInBase = payments.reduce((acc, p) => acc + (Number(p.amount) / Number(p.exchangeRate || 1)), 0);
+        if (totalPaidInBase < finalTotal - 0.05) {
+            await transaction.rollback();
+            return res.status(400).json({ error: `Payment mismatch. Due: ${finalTotal}, Paid (in base): ${totalPaidInBase}` });
+        }
+
         // 3. Create sale
         const sale = await models.Sale.create({
             branchId,
             userId,
-            receiptId: models.Sale.generateReceiptId(), // Explicitly generate to satisfy notNull validation
+            receiptId: models.Sale.generateReceiptId(),
             subtotal,
             taxAmount,
             discountAmount,
             totalAmount: finalTotal,
-            paymentMethod,
-            paymentStatus: paymentMethod === 'cash' ? 'completed' : 'pending',
+            paymentMethod: payments.length > 1 ? 'split' : payments[0].method,
+            paymentStatus: 'completed', // Assuming split payments are only sent when fully paid
             customerPhone,
             customerEmail,
             notes,
@@ -187,17 +198,23 @@ router.post('/create', authenticate, async (req, res) => {
             });
         }
 
-        // 5. Create payment record
-        const payment = await models.Payment.create({
-            branchId,
-            saleId: sale.id,
-            amount: finalTotal,
-            currency: branch.currency,
-            method: paymentMethod === 'mpesa' ? 'mpesa_stk' : paymentMethod,
-            status: paymentMethod === 'cash' ? 'completed' : 'pending',
-            reference: models.Payment.generateReference(), // Explicitly generate to satisfy notNull validation
-            customerPhone,
-        }, { transaction });
+        // 5. Create payment records
+        for (const p of payments) {
+            await models.Payment.create({
+                branchId,
+                saleId: sale.id,
+                amount: Number(p.amount) / Number(p.exchangeRate || 1), // Base amount
+                currency: branch.currency, // Branch base currency
+                paidAmount: p.amount,
+                paidCurrency: p.currency,
+                exchangeRate: p.exchangeRate,
+                baseCurrencyAmount: Number(p.amount) / Number(p.exchangeRate || 1),
+                method: p.method === 'mpesa' ? 'mpesa_stk' : p.method,
+                status: 'completed',
+                reference: models.Payment.generateReference(),
+                customerPhone: p.details?.customerPhone || customerPhone,
+            }, { transaction });
+        }
 
         // 6. Audit log
         await createAuditLog({
@@ -209,6 +226,7 @@ router.post('/create', authenticate, async (req, res) => {
             newValues: {
                 receiptId: sale.receiptId,
                 totalAmount: finalTotal,
+                paymentsCount: payments.length
             },
         }, req);
 
@@ -218,8 +236,7 @@ router.post('/create', authenticate, async (req, res) => {
             success: true,
             saleId: sale.id,
             receiptId: sale.receiptId,
-            totalAmount: finalTotal,
-            paymentId: payment.id
+            totalAmount: finalTotal
         });
 
     } catch (error) {

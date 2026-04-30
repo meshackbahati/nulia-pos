@@ -21,7 +21,12 @@ apiClient.interceptors.request.use(
         const branchId = localStorage.getItem('selectedBranchId');
         if (branchId) {
             config.headers['X-Branch-ID'] = branchId;
-            config.params = { ...config.params, branchId }; // Also add as query param for easier backend access if needed
+            config.params = { ...config.params, branchId }; 
+        }
+
+        // Add Idempotency Key for mutating requests (POST, PUT, DELETE)
+        if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
+            config.headers['Idempotency-Key'] = crypto.randomUUID();
         }
 
         return config;
@@ -64,6 +69,8 @@ export const api = {
     updateProduct: (id: string, data: any) => apiClient.put(`/products/update/${id}`, data),
     deleteProduct: (id: string) => apiClient.delete(`/products/delete/${id}`),
     getByBarcode: (barcode: string) => apiClient.get(`/products/barcode/${barcode}`),
+    searchProduct: (query: string, branchId?: string) => 
+        apiClient.get('/products/search', { params: { q: query, branchId } }),
     getLowStock: (threshold?: number) =>
         apiClient.get('/products/low-stock', { params: { threshold } }),
     getCategories: () => apiClient.get('/products/categories'),

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Download, Printer, Mail, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import api from '../lib/api-client';
@@ -18,97 +18,81 @@ interface ReceiptModalProps {
         tax: number;
         total: number;
         paymentMethod: string;
+        createdAt?: string;
     };
     companyName: string;
     onClose: () => void;
 }
 
 export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModalProps) {
-    const { formatPrice, symbol } = useCurrency();
+    const { formatPrice } = useCurrency();
     const [customerEmail, setCustomerEmail] = useState('');
     const [sending, setSending] = useState(false);
+    const [isElectron, setIsElectron] = useState(false);
 
-
+    useEffect(() => {
+        // Detect if running in Electron
+        const userAgent = navigator.userAgent.toLowerCase();
+        if (userAgent.indexOf(' electron/') > -1) {
+            setIsElectron(true);
+        }
+    }, []);
 
     const generatePDF = () => {
-        const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.getWidth();
-
-        // Header
-        doc.setFontSize(20);
-        doc.text(companyName, pageWidth / 2, 20, { align: 'center' });
-
-        doc.setFontSize(12);
-        doc.text('Sales Receipt', pageWidth / 2, 30, { align: 'center' });
-
-        // Receipt Info
-        doc.setFontSize(10);
-        doc.text(`Receipt #: ${sale.receiptId}`, 20, 45);
-        doc.text(`Date: ${new Date().toLocaleString()}`, 20, 52);
-        doc.text(`Payment: ${sale.paymentMethod.toUpperCase()}`, 20, 59);
-
-        // Line
-        doc.line(20, 65, pageWidth - 20, 65);
-
-        // Items Header
-        let y = 75;
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Item', 20, y);
-        doc.text('Qty', pageWidth - 80, y);
-        doc.text('Price', pageWidth - 60, y);
-        doc.text('Total', pageWidth - 30, y, { align: 'right' });
-
-        doc.setFont('helvetica', 'normal');
-        y += 7;
-
-        // Items
-        sale.items.forEach((item) => {
-            doc.text(item.name, 20, y);
-            doc.text(item.quantity.toString(), pageWidth - 80, y);
-            doc.text(`${symbol} ${item.price.toFixed(2)}`, pageWidth - 60, y);
-            doc.text(`${symbol} ${(item.quantity * item.price).toFixed(2)}`, pageWidth - 30, y, {
-                align: 'right',
-            });
-            y += 7;
+        const doc = new jsPDF({
+            unit: 'mm',
+            format: [80, 200] // 80mm roll format
         });
 
-        // Line
+        // Simple Thermal-style Layout
+        doc.setFontSize(12);
+        doc.text(companyName.toUpperCase(), 40, 10, { align: 'center' });
+        doc.setFontSize(8);
+        doc.text('OFFICIAL RECEIPT', 40, 15, { align: 'center' });
+        
+        doc.text(`ID: ${sale.receiptId}`, 5, 25);
+        doc.text(`DATE: ${new Date(sale.createdAt || Date.now()).toLocaleString()}`, 5, 30);
+        doc.text('-'.repeat(40), 40, 35, { align: 'center' });
+
+        let y = 40;
+        sale.items.forEach(item => {
+            doc.text(`${item.quantity}x ${item.name.substring(0, 20)}`, 5, y);
+            doc.text(formatPrice(item.price * item.quantity), 75, y, { align: 'right' });
+            y += 5;
+        });
+
+        doc.text('-'.repeat(40), 40, y, { align: 'center' });
         y += 5;
-        doc.line(20, y, pageWidth - 20, y);
-        y += 10;
-
-        // Totals
-        doc.text('Subtotal:', pageWidth - 80, y);
-        doc.text(`${symbol} ${sale.subtotal.toFixed(2)}`, pageWidth - 30, y, { align: 'right' });
-        y += 7;
-
-        doc.text('Tax:', pageWidth - 80, y);
-        doc.text(`${symbol} ${sale.tax.toFixed(2)}`, pageWidth - 30, y, { align: 'right' });
-        y += 7;
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12);
-        doc.text('Total:', pageWidth - 80, y);
-        doc.text(`${symbol} ${sale.total.toFixed(2)}`, pageWidth - 30, y, { align: 'right' });
-
-        // Footer
-        doc.setFont('helvetica', 'normal');
+        doc.text('TOTAL:', 5, y);
         doc.setFontSize(10);
-        doc.text('Thank you for your business!', pageWidth / 2, y + 20, {
-            align: 'center',
-        });
+        doc.text(formatPrice(sale.total), 75, y, { align: 'right' });
 
-        // Save
         doc.save(`receipt-${sale.receiptId}.pdf`);
     };
 
-    const handlePrint = () => {
-        if ((window as any).ReactNativeWebView) {
-            // If we are in the React Native WebView, we might want to trigger a native print or just window.print()
-            // window.print() usually works in most modern WebViews (invoking the system print dialog)
-            window.print();
+    const handlePrint = async () => {
+        if (isElectron && (window as any).electronAPI) {
+            // Electron "One-Click" Thermal Print via safe bridge
+            toast.loading('Sending to printer...', { id: 'print-toast' });
+            
+            try {
+                const result = await (window as any).electronAPI.printReceipt({
+                    printerName: localStorage.getItem('defaultPrinter') || undefined
+                });
+                
+                if (result.success) {
+                    toast.success('Printing...', { id: 'print-toast' });
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (err: any) {
+                console.error('Native print failed, falling back:', err);
+                toast.error('Printer link failed, using system print', { id: 'print-toast' });
+                window.print();
+            }
         } else {
+            // Fallback for Web/Mobile
+            toast('Opening System Print', { icon: '🖨️' });
             window.print();
         }
     };
@@ -138,84 +122,98 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
     };
 
     return (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
-            <div className="bg-card rounded-2xl shadow-xl max-w-md w-full p-8 border border-border ring-1 ring-border/50">
+        <div className="fixed inset-0 bg-background/90 backdrop-blur-xl flex items-center justify-center z-[200] p-4 animate-in fade-in duration-300">
+            <div className="glass-card max-w-md w-full p-8 shadow-2xl border-white/10 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl" />
+                
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary shadow-sm ring-1 ring-inset ring-primary/20">
-                            <FileText className="w-5 h-5" />
+                <div className="flex items-center justify-between mb-8 relative z-10">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/20">
+                            <FileText className="w-6 h-6" />
                         </div>
-                        <h2 className="text-xl font-bold text-foreground">Sale Receipt</h2>
+                        <div>
+                            <h2 className="text-lg font-black uppercase tracking-widest text-foreground">Sale Record</h2>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Transaction Verified</p>
+                        </div>
                     </div>
-                    <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors p-2 hover:bg-muted rounded-full">
-                        <X className="w-6 h-6" />
-                    </button>
+                    <button onClick={onClose} className="p-3 hover:bg-secondary/50 rounded-2xl transition-all"><X className="w-5 h-5" /></button>
                 </div>
 
-                {/* Receipt Card */}
-                <div className="bg-muted/30 p-6 rounded-xl border border-border/50 mb-8 max-h-[40vh] overflow-y-auto custom-scrollbar">
-                    <div className="text-center mb-6">
-                        <p className="text-[10px] font-bold text-primary uppercase tracking-widest">{companyName}</p>
-                        <p className="text-xs text-muted-foreground mt-1 uppercase font-bold tracking-tight">Official Confirmation</p>
+                {/* Receipt Thermal Visualization */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-inner border border-black/5 dark:border-white/5 mb-8 font-mono">
+                    <div className="text-center mb-6 space-y-1">
+                        <p className="text-xs font-black uppercase tracking-[0.2em] text-foreground">{companyName}</p>
+                        <p className="text-[8px] text-muted-foreground uppercase font-bold">Node Identity: {sale.receiptId}</p>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-3">
+                        <div className="flex justify-between text-[10px] text-muted-foreground border-b border-dashed pb-2 mb-2">
+                            <span>Description</span>
+                            <span>Value</span>
+                        </div>
                         {sale.items.map((item, idx) => (
-                            <div key={idx} className="flex justify-between items-start text-xs border-b border-border/10 pb-2 last:border-0 last:pb-0">
+                            <div key={idx} className="flex justify-between items-start text-[10px]">
                                 <div className="min-w-0 pr-4">
-                                    <p className="font-bold text-foreground truncate">{item.name}</p>
-                                    <p className="text-muted-foreground mt-0.5">{item.quantity} units @ {formatPrice(item.price)}</p>
+                                    <p className="font-bold text-foreground uppercase">{item.name.substring(0, 20)}</p>
+                                    <p className="text-[8px] text-muted-foreground">{item.quantity} @ {formatPrice(item.price)}</p>
                                 </div>
                                 <span className="font-bold text-foreground">{formatPrice(item.quantity * item.price)}</span>
                             </div>
                         ))}
 
-                        <div className="pt-4 border-t border-border space-y-2">
-                            <div className="flex justify-between text-xs text-muted-foreground">
+                        <div className="pt-4 border-t border-dashed border-black/10 dark:border-white/10 space-y-1">
+                            <div className="flex justify-between text-[10px] text-muted-foreground">
                                 <span>Subtotal</span>
                                 <span>{formatPrice(sale.subtotal)}</span>
                             </div>
-                            <div className="flex justify-between text-xs text-muted-foreground">
-                                <span>Tax</span>
+                            <div className="flex justify-between text-[10px] text-muted-foreground">
+                                <span>Tax Load</span>
                                 <span>{formatPrice(sale.tax)}</span>
                             </div>
-                            <div className="flex justify-between text-base font-bold text-foreground pt-2 border-t border-border border-dashed">
-                                <span>Amount Total</span>
+                            <div className="flex justify-between text-xs font-black text-primary pt-2 mt-2 border-t border-black/5 dark:border-white/5">
+                                <span className="uppercase">Net Total</span>
                                 <span>{formatPrice(sale.total)}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Email Section */}
+                {/* Secure Dispatch */}
                 <div className="space-y-4 mb-8">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Dispatch Digitally</label>
-                    <div className="flex gap-2">
+                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest ml-1">Dispatch Digitally</label>
+                    <div className="flex gap-3">
                         <input
                             type="email"
-                            placeholder="customer@email.com"
+                            placeholder="RECIPIENT@RETAILPRO.IO"
                             value={customerEmail}
                             onChange={(e) => setCustomerEmail(e.target.value)}
-                            className="flex-1 w-full h-10 rounded-lg border border-input bg-background px-3 py-2 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
+                            className="glass-input flex-1 h-12 px-4 text-[10px] font-bold uppercase tracking-widest focus:ring-primary/30 outline-none"
                         />
                         <button
                             onClick={handleEmailReceipt}
                             disabled={sending || !customerEmail}
-                            className="bg-primary text-primary-foreground px-4 h-10 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center shadow-sm"
+                            className="bg-primary text-primary-foreground w-12 h-12 rounded-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center shadow-lg shadow-primary/20"
                         >
-                            <Mail className="w-4 h-4" />
+                            <Mail className="w-5 h-5" />
                         </button>
                     </div>
                 </div>
 
-                {/* Primary Actions */}
+                {/* Hardware Interaction */}
                 <div className="grid grid-cols-2 gap-4">
-                    <button onClick={handlePrint} className="h-11 bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground rounded-lg flex items-center justify-center gap-2 text-xs font-bold uppercase transition-colors">
-                        <Printer className="w-4 h-4" /> Print
+                    <button 
+                        onClick={handlePrint} 
+                        className="h-14 bg-secondary/50 text-foreground hover:bg-primary/20 hover:text-primary rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all"
+                    >
+                        <Printer className="w-5 h-5" /> 
+                        {isElectron ? 'Direct Print' : 'System Print'}
                     </button>
-                    <button onClick={generatePDF} className="h-11 bg-foreground text-background hover:bg-foreground/90 flex items-center justify-center gap-2 text-xs font-bold uppercase shadow-md transition-colors">
-                        <Download className="w-4 h-4" /> Export PDF
+                    <button 
+                        onClick={generatePDF} 
+                        className="h-14 bg-foreground text-background hover:bg-foreground/90 rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-[1.02] active:scale-95 transition-all"
+                    >
+                        <Download className="w-5 h-5" /> Save PDF
                     </button>
                 </div>
             </div>

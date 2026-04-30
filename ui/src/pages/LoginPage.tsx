@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Mail, ArrowRight, Loader2, Store, Shield } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginPage() {
@@ -67,9 +68,14 @@ export default function LoginPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">
-                                Password
-                            </label>
+                            <div className="flex items-center justify-between ml-1">
+                                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+                                    Security Code
+                                </label>
+                                <Link to="/auth/forgot-password" title="Lost Account?" className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">
+                                    Lost Account?
+                                </Link>
+                            </div>
                             <div className="relative group">
                                 <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                 <input
@@ -78,7 +84,7 @@ export default function LoginPage() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
-                                    className="w-full h-12 bg-background/50 border border-input rounded-xl pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-muted-foreground/50"
+                                    className="glass-input w-full h-14 pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground transition-all placeholder:text-muted-foreground/30 font-bold"
                                 />
                             </div>
                         </div>
@@ -86,13 +92,13 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full h-12 bg-primary text-primary-foreground rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/25 hover:bg-primary/90 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 disabled:hover:translate-y-0 disabled:shadow-none"
+                            className="w-full h-14 bg-primary text-primary-foreground rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
                         >
                             {loading ? (
                                 <Loader2 className="w-5 h-5 animate-spin" />
                             ) : (
                                 <>
-                                    Sign In
+                                    AUTHENTICATE
                                     <ArrowRight className="w-5 h-5" />
                                 </>
                             )}
@@ -100,10 +106,10 @@ export default function LoginPage() {
                     </form>
                 </div>
 
-                <div className="mt-8 flex items-center justify-center gap-6 opacity-40 hover:opacity-100 transition-opacity duration-300">
+                <div className="mt-12 flex items-center justify-center gap-6 opacity-20 hover:opacity-100 transition-opacity duration-500">
                     <div className="flex items-center gap-2">
                         <Store className="w-4 h-4" />
-                        <span className="text-xs font-bold uppercase tracking-widest">RetailPro POS</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em]">RetailPro Node v2.0</span>
                     </div>
                 </div>
             </div>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">RetailPro</string>
+    <string name="title_activity_main">RetailPro</string>
+    <string name="package_name">com.retailpro.pos</string>
+    <string name="custom_url_scheme">com.retailpro.pos</string>
+</resources>

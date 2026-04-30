@@ -427,7 +427,94 @@ router.get('/low-stock', authenticate, authorize('head_of_sales'), async (req, r
     }
 });
 
-// Barcode lookup
+// Smart Search / Lookup (Barcode, SKU, Name)
+router.get('/search', authenticate, async (req, res) => {
+    try {
+        const { q, branchId } = req.query;
+        const targetBranchId = req.user.role === 'admin' ? branchId : req.user.branchId;
+
+        if (!q) {
+            return res.status(400).json({ error: 'Search query is required' });
+        }
+
+        // Search for exact match in barcode, sku, or barcodes array
+        const product = await models.Product.findOne({
+            where: {
+                [Op.or]: [
+                    { barcode: q },
+                    { sku: q },
+                    { barcodes: { [Op.contains]: [q] } }
+                ],
+                isActive: true
+            },
+            include: [
+                {
+                    model: models.Inventory,
+                    as: 'inventory',
+                    where: targetBranchId ? { branchId: targetBranchId } : {},
+                    required: false,
+                },
+                {
+                    model: models.ProductVariant,
+                    as: 'variants',
+                    where: { isActive: true },
+                    required: false,
+                },
+            ],
+        });
+
+        if (product) {
+            // Format for UI consistency
+            const inventory = product.inventory?.[0];
+            const formatted = {
+                id: product.id,
+                name: product.name,
+                description: product.description,
+                category: product.category,
+                brand: product.brand,
+                basePrice: parseFloat(product.basePrice.toString()),
+                costPrice: parseFloat(product.costPrice.toString()),
+                sku: product.sku,
+                barcode: product.barcode,
+                barcodes: product.barcodes || [],
+                imageUrl: product.imageUrl,
+                stockQuantity: inventory ? inventory.quantity : 0,
+                minStockLevel: inventory ? inventory.minStockLevel : 0,
+                variants: product.variants || [],
+            };
+            return res.json({ product: formatted });
+        }
+
+        // Try variants if no main product found
+        const variant = await models.ProductVariant.findOne({
+            where: {
+                [Op.or]: [
+                    { barcode: q },
+                    { sku: q }
+                ],
+                isActive: true
+            },
+            include: [
+                {
+                    model: models.Product,
+                    as: 'product',
+                    where: { isActive: true },
+                },
+            ],
+        });
+
+        if (variant) {
+            return res.json({ variant });
+        }
+
+        res.status(404).json({ error: 'Product not found' });
+    } catch (error) {
+        console.error('Smart lookup error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Barcode lookup (Legacy/Specific)
 router.get('/barcode/:barcode', authenticate, async (req, res) => {
     try {
         const { barcode } = req.params;

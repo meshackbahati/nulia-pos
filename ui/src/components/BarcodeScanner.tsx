@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/library';
-import { Camera, X, Barcode as BarcodeIcon } from 'lucide-react';
+import { Camera, X, Barcode as BarcodeIcon, Maximize, Smartphone, Keyboard } from 'lucide-react';
+import { BarcodeScanner as NativeScanner, BarcodeFormat } from '@capacitor-mlkit/barcode-scanning';
+import { Capacitor } from '@capacitor/core';
+import toast from 'react-hot-toast';
 
 interface BarcodeScannerProps {
     onScan: (barcode: string) => void;
@@ -14,53 +17,62 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
     const [scanning, setScanning] = useState(false);
     const [error, setError] = useState('');
     const [manualCode, setManualCode] = useState('');
-    const [useCamera, setUseCamera] = useState(true);
+    const [mode, setMode] = useState<'camera' | 'manual'>('camera');
     const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
-    const [isMobileApp, setIsMobileApp] = useState(false);
-    const [hasNativeScanner, setHasNativeScanner] = useState(false);
+    const isCapacitor = Capacitor.isNativePlatform();
 
     useEffect(() => {
-        const device = (window as any).RetailProDevice;
-        if (device) {
-            setIsMobileApp(true);
-            if (device.hasNativeScanner) {
-                setHasNativeScanner(true);
+        if (isCapacitor && mode === 'camera') {
+            checkPermissions();
+        } else if (mode === 'camera' && scanning) {
+            startWebCamera();
+        }
+        return () => stopWebCamera();
+    }, [mode, scanning, selectedDeviceId]);
+
+    const checkPermissions = async () => {
+        try {
+            const { camera } = await NativeScanner.checkPermissions();
+            if (camera !== 'granted') {
+                const { camera: newStatus } = await NativeScanner.requestPermissions();
+                if (newStatus !== 'granted') {
+                    setError('Camera permission denied');
+                    setMode('manual');
+                }
             }
-        }
-
-        // Bridge for native scan results
-        (window as any).onNativeScan = (barcode: string) => {
-            onScan(barcode);
-            onClose();
-        };
-
-        return () => {
-            delete (window as any).onNativeScan;
-        };
-    }, [onScan, onClose]);
-
-    useEffect(() => {
-        if (useCamera && scanning && !hasNativeScanner) {
-            startCamera();
-        } else {
-            stopCamera();
-        }
-        return () => stopCamera();
-    }, [useCamera, scanning, selectedDeviceId, hasNativeScanner]);
-
-    const handleStartScanning = () => {
-        if (hasNativeScanner && (window as any).startNativeScan) {
-            (window as any).startNativeScan();
-        } else {
-            setScanning(true);
+        } catch (err) {
+            console.error('Permission check failed', err);
         }
     };
 
-    const startCamera = async () => {
+    const startNativeScan = async () => {
+        try {
+            // Check if Google Barcode Scanner is available (Android)
+            if (Capacitor.getPlatform() === 'android') {
+                const { available } = await NativeScanner.isGoogleBarcodeScannerModuleAvailable();
+                if (!available) {
+                    await NativeScanner.installGoogleBarcodeScannerModule();
+                }
+            }
+
+            const { barcodes } = await NativeScanner.scan({
+                formats: [BarcodeFormat.Ean13, BarcodeFormat.Ean8, BarcodeFormat.Code128, BarcodeFormat.QrCode],
+            });
+
+            if (barcodes.length > 0) {
+                onScan(barcodes[0].displayValue);
+                onClose();
+            }
+        } catch (err: any) {
+            toast.error('Native scanner failed');
+            setMode('manual');
+        }
+    };
+
+    const startWebCamera = async () => {
         try {
             const codeReader = new BrowserMultiFormatReader();
             codeReaderRef.current = codeReader;
-
             const videoInputDevices = await codeReader.listVideoInputDevices();
             setDevices(videoInputDevices);
 
@@ -69,7 +81,6 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
                 return;
             }
 
-            // Smart Selection: Prefer back camera
             let deviceId = selectedDeviceId;
             if (!deviceId) {
                 const backCamera = videoInputDevices.find(device =>
@@ -77,7 +88,7 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
                     device.label.toLowerCase().includes('environment')
                 );
                 deviceId = backCamera ? backCamera.deviceId : videoInputDevices[0].deviceId;
-                setSelectedDeviceId(deviceId); // Set for UI sync
+                setSelectedDeviceId(deviceId);
             }
 
             await codeReader.decodeFromVideoDevice(
@@ -86,7 +97,7 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
                 (result) => {
                     if (result) {
                         onScan(result.getText());
-                        stopCamera();
+                        stopWebCamera();
                         onClose();
                     }
                 }
@@ -96,7 +107,7 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
         }
     };
 
-    const stopCamera = () => {
+    const stopWebCamera = () => {
         if (codeReaderRef.current) {
             codeReaderRef.current.reset();
         }
@@ -111,121 +122,116 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in">
-            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-background/90 backdrop-blur-xl flex items-center justify-center z-[200] p-4 animate-in fade-in duration-300">
+            <div className="glass-card max-w-md w-full p-8 space-y-8 shadow-2xl border-white/20">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold flex items-center gap-2">
-                        <BarcodeIcon className="w-6 h-6" />
-                        Scan Barcode
-                    </h2>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-
-                {/* Mode Toggle */}
-                <div className="flex gap-2 mb-4 bg-gray-100 p-1 rounded-lg">
-                    <button
-                        onClick={() => { setUseCamera(true); setScanning(true); }}
-                        className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${useCamera ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <div className="flex flex-col items-center">
-                            <Camera className="w-4 h-4 mb-1" />
-                            <span>Camera</span>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/20">
+                            <BarcodeIcon className="w-6 h-6" />
                         </div>
-                    </button>
-                    <button
-                        onClick={() => { setUseCamera(false); stopCamera(); }}
-                        className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${!useCamera ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <div className="flex flex-col items-center">
-                            <BarcodeIcon className="w-4 h-4 mb-1" />
-                            <span>Manual Entry</span>
+                        <div>
+                            <h2 className="text-lg font-black uppercase tracking-widest text-foreground">Vision Link</h2>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Optical Data Acquisition</p>
                         </div>
-                    </button>
-                </div>
-
-                {isMobileApp && (window as any).RetailProDevice && (
-                    <div className="mb-4 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-blue-600 uppercase">Device Detected</span>
-                        <span className="text-[10px] text-blue-700 font-medium">
-                            {(window as any).RetailProDevice.brand} {(window as any).RetailProDevice.modelName}
-                        </span>
                     </div>
-                )}
+                    <button onClick={onClose} className="p-3 hover:bg-secondary/50 rounded-2xl transition-all"><X className="w-5 h-5" /></button>
+                </div>
 
-                {useCamera ? (
-                    <div>
-                        {error && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3 text-red-700 text-sm">
-                                {error}
-                            </div>
-                        )}
+                {/* Mode Selector */}
+                <div className="flex p-1.5 bg-secondary/30 rounded-2xl border border-white/5">
+                    <button
+                        onClick={() => setMode('camera')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${mode === 'camera' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                        <Camera className="w-4 h-4" /> Camera
+                    </button>
+                    <button
+                        onClick={() => setMode('manual')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${mode === 'manual' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                        <Keyboard className="w-4 h-4" /> Manual
+                    </button>
+                </div>
 
-                        {devices.length > 1 && (
-                            <div className="mb-3">
-                                <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Select Camera</label>
-                                <select
-                                    value={selectedDeviceId}
-                                    onChange={(e) => {
-                                        stopCamera();
-                                        setSelectedDeviceId(e.target.value);
-                                        // Effect will restart camera
-                                    }}
-                                    className="w-full text-sm border-gray-300 rounded-lg"
+                {mode === 'camera' ? (
+                    <div className="space-y-6">
+                        {isCapacitor ? (
+                            <div className="py-12 flex flex-col items-center justify-center text-center space-y-6 animate-in zoom-in-95">
+                                <div className="w-24 h-24 bg-primary/5 rounded-full flex items-center justify-center border-4 border-dashed border-primary/20 animate-spin-slow">
+                                    <Smartphone className="w-10 h-10 text-primary" />
+                                </div>
+                                <div className="space-y-2">
+                                    <h3 className="font-black text-foreground uppercase tracking-wider">Ready for Native Scan</h3>
+                                    <p className="text-[10px] text-muted-foreground font-bold px-8 leading-relaxed uppercase tracking-tighter">Utilizing system hardware for high-precision decoding</p>
+                                </div>
+                                <button
+                                    onClick={startNativeScan}
+                                    className="w-full h-16 bg-primary text-primary-foreground rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
                                 >
-                                    {devices.map(device => (
-                                        <option key={device.deviceId} value={device.deviceId}>
-                                            {device.label || `Camera ${device.deviceId.slice(0, 5)}...`}
-                                        </option>
-                                    ))}
-                                </select>
+                                    <Maximize className="w-6 h-6" /> OPEN OPTIC SENSOR
+                                </button>
                             </div>
-                        )}
+                        ) : (
+                            <div className="space-y-6 animate-in fade-in duration-500">
+                                {error && <div className="p-4 bg-destructive/10 text-destructive text-[10px] font-black uppercase rounded-xl border border-destructive/20">{error}</div>}
+                                
+                                {devices.length > 1 && (
+                                    <div className="space-y-2">
+                                        <label className="text-[8px] font-black text-muted-foreground uppercase ml-1">Source Node</label>
+                                        <select
+                                            value={selectedDeviceId}
+                                            onChange={(e) => { stopWebCamera(); setSelectedDeviceId(e.target.value); }}
+                                            className="glass-input w-full h-12 px-4 text-xs font-bold focus:ring-primary outline-none"
+                                        >
+                                            {devices.map(d => <option key={d.deviceId} value={d.deviceId}>{d.label || 'Generic Node'}</option>)}
+                                        </select>
+                                    </div>
+                                )}
 
-                        <div className="relative aspect-video bg-black rounded-lg overflow-hidden mb-4 ring-1 ring-black/10">
-                            <video ref={videoRef} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 border-2 border-blue-500/50 rounded-lg pointer-events-none">
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-32 border-2 border-white/80 rounded corner-box shadow-2xl"></div>
+                                <div className="relative aspect-square bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white/5 group">
+                                    <video ref={videoRef} className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                        <div className="w-64 h-64 border-2 border-primary/40 rounded-3xl relative">
+                                            <div className="absolute inset-0 border-4 border-primary rounded-3xl animate-pulse opacity-20" />
+                                            <div className="absolute -top-2 -left-2 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-xl" />
+                                            <div className="absolute -top-2 -right-2 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-xl" />
+                                            <div className="absolute -bottom-2 -left-2 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-xl" />
+                                            <div className="absolute -bottom-2 -right-2 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-xl" />
+                                            <div className="absolute left-4 right-4 top-1/2 h-0.5 bg-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.5)] animate-scan" />
+                                        </div>
+                                    </div>
+                                    {!scanning && (
+                                        <button
+                                            onClick={() => setScanning(true)}
+                                            className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center text-primary font-black uppercase text-xs tracking-widest hover:bg-background/40 transition-all"
+                                        >
+                                            Initialize Camera
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                            <div className="absolute bottom-2 left-0 right-0 text-center">
-                                <p className="text-white/80 text-xs font-medium bg-black/50 inline-block px-2 py-1 rounded">Align barcode within frame</p>
-                            </div>
-                        </div>
-
-                        {!scanning && (
-                            <button
-                                onClick={handleStartScanning}
-                                className="w-full py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg font-bold flex items-center justify-center gap-2"
-                            >
-                                <Camera className="w-5 h-5" />
-                                {hasNativeScanner ? 'Open Smart Scanner' : 'Start Camera Scan'}
-                            </button>
                         )}
                     </div>
                 ) : (
-                    // Manual Entry
-                    <form onSubmit={handleManualSubmit} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Enter Barcode
-                            </label>
+                    <form onSubmit={handleManualSubmit} className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Serial Identity</label>
                             <input
                                 type="text"
                                 value={manualCode}
                                 onChange={(e) => setManualCode(e.target.value)}
-                                placeholder="Enter barcode number"
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                placeholder="880123456789..."
+                                className="glass-input w-full h-16 px-6 text-lg font-black tracking-widest focus:ring-primary outline-none"
                                 autoFocus
                             />
                         </div>
                         <button
                             type="submit"
                             disabled={!manualCode.trim()}
-                            className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                            className="w-full h-16 bg-foreground text-background rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
                         >
-                            Search Product
+                            QUERY DATABASE
                         </button>
                     </form>
                 )}
