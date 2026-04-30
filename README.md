@@ -31,6 +31,6 @@ RetailPro is a high-performance, resilient, and multi-platform Point of Sale (PO
 
 Refer to [QUICKSTART.md](./QUICKSTART.md) for detailed installation and deployment instructions.
 
-## 📄 License
+## 📄 License.
 
 Proprietary Software - All Rights Reserved.
