@@ -40,18 +40,12 @@ apiClient.interceptors.response.use(
     }
 );
 
-// Add a request interceptor to inject auth token and branch ID
+// Add a request interceptor to inject auth token
 apiClient.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
-        }
-
-        const branchId = localStorage.getItem('selectedBranchId');
-        if (branchId) {
-            config.headers['X-Branch-ID'] = branchId;
-            config.params = { ...config.params, branchId }; 
         }
 
         // Add Idempotency Key for mutating requests (POST, PUT, DELETE)
@@ -130,6 +124,7 @@ export const api = {
     getBranches: (params?: any) => apiClient.get('/branches/list', { params }),
     createBranch: (data: any) => apiClient.post('/branches/create', data),
     updateBranch: (data: any) => apiClient.post('/branches/update', data),
+    switchBranch: (branchId: string) => apiClient.post('/auth/switch-branch', { branchId }),
 
     // Settings
     getSettings: () => apiClient.get('/settings/get'), // Updated to use apiClient

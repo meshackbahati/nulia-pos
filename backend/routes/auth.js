@@ -2,7 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import models from '../models/index.js';
-import { generateToken, authenticate } from '../lib/auth.js';
+import { generateToken, authenticate, authorize } from '../lib/auth.js';
 import { createAuditLog, AUDIT_ACTIONS, AUDIT_RESOURCES } from '../lib/audit.js';
 import EmailService from '../lib/email.js';
 
@@ -178,6 +178,57 @@ router.post('/reset-password', async (req, res) => {
     } catch (error) {
         console.error('Reset password error:', error);
         res.status(500).json({ error: 'Failed to reset password' });
+    }
+});
+
+// Switch Branch (Admin Only)
+router.post('/switch-branch', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const { branchId } = req.body;
+        if (!branchId) {
+            return res.status(400).json({ error: 'branchId is required' });
+        }
+
+        // Verify branch exists and is active
+        const branch = await models.Branch.findByPk(branchId);
+        if (!branch || !branch.isActive) {
+            return res.status(404).json({ error: 'Branch not found or inactive' });
+        }
+
+        // Update user's active branch
+        const user = await models.User.findByPk(req.user.userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        await user.update({ branchId });
+
+        // Generate new token with updated branch info
+        const token = generateToken({
+            userId: user.id,
+            email: user.email,
+            role: user.role,
+            branchId: user.branchId,
+        });
+
+        // Return updated user and new token
+        const updatedUser = await models.User.findByPk(user.id, {
+            attributes: ['id', 'email', 'firstName', 'lastName', 'role', 'branchId', 'isActive'],
+            include: [{
+                model: models.Branch,
+                as: 'branch',
+                attributes: ['id', 'name', 'currency', 'currencySymbol'],
+            }],
+        });
+
+        res.json({
+            success: true,
+            token,
+            user: updatedUser,
+        });
+    } catch (error) {
+        console.error('Switch branch error:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 

@@ -24,6 +24,7 @@ interface AuthContextType {
     token: string | null;
     login: (email: string, password: string) => Promise<void>;
     logout: () => void;
+    switchBranch: (branchId: string) => Promise<void>;
     isLoading: boolean;
 }
 
@@ -97,6 +98,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const switchBranch = async (branchId: string) => {
+        try {
+            const response = await api.switchBranch(branchId);
+            const { token: newToken, user: updatedUser } = response.data;
+
+            // Persist new session
+            persistSession(newToken, updatedUser);
+
+            setToken(newToken);
+            setUser(updatedUser);
+
+            // Dispatch event for other components
+            window.dispatchEvent(new CustomEvent('branchChanged', { detail: updatedUser.branch }));
+        } catch (error: any) {
+            throw new Error(error.response?.data?.error || 'Failed to switch branch');
+        }
+    };
+
     const logout = () => {
         clearSession();
         setToken(null);
@@ -105,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+        <AuthContext.Provider value={{ user, token, login, logout, switchBranch, isLoading }}>
             {children}
         </AuthContext.Provider>
     );

@@ -1,4 +1,4 @@
-import models from '../models/index.js';
+import models, { sequelize } from '../models/index.js';
 
 /**
  * Idempotency Middleware
@@ -14,11 +14,11 @@ export async function idempotency(req, res, next) {
 
     try {
         // Check if we've already processed this key
-        const existingRecord = await models.sequelize.query(
+        const existingRecord = await sequelize.query(
             'SELECT "responseStatus", "responseBody" FROM idempotency_keys WHERE key = :key LIMIT 1',
             {
                 replacements: { key },
-                type: models.sequelize.QueryTypes.SELECT
+                type: sequelize.QueryTypes.SELECT
             }
         );
 
@@ -32,7 +32,7 @@ export async function idempotency(req, res, next) {
         res.json = function(body) {
             // Only cache successful or client-error responses, avoid caching server errors if they might be transient
             if (res.statusCode < 500 && req.user) {
-                models.sequelize.query(
+                sequelize.query(
                     'INSERT INTO idempotency_keys (id, key, "userId", "responseStatus", "responseBody", "createdAt", "updatedAt") VALUES (gen_random_uuid(), :key, :userId, :status, :body, NOW(), NOW())',
                     {
                         replacements: {

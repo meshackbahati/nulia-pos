@@ -47,27 +47,74 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
             format: [80, 200]
         });
 
-        doc.setFontSize(12);
-        doc.text(companyName.toUpperCase(), 40, 10, { align: 'center' });
-        doc.setFontSize(8);
-        doc.text('OFFICIAL RECEIPT', 40, 15, { align: 'center' });
-        
-        doc.text(`ID: ${sale.receiptId}`, 5, 25);
-        doc.text(`DATE: ${new Date(sale.createdAt || Date.now()).toLocaleString()}`, 5, 30);
-        doc.text('-'.repeat(40), 40, 35, { align: 'center' });
+        const pageWidth = 80;
+        let y = 10;
 
-        let y = 40;
+        // Company
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.text(companyName.toUpperCase(), pageWidth / 2, y, { align: 'center' });
+        
+        y += 6;
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text('OFFICIAL TRANSACTION RECORD', pageWidth / 2, y, { align: 'center' });
+        
+        y += 10;
+        doc.setFontSize(7);
+        doc.text(`RECEIPT: ${sale.receiptId}`, 5, y);
+        y += 4;
+        doc.text(`DATE: ${new Date(sale.createdAt || Date.now()).toLocaleString()}`, 5, y);
+        y += 4;
+        doc.text(`METHOD: ${sale.paymentMethod.toUpperCase()}`, 5, y);
+
+        y += 4;
+        doc.setDrawColor(200);
+        doc.line(5, y, 75, y);
+        y += 6;
+
+        // Items Header
+        doc.setFont('helvetica', 'bold');
+        doc.text('DESCRIPTION', 5, y);
+        doc.text('TOTAL', 75, y, { align: 'right' });
+        y += 4;
+        doc.setFont('helvetica', 'normal');
+
+        // Items
         sale.items.forEach(item => {
-            doc.text(`${item.quantity}x ${item.name.substring(0, 20)}`, 5, y);
+            const name = item.name.length > 25 ? item.name.substring(0, 22) + '...' : item.name;
+            doc.text(`${item.quantity}x ${name}`, 5, y);
             doc.text(formatPrice(item.price * item.quantity), 75, y, { align: 'right' });
-            y += 5;
+            y += 4;
         });
 
-        doc.text('-'.repeat(40), 40, y, { align: 'center' });
-        y += 5;
-        doc.text('TOTAL:', 5, y);
+        y += 2;
+        doc.line(5, y, 75, y);
+        y += 6;
+
+        // Totals
+        doc.text('SUBTOTAL:', 5, y);
+        doc.text(formatPrice(sale.subtotal), 75, y, { align: 'right' });
+        y += 4;
+        
+        if (sale.tax > 0) {
+            doc.text('TAX:', 5, y);
+            doc.text(formatPrice(sale.tax), 75, y, { align: 'right' });
+            y += 4;
+        }
+
+        y += 2;
         doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('NET TOTAL:', 5, y);
         doc.text(formatPrice(sale.total), 75, y, { align: 'right' });
+
+        y += 15;
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'italic');
+        doc.text('THANK YOU FOR VISITING', pageWidth / 2, y, { align: 'center' });
+        y += 4;
+        doc.text('RETAILPRO NODE v2.0', pageWidth / 2, y, { align: 'center' });
         
         return doc;
     };

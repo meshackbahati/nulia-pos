@@ -121,6 +121,11 @@ router.post('/create', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'User not assigned to a branch' });
         }
 
+        // Enforce: user can only sell from their currently active branch
+        if (req.user.branchId !== branchId) {
+            return res.status(403).json({ error: 'You can only sell from your active branch. Switch to the branch first.' });
+        }
+
         // Fetch branch for currency details
         const branch = await models.Branch.findByPk(branchId, { transaction });
         if (!branch) {
@@ -130,6 +135,7 @@ router.post('/create', authenticate, async (req, res) => {
 
         // 1. Check inventory availability
         for (const item of items) {
+            const requestedQty = parseInt(item.quantity);
             const inventory = await models.Inventory.findOne({
                 where: {
                     branchId,
@@ -139,9 +145,16 @@ router.post('/create', authenticate, async (req, res) => {
                 transaction,
             });
 
-            if (!inventory || (inventory.quantity - inventory.reservedQuantity) < item.quantity) {
+            if (!inventory) {
                 await transaction.rollback();
-                return res.status(400).json({ error: `Insufficient stock for ${item.name}` });
+                return res.status(400).json({ error: `Item ${item.name} not available in this branch` });
+            }
+
+            const available = parseInt(inventory.quantity) - parseInt(inventory.reservedQuantity || 0);
+            
+            if (available < requestedQty) {
+                await transaction.rollback();
+                return res.status(400).json({ error: `Insufficient stock for ${item.name}. Available: ${available}, Requested: ${requestedQty}` });
             }
         }
 

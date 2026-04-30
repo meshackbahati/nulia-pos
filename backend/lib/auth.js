@@ -51,13 +51,22 @@ export const authenticate = async (req, res, next) => {
         const token = authHeader.substring(7);
         const payload = verifyToken(token);
 
-        const user = await models.User.findByPk(payload.userId);
+        const user = await models.User.findByPk(payload.userId, {
+            include: [{ model: models.Branch, as: 'branch', attributes: ['id', 'name', 'currency', 'currencySymbol'] }]
+        });
         if (!user || !user.isActive) {
             console.log(`Auth failed: User ${payload.userId} not found or inactive`);
             return res.status(401).json({ error: 'User inactive or not found' });
         }
 
-        req.user = payload;
+        // Use fresh user data from DB to reflect branch changes immediately
+        req.user = {
+            userId: user.id,
+            email: user.email,
+            role: user.role,
+            branchId: user.branchId,
+            branch: user.branch
+        };
         next();
     } catch (error) {
         console.error('Auth Middleware Error:', error.message);

@@ -58,7 +58,6 @@ export function ManagerDashboard() {
   const { formatPrice } = useCurrency();
   const navigate = useNavigate();
   const userRole = user?.role || '';
-  const [branchName, setBranchName] = useState<string>('');
 
   useEffect(() => {
     fetchBranchStats();
@@ -67,10 +66,17 @@ export function ManagerDashboard() {
   const fetchBranchStats = async () => {
     try {
       setIsLoading(true);
+
+      // For admin: use scope=all if no active branch (viewing all branches)
+      const params: any = {};
+      if (user?.role === 'admin' && !user?.branch) {
+        params.scope = 'all';
+      }
+
       const [statsRes, branchRes, supplierRes] = await Promise.all([
         api.getDashboardStats(),
         user?.role === 'admin' ? api.get('/analytics/branch-comparison') : Promise.resolve({ data: { branches: [] } }),
-        user?.role === 'admin' || user?.role === 'manager' ? api.get('/analytics/suppliers') : Promise.resolve({ data: { stats: [] } })
+        (user?.role === 'admin' || user?.role === 'manager') ? api.getAnalyticsSummary(params) : Promise.resolve({ data: { stats: [] } })
       ]);
 
       const dashboardData = statsRes.data.stats;
@@ -94,7 +100,6 @@ export function ManagerDashboard() {
         branches: branchRes.data.branches || [],
         supplierStats: supplierRes.data.stats || []
       });
-      if (user?.branch?.name) setBranchName(user.branch.name);
     } catch (error) {
       console.error('Failed to fetch branch stats:', error);
     } finally {
@@ -115,22 +120,17 @@ export function ManagerDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header - Already in Layout but we can keep page specific actions or title if needed, 
-          but Layout usually handles the main header. 
-          Given the Layout implementation, we can remove the duplicated header here 
-          or just treat this as the content area. */}
-
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold font-display tracking-tight text-foreground">
-            {userRole === 'admin' && !localStorage.getItem('selectedBranchId')
+            {userRole === 'admin' && !user?.branch
               ? 'System Overview (All Branches)'
-              : ((branchName || 'Branch Dashboard'))}
+              : (user?.branch?.name || 'Branch Dashboard')}
           </h1>
-          {branchName && localStorage.getItem('selectedBranchId') && (
+          {user?.branch && (
             <p className="text-muted-foreground">
-              {/* Try to find name from branches list if available, else fallback to user branch or generic */}
-              {stats?.branches?.find(b => b.id === localStorage.getItem('selectedBranchId'))?.name || branchName}
+              {user.branch.name} - {user.branch.currencySymbol} {user.branch.currency}
             </p>
           )}
         </div>

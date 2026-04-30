@@ -24,7 +24,18 @@ const getDateRange = (period) => {
 // Dashboard Stats (Consolidated for frontend)
 router.get('/dashboard', authenticate, async (req, res) => {
     try {
-        const branchId = req.user.role === 'admin' ? req.query.branchId : req.user.branchId;
+        // Admin: use active branch unless scope=all is specified
+        let branchId;
+        if (req.user.role === 'admin') {
+            if (req.query.scope === 'all') {
+                branchId = null; // no branch filter - all branches
+            } else {
+                branchId = req.user.branchId; // active branch (must switch to change)
+            }
+        } else {
+            branchId = req.user.branchId;
+        }
+        
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -98,12 +109,18 @@ router.get('/dashboard', authenticate, async (req, res) => {
 // Global Summary Stats (Admin/Manager)
 router.get('/summary', authenticate, async (req, res) => {
     try {
-        const { period = 'today', branchId } = req.query;
+        const { period = 'today' } = req.query;
         const dateRange = getDateRange(period);
         const where = { createdAt: dateRange };
 
-        if (branchId) where.branchId = branchId;
-        else if (req.user.role !== 'admin') where.branchId = req.user.branchId;
+        // Admin: use active branch unless scope=all
+        if (req.user.role === 'admin') {
+            if (req.query.scope !== 'all') {
+                if (req.user.branchId) where.branchId = req.user.branchId;
+            }
+        } else {
+            where.branchId = req.user.branchId;
+        }
 
         const [sales, inventory, branches, topProducts] = await Promise.all([
             models.Sale.findAll({
@@ -115,7 +132,7 @@ router.get('/summary', authenticate, async (req, res) => {
                 raw: true
             }),
             models.Inventory.findAll({
-                where: branchId ? { branchId } : (req.user.role !== 'admin' ? { branchId: req.user.branchId } : {}),
+                where: (req.user.role === 'admin' && req.query.scope === 'all') ? {} : { branchId: where.branchId || req.user.branchId },
                 attributes: [
                     [sequelize.fn('SUM', sequelize.col('quantity')), 'totalStock'],
                     [sequelize.fn('COUNT', sequelize.literal('CASE WHEN quantity <= "minStockLevel" THEN 1 END')), 'lowStock']
@@ -158,16 +175,18 @@ router.get('/summary', authenticate, async (req, res) => {
 // Salesperson Leaderboard
 router.get('/leaderboard', authenticate, async (req, res) => {
     try {
-        const { period = 'today', branchId, global = 'false' } = req.query;
+        const { period = 'today', global = 'false' } = req.query;
         const dateRange = getDateRange(period);
         const where = { createdAt: dateRange };
 
         // 1. Determine Scope for Sales Data
         if (global === 'true' && req.user.role === 'admin') {
-            // No branch filter
-        } else if (branchId) {
-            where.branchId = branchId;
-        } else if (req.user.role !== 'admin') {
+            // No branch filter - all branches
+        } else if (req.user.role === 'admin') {
+            // Admin uses active branch (must switch to change)
+            if (req.user.branchId) where.branchId = req.user.branchId;
+        } else {
+            // Non-admins restricted to their branch
             where.branchId = req.user.branchId;
         }
 
@@ -191,9 +210,10 @@ router.get('/leaderboard', authenticate, async (req, res) => {
 
         // 3. Fetch ALL Salespersons (Mandatory inclusion)
         const salespersonWhere = { role: 'salesperson', isActive: true };
-        if (branchId) {
-            salespersonWhere.branchId = branchId;
-        } else if (req.user.role !== 'admin' && global !== 'true') {
+        if (req.user.role === 'admin' && global !== 'true') {
+            // Admin: only include salespersons from active branch unless global
+            if (req.user.branchId) salespersonWhere.branchId = req.user.branchId;
+        } else if (req.user.role !== 'admin') {
             salespersonWhere.branchId = req.user.branchId;
         }
 
@@ -262,12 +282,18 @@ router.get('/leaderboard', authenticate, async (req, res) => {
 // Top Products (Detailed)
 router.get('/top-products', authenticate, async (req, res) => {
     try {
-        const { period = 'week', limit = 10, branchId } = req.query;
+        const { period = 'week', limit = 10 } = req.query;
         const dateRange = getDateRange(period);
         const where = { createdAt: dateRange };
 
-        if (branchId) where.branchId = branchId;
-        else if (req.user.role !== 'admin') where.branchId = req.user.branchId;
+        // Admin: use active branch unless scope=all
+        if (req.user.role === 'admin') {
+            if (req.query.scope !== 'all' && req.user.branchId) {
+                where.branchId = req.user.branchId;
+            }
+        } else {
+            where.branchId = req.user.branchId;
+        }
 
         const topProducts = await models.SaleItem.findAll({
             attributes: [
@@ -334,8 +360,17 @@ router.get('/branch-comparison', authenticate, authorize('admin'), async (req, r
 // Supplier Stats
 router.get('/suppliers', authenticate, authorize('manager'), async (req, res) => {
     try {
-        const branchId = req.user.role === 'admin' ? req.query.branchId : req.user.branchId;
-        const where = branchId ? { branchId } : {};
+        // Admin: use active branch unless scope=all
+        let where = {};
+        if (req.user.role === 'admin') {
+            if (req.query.scope === 'all') {
+                where = {};
+            } else {
+                where = req.user.branchId ? { branchId: req.user.branchId } : {};
+            }
+        } else {
+            where = { branchId: req.user.branchId };
+        }
 
         const stats = await models.PurchaseOrder.findAll({
             attributes: [
@@ -376,7 +411,8 @@ router.get('/branch-leaderboard', authenticate, authorize('admin'), async (req, 
         const branches = await models.Branch.findAll({
             where: { isActive: true },
             attributes: [
-                'id', 'name', 'location',
+                'id', 'name',
+                [sequelize.col('address'), 'location'],
                 [sequelize.literal('(SELECT COUNT(*) FROM sales WHERE sales."branchId" = "Branch".id AND sales."createdAt" >= \'' + dateRange[Op.gte].toISOString() + '\')'), 'salesCount'],
                 [sequelize.literal('(SELECT SUM("totalAmount") FROM sales WHERE sales."branchId" = "Branch".id AND sales."createdAt" >= \'' + dateRange[Op.gte].toISOString() + '\')'), 'revenue']
             ],
@@ -403,12 +439,18 @@ router.get('/branch-leaderboard', authenticate, authorize('admin'), async (req, 
 // Trends
 router.get('/trends', authenticate, async (req, res) => {
     try {
-        const { period = 'week', branchId } = req.query;
+        const { period = 'week' } = req.query;
         const dateRange = getDateRange(period);
         const where = { createdAt: dateRange };
 
-        if (branchId) where.branchId = branchId;
-        else if (req.user.role !== 'admin') where.branchId = req.user.branchId;
+        // Admin: use active branch unless scope=all
+        if (req.user.role === 'admin') {
+            if (req.query.scope !== 'all' && req.user.branchId) {
+                where.branchId = req.user.branchId;
+            }
+        } else {
+            where.branchId = req.user.branchId;
+        }
 
         const interval = period === 'today' ? 'hour' : 'day';
 

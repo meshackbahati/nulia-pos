@@ -532,9 +532,9 @@ export default function POSPage() {
 
                     <div className="flex-1 overflow-y-auto px-4 lg:px-8 pb-32 lg:pb-8">
                         {loading ? (
-                            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6">
-                                {[...Array(10)].map((_, i) => (
-                                    <div key={i} className="aspect-[3/4] glass-card animate-pulse rounded-3xl" />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8">
+                                {[...Array(8)].map((_, i) => (
+                                    <div key={i} className="aspect-square glass-card animate-pulse rounded-3xl" />
                                 ))}
                             </div>
                         ) : filteredProducts.length === 0 ? (
@@ -543,32 +543,37 @@ export default function POSPage() {
                                 <p className="font-black uppercase tracking-widest text-sm">No Results Found</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8">
                                 {filteredProducts.map(product => (
                                     <button
                                         key={product.id}
                                         onClick={() => addToCart(product)}
-                                        className="glass-card p-3 flex flex-col group text-left"
+                                        className="glass-card p-4 flex flex-col group text-left min-h-[350px]"
                                     >
-                                        <div className="aspect-square rounded-2xl bg-white overflow-hidden mb-4 relative shadow-inner border border-border/50">
+                                        <div className="aspect-square rounded-[2rem] bg-white overflow-hidden mb-6 relative shadow-inner border border-border/50">
                                             {product.imageUrl ? (
-                                                <img src={product.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                <img src={product.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center bg-secondary/30 text-muted-foreground">
-                                                    <Package className="w-12 h-12 opacity-20" />
+                                                    <Package className="w-16 h-16 opacity-20" />
                                                 </div>
                                             )}
-                                            <div className="absolute bottom-2 right-2 flex flex-col gap-1 items-end">
-                                                <span className={`text-[8px] font-black px-2 py-1 rounded-lg shadow-lg uppercase tracking-widest ${product.stockQty <= product.lowStockAlert ? 'bg-destructive text-white' : 'bg-primary text-primary-foreground'}`}>
-                                                    {product.stockQty} Units
+                                            <div className="absolute top-4 right-4">
+                                                <span className={`text-[10px] font-black px-3 py-1.5 rounded-xl shadow-2xl uppercase tracking-widest ${product.stockQty <= product.lowStockAlert ? 'bg-destructive text-white' : 'bg-primary text-primary-foreground'}`}>
+                                                    {product.stockQty} IN STOCK
                                                 </span>
                                             </div>
                                         </div>
-                                        <h3 className="font-bold text-xs line-clamp-2 min-h-[2.5rem] px-1 uppercase tracking-tight">{product.name}</h3>
-                                        <div className="mt-4 flex items-center justify-between px-1">
-                                            <span className="text-sm font-black text-primary tracking-tighter">{formatPrice(product.price)}</span>
-                                            <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
-                                                <Plus className="w-4 h-4" />
+                                        <div className="flex-1 space-y-2">
+                                            <h3 className="font-black text-sm lg:text-base text-foreground uppercase tracking-tight leading-tight group-hover:text-primary transition-colors">
+                                                {product.name}
+                                            </h3>
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{product.category}</p>
+                                        </div>
+                                        <div className="mt-6 flex items-center justify-between">
+                                            <span className="text-xl font-black text-primary tracking-tighter">{formatPrice(product.price)}</span>
+                                            <div className="w-10 h-10 rounded-xl bg-foreground text-background flex items-center justify-center shadow-xl group-hover:scale-110 transition-all">
+                                                <Plus className="w-5 h-5" />
                                             </div>
                                         </div>
                                     </button>
