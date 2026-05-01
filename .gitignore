@@ -12,6 +12,8 @@ node_modules/
 # Ignore build output
 .netlify/
 dist/
+electron/
+dist-electron/
 build/
 .next/
 */dist/
