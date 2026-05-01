@@ -1,7 +1,13 @@
 {
-  "name": "ui",
+  "name": "retailpro",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.1",
+  "description": "RetailPro POS System",
+  "author": {
+    "name": "Meshack bahati",
+    "email": "bahatikylemeshack@gmail.com"
+  },
+  "homepage": "https://retailpro.com",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -11,7 +17,7 @@
     "preview": "vite preview",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
     "electron:build": "npm run build && electron-builder",
-    "cap:sync": "npm run build && npx cap sync",
+    "cap:sync": "npm run build && npx cap sync && bash patch-java17.sh",
     "cap:open:android": "npm run build && npx cap open android"
   },
   "build": {
@@ -39,11 +45,13 @@
     },
     "linux": {
       "target": [
-        "AppImage",
         "pacman"
       ],
       "icon": "public/logo.png",
       "category": "Office"
+    },
+    "pacman": {
+      "artifactName": "retailpro-${version}-${arch}.pkg.tar.zst"
     }
   },
   "dependencies": {
@@ -75,6 +83,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.3.1",
     "@eslint/js": "^9.39.1",
     "@tailwindcss/postcss": "^4.0.0-alpha.27",

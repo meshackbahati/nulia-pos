@@ -30,7 +30,7 @@ apiClient.interceptors.response.use(
             !import.meta.env.DEV && 
             (error.code === 'ECONNABORTED' || error.message === 'Network Error') && 
             !originalRequest._retry &&
-            originalRequest.url && !originalRequest.url.includes('https://api2.g24sec.com')
+            originalRequest.baseURL && !originalRequest.baseURL.includes('https://api2.g24sec.com')
         ) {
             originalRequest._retry = true;
             originalRequest.baseURL = 'https://api2.g24sec.com/api';
@@ -129,6 +129,8 @@ export const api = {
     // Settings
     getSettings: () => apiClient.get('/settings/get'), // Updated to use apiClient
     updateSettings: (data: any) => apiClient.post('/settings/update', data), // Updated to use apiClient and 'data' param
+    clearSales: () => apiClient.post('/settings/clear-sales'),
+    clearProducts: () => apiClient.post('/settings/clear-products'),
 
     // Receipts
     emailReceipt: (saleId: string, email: string) => apiClient.post('/receipts/email', { saleId, email }),

@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCurrency } from '../hooks/useCurrency';
 import api from '../lib/api-client';
-import { DollarSign, TrendingUp, Trophy, Package, LayoutDashboard } from 'lucide-react';
+import { DollarSign, TrendingUp, Trophy, Package, LayoutDashboard, LogOut } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
+import { useNavigate } from 'react-router-dom';
 
 interface DashboardStats {
     todayRevenue: number;
@@ -21,8 +22,9 @@ interface LeaderboardEntry {
 }
 
 export default function SalesDashboard() {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const { formatPrice } = useCurrency();
+    const navigate = useNavigate();
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [myPosition, setMyPosition] = useState<number | null>(null);
@@ -91,7 +93,20 @@ export default function SalesDashboard() {
                             </p>
                         </div>
                     </div>
-                    <ThemeToggle />
+                    <div className="flex items-center gap-3">
+                        <ThemeToggle />
+                        <div className="h-8 w-px bg-border/40 mx-1"></div>
+                        <button
+                            onClick={() => {
+                                logout();
+                                navigate('/auth/login');
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 text-xs font-black uppercase tracking-widest text-destructive hover:bg-destructive/10 rounded-lg transition-all"
+                        >
+                            <LogOut className="w-4 h-4" />
+                            <span className="hidden sm:inline">Logout</span>
+                        </button>
+                    </div>
                 </div>
             </header>
 

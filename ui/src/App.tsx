@@ -1,9 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ModalProvider } from './contexts/ModalContext';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, toast } from 'react-hot-toast';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import './index.css';
@@ -25,46 +25,111 @@ import SuppliersPage from './pages/SuppliersPage';
 import PurchaseOrdersPage from './pages/PurchaseOrdersPage';
 import HeadOfSalesDashboard from './pages/HeadOfSalesDashboard';
 
+function RootRedirect({ needsSetup }: { needsSetup: boolean }) {
+  const { user, isLoading } = useAuth();
+  
+  if (isLoading) return null;
+  if (needsSetup) return <Navigate to="/install" replace />;
+  
+  if (user) {
+    if (user.role === 'salesperson') return <Navigate to="/sales-dashboard" replace />;
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <Navigate to="/auth/login" replace />;
+}
+
 function App() {
   const [loading, setLoading] = useState(true);
   const [needsSetup, setNeedsSetup] = useState(false);
+  const [connectionError, setConnectionError] = useState(false);
+
+  async function checkSetup() {
+    // Check if user is already logged in (local session)
+    const hasToken = !!localStorage.getItem('token') || document.cookie.includes('token=');
+
+    try {
+      // Use the actual API URL
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://api2.g24sec.space/api';
+      const response = await fetch(`${apiUrl}/install/check`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      if (!response.ok) throw new Error('Backend error');
+      
+      const data = await response.json();
+      setNeedsSetup(data.needsSetup || false);
+      
+      if (hasToken) {
+        toast.success('System Online. Syncing...', { id: 'sync-status', duration: 3000 });
+      }
+    } catch (error) {
+      console.error('Error checking setup:', error);
+      
+      if (hasToken) {
+        toast('Offline mode. Data will sync when back online.', { 
+          icon: '⚠️', 
+          duration: 6000,
+          id: 'sync-status' 
+        });
+        setConnectionError(false);
+      } else {
+        setConnectionError(true);
+        toast.error('Cannot reach server.', { duration: 5000 });
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    // Check if system needs setup
-    async function checkSetup() {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/install/check`);
-        const data = await response.json();
-        setNeedsSetup(data.needsSetup || false);
-      } catch (error) {
-        console.error('Error checking setup:', error);
-        setNeedsSetup(true); // Assume needs setup if backend is down
-      } finally {
-        setLoading(false);
-      }
-    }
-
     checkSetup();
   }, []);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
         <div className="text-center">
-          <div className="loading-spinner mx-auto mb-4"></div>
-          <p>Loading...</p>
+          <div className="loading-spinner mx-auto mb-4 border-primary"></div>
+          <p className="text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest text-[10px]">Initializing RetailPro Core...</p>
         </div>
       </div>
     );
   }
 
+  if (connectionError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
+        <div className="text-center p-8 glass-card max-w-md mx-4">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">Connection Error</h1>
+          <p className="text-slate-600 dark:text-slate-400 mb-6">
+            Unable to connect to the central server.
+          </p>
+          <button 
+            onClick={checkSetup}
+            className="w-full py-3 px-4 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors font-black uppercase text-xs tracking-widest"
+          >
+            Retry Connection
+          </button>
+        </div>
+        <Toaster position="top-right" />
+      </div>
+    );
+  }
+
   return (
-    <BrowserRouter>
+    <HashRouter>
       <ThemeProvider>
         <AuthProvider>
           <ModalProvider>
             <Routes>
-            <Route path="/" element={needsSetup ? <Navigate to="/install" /> : <Navigate to="/auth/login" />} />
+            <Route path="/" element={<RootRedirect needsSetup={needsSetup} />} />
             <Route path="/install" element={<InstallPage />} />
             <Route path="/auth/login" element={<LoginPage />} />
             <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
@@ -134,7 +199,7 @@ function App() {
           </ModalProvider>
         </AuthProvider>
       </ThemeProvider>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

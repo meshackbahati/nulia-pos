@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Save, Settings as SettingsIcon, Shield, CreditCard, Smartphone } from 'lucide-react';
+import { Save, Settings as SettingsIcon, Shield, CreditCard, Smartphone, Trash2, AlertTriangle } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import ThemeToggle from '../components/ThemeToggle';
 import { useCurrency } from '../hooks/useCurrency';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function SettingsPage() {
+    const { user } = useAuth();
     const { currency: defaultCurrency } = useCurrency();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -110,6 +112,28 @@ export default function SettingsPage() {
             toast.error('Failed to update settings');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleClearSales = async () => {
+        if (!window.confirm('CRITICAL ACTION: This will permanently delete ALL transaction and payment records. Are you absolutely sure?')) return;
+        
+        try {
+            await api.clearSales();
+            toast.success('All sales records have been cleared');
+        } catch (error) {
+            toast.error('Failed to clear sales records');
+        }
+    };
+
+    const handleClearProducts = async () => {
+        if (!window.confirm('CRITICAL ACTION: This will permanently delete ALL products and inventory. This cannot be undone. Proceed?')) return;
+        
+        try {
+            await api.clearProducts();
+            toast.success('All products and inventory have been cleared');
+        } catch (error) {
+            toast.error('Failed to clear product records');
         }
     };
 
@@ -305,6 +329,48 @@ export default function SettingsPage() {
                             )}
                         </div>
                     </section>
+
+                    {user?.role === 'admin' && (
+                        <section className="space-y-6">
+                            <div className="flex items-center gap-3 border-b border-destructive/20 pb-4">
+                                <div className="p-2 bg-destructive/10 rounded-lg text-destructive">
+                                    <AlertTriangle className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h2 className="text-sm font-black uppercase tracking-widest text-destructive">Danger Zone</h2>
+                                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Destructive system-wide protocols</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="glass-card p-6 border-destructive/10 hover:border-destructive/30 transition-colors">
+                                    <h3 className="text-xs font-black text-foreground uppercase mb-2">Purge Transaction Vault</h3>
+                                    <p className="text-[10px] text-muted-foreground mb-6">Wipes all sales, payments, and receipt logs. Inventory and user accounts are preserved.</p>
+                                    <button 
+                                        type="button"
+                                        onClick={handleClearSales}
+                                        className="flex items-center gap-2 px-4 py-2 bg-destructive/10 text-destructive rounded-lg hover:bg-destructive text-[10px] font-black uppercase tracking-widest transition-all hover:text-white"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                        Execute Purge
+                                    </button>
+                                </div>
+
+                                <div className="glass-card p-6 border-destructive/10 hover:border-destructive/30 transition-colors">
+                                    <h3 className="text-xs font-black text-foreground uppercase mb-2">Reset Product Catalog</h3>
+                                    <p className="text-[10px] text-muted-foreground mb-6">Deletes ALL products, variants, and current inventory levels. Requires full re-import.</p>
+                                    <button 
+                                        type="button"
+                                        onClick={handleClearProducts}
+                                        className="flex items-center gap-2 px-4 py-2 bg-destructive/10 text-destructive rounded-lg hover:bg-destructive text-[10px] font-black uppercase tracking-widest transition-all hover:text-white"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                        Reset Catalog
+                                    </button>
+                                </div>
+                            </div>
+                        </section>
+                    )}
 
                     {/* Nodes Status */}
                     <div className="bg-muted/50 p-8 rounded-3xl flex items-center justify-between border border-border group">

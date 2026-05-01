@@ -95,4 +95,33 @@ router.post('/update', authenticate, authorize('admin'), async (req, res) => {
     }
 });
 
+// Danger Zone: Clear Sales Data
+router.post('/clear-sales', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        await models.Payment.destroy({ where: {}, truncate: false });
+        await models.SaleItem.destroy({ where: {}, truncate: false });
+        await models.Sale.destroy({ where: {}, truncate: false });
+        await models.PaymentLog.destroy({ where: {}, truncate: false });
+        
+        res.json({ success: true, message: 'All sales transactions cleared.' });
+    } catch (error) {
+        console.error('Clear sales error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Danger Zone: Clear Product Data
+router.post('/clear-products', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        await models.Inventory.destroy({ where: {}, truncate: false });
+        await models.ProductVariant.destroy({ where: {}, truncate: false });
+        await models.Product.destroy({ where: {}, truncate: false });
+        
+        res.json({ success: true, message: 'All products and inventory cleared.' });
+    } catch (error) {
+        console.error('Clear products error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;

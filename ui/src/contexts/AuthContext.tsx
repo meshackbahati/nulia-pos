@@ -37,35 +37,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Check for existing session (localStorage first, then cookie fallback)
-        let storedToken = localStorage.getItem('token');
-        let storedUser = localStorage.getItem('user');
+        const initializeAuth = () => {
+            // Check for existing session (localStorage first, then cookie fallback)
+            let storedToken = localStorage.getItem('token');
+            let storedUser = localStorage.getItem('user');
 
-        // Fallback to cookies if localStorage is empty
-        if (!storedToken || !storedUser) {
-            const cookieToken = getCookie('token');
-            const cookieUserString = getCookie('user');
+            // Fallback to cookies if localStorage is empty
+            if (!storedToken || !storedUser) {
+                const cookieToken = getCookie('token');
+                const cookieUserString = getCookie('user');
 
-            if (cookieToken && cookieUserString) {
-                storedToken = cookieToken;
-                storedUser = cookieUserString;
+                if (cookieToken && cookieUserString) {
+                    storedToken = cookieToken;
+                    storedUser = cookieUserString;
 
-                // Repopulate localStorage from cookies for consistency
-                localStorage.setItem('token', storedToken);
-                localStorage.setItem('user', storedUser);
+                    // Repopulate localStorage from cookies for consistency
+                    localStorage.setItem('token', storedToken);
+                    localStorage.setItem('user', storedUser);
+                }
             }
-        }
 
-        if (storedToken && storedUser) {
-            try {
-                setToken(storedToken);
-                setUser(JSON.parse(storedUser));
-            } catch (e) {
-                console.error('Failed to parse stored user:', e);
-                clearSession();
+            if (storedToken && storedUser) {
+                try {
+                    const parsedUser = JSON.parse(storedUser);
+                    setToken(storedToken);
+                    setUser(parsedUser);
+                } catch (e) {
+                    console.error('Failed to parse stored user:', e);
+                    clearSession();
+                }
             }
-        }
-        setIsLoading(false);
+            setIsLoading(false);
+        };
+
+        initializeAuth();
 
         // Listen for unauthorized events
         const handleUnauthorized = () => {

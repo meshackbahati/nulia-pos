@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Mail, ArrowRight, Loader2, Store, Shield } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginPage() {
@@ -8,7 +8,19 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const { login } = useAuth();
+    const { login, user } = useAuth();
+    const navigate = useNavigate();
+
+    // Redirect if already logged in
+    useEffect(() => {
+        if (user) {
+            if (user.role === 'salesperson') {
+                navigate('/sales-dashboard', { replace: true });
+            } else {
+                navigate('/dashboard', { replace: true });
+            }
+        }
+    }, [user, navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -32,13 +44,13 @@ export default function LoginPage() {
 
             <div className="w-full max-w-md relative z-10 animate-in">
                 <div className="text-center mb-8">
-                    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-primary/30 border border-primary/20 p-2 transform hover:scale-105 transition-transform">
-                        <img src="/logo.png" alt="RetailPro Logo" className="w-full h-full object-contain" />
+                    <div className="w-16 h-16 lg:w-20 lg:h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 lg:mb-6 shadow-xl shadow-primary/30 border border-primary/20 p-2 transform hover:scale-105 transition-transform overflow-hidden">
+                        <img src="./logo.png" alt="RetailPro Logo" className="w-full h-full object-contain" />
                     </div>
-                    <h1 className="text-3xl font-display font-bold text-foreground mb-2">
+                    <h1 className="text-2xl lg:text-3xl font-display font-bold text-foreground mb-1 lg:mb-2 py-1 leading-tight">
                         RetailPro POS
                     </h1>
-                    <p className="text-muted-foreground font-medium">Secure Terminal Access</p>
+                    <p className="text-xs lg:text-sm text-muted-foreground font-medium uppercase tracking-widest opacity-80">Secure Terminal Access</p>
                 </div>
 
                 <div className="glass-card bg-card/80 backdrop-blur-xl border border-border p-8 shadow-2xl">
