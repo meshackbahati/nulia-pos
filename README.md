@@ -2,7 +2,7 @@
 
 RetailPro is a high-performance, resilient, and multi-platform Point of Sale (POS) ecosystem designed for cross-border trade and modern retail environments. Built with a local-first philosophy, it ensures your business stays operational even in zero-connectivity environments.
 
-## 🚀 Key Features
+## Key Features
 
 *   **Multi-Platform Native Support:**
     *   **Mobile (Android):** High-performance Capacitor-based app with native MLKit barcode scanning.
