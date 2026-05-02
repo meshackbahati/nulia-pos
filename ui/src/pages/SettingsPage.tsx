@@ -8,7 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function SettingsPage() {
     const { user } = useAuth();
-    const { currency: defaultCurrency } = useCurrency();
+    const { baseCurrency: defaultCurrency } = useCurrency();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [settings, setSettings] = useState({

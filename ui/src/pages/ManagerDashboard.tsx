@@ -18,6 +18,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useCurrency } from '../hooks/useCurrency';
+import { useSocket } from '../hooks/useSocket';
 
 interface BranchStats {
   todaySales: number;
@@ -61,6 +62,21 @@ export function ManagerDashboard() {
   useEffect(() => {
     fetchBranchStats();
   }, []);
+
+  useSocket({
+    'inventory-update': () => {
+      console.log('🔄 Dashboard: Inventory update received');
+      fetchBranchStats();
+    },
+    'new-sale': (data) => {
+      console.log('💰 Dashboard: New sale recorded', data);
+      fetchBranchStats();
+    },
+    'product-update': () => {
+      console.log('📦 Dashboard: Product updated');
+      fetchBranchStats();
+    }
+  });
 
   const fetchBranchStats = async () => {
     try {

@@ -9,6 +9,7 @@ import { useCurrency } from '../hooks/useCurrency';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { useModal } from '../contexts/ModalContext';
+import { useSocket } from '../hooks/useSocket';
 
 interface Product {
     id: string;
@@ -41,6 +42,11 @@ export default function ProductsPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [branches, setBranches] = useState<any[]>([]);
     const [selectedImportBranch, setSelectedImportBranch] = useState('');
+
+    useSocket({
+        'inventory-update': () => fetchProducts(),
+        'product-update': () => fetchProducts()
+    });
 
     const handleScan = (barcode: string) => {
         setSearchTerm(barcode);
@@ -122,12 +128,23 @@ export default function ProductsPage() {
         });
     };
 
-    const filteredProducts = products.filter(p =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.barcode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.barcodes || []).some(b => b.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filteredProducts = products.filter(p => {
+        const searchLower = searchTerm.toLowerCase().trim();
+        if (!searchLower) return true;
+
+        const searchWords = searchLower.split(/\s+/);
+        
+        const targetString = [
+            p.name,
+            p.sku,
+            p.barcode,
+            ...(p.barcodes || []),
+            p.category,
+            p.brand || ''
+        ].join(' ').toLowerCase();
+
+        return searchWords.every(word => targetString.includes(word));
+    });
 
     return (
         <div className="min-h-screen bg-background flex flex-col font-sans transition-colors duration-300">

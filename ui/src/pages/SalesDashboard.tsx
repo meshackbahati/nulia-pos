@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCurrency } from '../hooks/useCurrency';
 import api from '../lib/api-client';
+import { useSocket } from '../hooks/useSocket';
 import { DollarSign, TrendingUp, Trophy, Package, LayoutDashboard, LogOut } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 import { useNavigate } from 'react-router-dom';
@@ -33,6 +34,17 @@ export default function SalesDashboard() {
     useEffect(() => {
         fetchData();
     }, []);
+
+    useSocket({
+        'new-sale': (data) => {
+            console.log('💰 Sales Dashboard: New sale detected', data);
+            fetchData();
+        },
+        'inventory-update': () => {
+            console.log('🔄 Sales Dashboard: Inventory updated');
+            fetchData();
+        }
+    });
 
     const fetchData = async () => {
         try {

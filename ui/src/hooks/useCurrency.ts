@@ -1,61 +1,90 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../lib/api-client';
 
 export const useCurrency = (customBranch?: any) => {
     const { user } = useAuth();
-    // Use custom branch if provided, otherwise user's branch
     const branch = customBranch || (user as any)?.branch;
+    
+    const [targetCurrency, setTargetCurrency] = useState(branch?.currency || 'KES');
+    const [exchangeRates, setExchangeRates] = useState<any[]>([]);
+
+    useEffect(() => {
+        fetchRates();
+    }, []);
+
+    const fetchRates = async () => {
+        try {
+            const res = await api.get('/exchange-rates/current');
+            setExchangeRates(res.data.rates || []);
+        } catch (error) {
+            console.error('Error fetching rates:', error);
+        }
+    };
 
     const branchSettings = useMemo(() => {
         if (branch) {
             const code = branch.currency || 'KES';
             const sym = branch.symbol || branch.currencySymbol;
             return {
-                currency: code,
-                symbol: sym || code,
-                exchangeRate: branch.exchangeRate || 1.0
+                baseCurrency: code,
+                baseSymbol: sym || code,
             };
         }
 
-        // Fallback to Global Settings from localStorage (cached by SettingsPage or App)
-        // We will try to read 'globalSettings' if available, otherwise default.
-        try {
-            const stored = localStorage.getItem('globalSettings');
-            if (stored) {
-                const s = JSON.parse(stored);
-                if (s.currency) {
-                    return {
-                        currency: s.currency.base || 'KES',
-                        symbol: s.currency.symbol || 'KSh',
-                        exchangeRate: parseFloat(s.currency.defaultRate) || 1.0
-                    };
-                }
-            }
-        } catch (e) {
-            // ignore
-        }
-
         return {
-            currency: 'KES',
-            symbol: 'KSh', // Default to KSh as requested
-            exchangeRate: 1.0
+            baseCurrency: 'KES',
+            baseSymbol: 'KSh',
         };
     }, [branch]);
 
-    const formatPrice = (amount: number | undefined | null) => {
-        const s = branchSettings.symbol;
-        if (amount === undefined || amount === null || isNaN(amount)) {
-            return `${s} 0.00`;
-        }
-        const separator = s.length > 2 ? ' ' : ''; // Add space for codes like KES, none for $
-        return `${s}${separator}${amount.toLocaleString(undefined, {
+    const getRate = (from: string, to: string) => {
+        if (from === to) return 1;
+        const rateObj = exchangeRates.find(r => r.fromCurrency === from && r.toCurrency === to);
+        if (rateObj) return parseFloat(rateObj.rate);
+        
+        const inverseObj = exchangeRates.find(r => r.fromCurrency === to && r.toCurrency === from);
+        if (inverseObj) return 1 / parseFloat(inverseObj.rate);
+        
+        return 1;
+    };
+
+    const currentRate = useMemo(() => {
+        return getRate(branchSettings.baseCurrency, targetCurrency);
+    }, [branchSettings.baseCurrency, targetCurrency, exchangeRates]);
+
+    const formatPrice = (amount: number | undefined | null, forceCurrency?: string) => {
+        const currencyToUse = forceCurrency || targetCurrency;
+        const rate = forceCurrency ? getRate(branchSettings.baseCurrency, forceCurrency) : currentRate;
+        
+        const convertedAmount = (amount || 0) * rate;
+        
+        // Find symbol for currencyToUse
+        let symbol = currencyToUse;
+        if (currencyToUse === 'KES') symbol = 'KSh';
+        else if (currencyToUse === 'USD') symbol = '$';
+        else if (currencyToUse === 'UGX') symbol = 'USh';
+        else if (currencyToUse === 'TZS') symbol = 'TSh';
+
+        const separator = symbol.length > 1 ? ' ' : '';
+        
+        return `${symbol}${separator}${convertedAmount.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         })}`;
     };
 
+    const convertPrice = (amount: number) => {
+        return amount * currentRate;
+    };
+
     return {
         ...branchSettings,
-        formatPrice
+        targetCurrency,
+        setTargetCurrency,
+        formatPrice,
+        convertPrice,
+        currentRate,
+        exchangeRates
     };
 };

@@ -1,12 +1,17 @@
 import { useState } from 'react';
-import { X, Save, AlertCircle, Package } from 'lucide-react';
+import { X, Save, AlertCircle, Package, Maximize } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
+import BarcodeScanner from './BarcodeScanner';
+import useScanDetection from '../hooks/useScanDetection';
 
 interface Product {
     id: string;
     name: string;
     stockQuantity: number;
+    sku?: string;
+    barcode?: string;
+    barcodes?: string[];
 }
 
 interface RestockModalProps {
@@ -19,6 +24,31 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
     const [quantity, setQuantity] = useState('');
     const [reason, setReason] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showScanner, setShowScanner] = useState(false);
+
+    const handleScan = (scannedBarcode: string) => {
+        // Check if scanned product matches current product
+        const isMatch = product.sku === scannedBarcode || 
+                        product.barcode === scannedBarcode || 
+                        (product.barcodes || []).includes(scannedBarcode);
+
+        if (isMatch) {
+            setQuantity(prev => {
+                const current = parseInt(prev) || 0;
+                return (current + 1).toString();
+            });
+            toast.success(`Incremented ${product.name}`);
+        } else {
+            toast.error('Scanned barcode does not match this product');
+        }
+        setShowScanner(false);
+    };
+
+    useScanDetection({
+        onScan: handleScan,
+        minLength: 3,
+        timeLimit: 50
+    });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -74,7 +104,16 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Addition Quantity</label>
+                        <div className="flex items-center justify-between ml-1">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase">Addition Quantity</label>
+                            <button 
+                                type="button"
+                                onClick={() => setShowScanner(true)}
+                                className="flex items-center gap-1 text-[10px] font-black text-primary uppercase hover:opacity-80 transition-all"
+                            >
+                                <Maximize className="w-3 h-3" /> Use Scanner
+                            </button>
+                        </div>
                         <input
                             type="number"
                             min="1"
@@ -110,6 +149,10 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
                     </div>
                 </form>
             </div>
+
+            {showScanner && (
+                <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
+            )}
         </div>
     );
 }

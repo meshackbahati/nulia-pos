@@ -77,6 +77,13 @@ router.post('/restock', authenticate, async (req, res) => {
         }
 
         await t.commit();
+
+        // Emit real-time update
+        const io = req.app.get('io');
+        if (io) {
+            io.to(`branch-${targetBranchId}`).emit('inventory-update', { branchId: targetBranchId });
+        }
+
         res.json({ success: true });
     } catch (error) {
         await t.rollback();

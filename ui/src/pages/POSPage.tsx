@@ -19,7 +19,8 @@ import {
     History,
     X,
     WifiOff,
-    RefreshCw
+    RefreshCw,
+    ShoppingBag
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCurrency } from '../hooks/useCurrency';
@@ -27,6 +28,7 @@ import { Link } from 'react-router-dom';
 import useScanDetection from '../hooks/useScanDetection';
 import toast from 'react-hot-toast';
 import { db } from '../lib/db';
+import { useSocket } from '../hooks/useSocket';
 
 interface Product {
     id: string;
@@ -39,6 +41,7 @@ interface Product {
     sku: string;
     barcode?: string;
     barcodes: string[];
+    brand?: string;
     lowStockAlert: number;
     variantName?: string;
 }
@@ -158,7 +161,7 @@ function CartContent({ cart, setCart, updateQuantity, formatPrice, subtotal, tot
 export default function POSPage() {
     const [branchData, setBranchData] = useState<any>(null);
     const { user } = useAuth();
-    const { formatPrice } = useCurrency(branchData);
+    const { targetCurrency, setTargetCurrency, formatPrice } = useCurrency(branchData);
     const [products, setProducts] = useState<Product[]>([]);
     const [cart, setCart] = useState<CartItem[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -168,14 +171,29 @@ export default function POSPage() {
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [showReceipt, setShowReceipt] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
-    const [showCart, setShowCart] = useState(false);
-    const [currentSale, setCurrentSale] = useState<any>(null);
-    const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [pendingSync, setPendingSync] = useState(0);
+    const [showCartMobile, setShowCartMobile] = useState(false);
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const [currentSale, setCurrentSale] = useState<any>(null);
+
+    const [tillBalance, setTillBalance] = useState(0);
+
+    useSocket({
+        'inventory-update': () => {
+            console.log('🔄 Inventory update received via Socket');
+            fetchProducts();
+            fetchDashboardStats();
+        },
+        'new-sale': (data) => {
+            console.log('💰 New sale recorded:', data);
+            fetchDashboardStats();
+        }
+    });
 
     useEffect(() => {
         fetchProducts();
         fetchBranchData();
+        fetchDashboardStats();
         checkPendingSync();
 
         // Global focus on search
@@ -212,6 +230,21 @@ export default function POSPage() {
         } catch (error) {
             console.error('Error fetching branch data:', error);
         }
+    };
+
+    const fetchDashboardStats = async () => {
+        try {
+            const response = await api.get('/analytics/dashboard');
+            if (response.data.success) {
+                setTillBalance(response.data.stats.todayRevenue || 0);
+            }
+        } catch (error) {
+            console.error('Error fetching till balance:', error);
+        }
+    };
+
+    const handleCurrencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setTargetCurrency(e.target.value);
     };
 
     const fetchProducts = async () => {
@@ -369,11 +402,23 @@ export default function POSPage() {
     };
 
     const filteredProducts = products.filter(p => {
-        const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.barcode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.barcodes.some(b => b.toLowerCase().includes(searchTerm.toLowerCase()));
+        const searchLower = searchTerm.toLowerCase().trim();
+        if (!searchLower) return selectedCategory === 'All' || p.category === selectedCategory;
+
+        const searchWords = searchLower.split(/\s+/);
+        
+        const targetString = [
+            p.name,
+            p.sku,
+            p.barcode,
+            ...(p.barcodes || []),
+            p.category,
+            p.brand || ''
+        ].join(' ').toLowerCase();
+
+        const matchesSearch = searchWords.every(word => targetString.includes(word));
         const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
+        
         return matchesSearch && matchesCategory;
     });
 
@@ -398,17 +443,32 @@ export default function POSPage() {
             p.id === barcode
         );
 
-        // 2. DB Check (Optimized)
-        if (!product) {
-            const dbProduct = await db.products
-                .where('sku').equals(barcode)
-                .or('barcode').equals(barcode)
-                .or('barcodes').equals(barcode)
-                .first();
-            
-            if (dbProduct) {
-                product = dbProduct as any;
-                setProducts(prev => [...prev, product!]);
+        // 3. Backend Fallback (Deep Search)
+        if (!product && isOnline) {
+            try {
+                const response = await api.get(`/products/search?q=${barcode}`);
+                if (response.data.product) {
+                    const p = response.data.product;
+                    // Mapped format for local state
+                    const mappedProduct: Product = {
+                        id: p.id,
+                        name: p.name,
+                        imageUrl: p.imageUrl,
+                        price: p.basePrice || 0,
+                        stockQty: p.stockQuantity || 0,
+                        category: p.category || 'Uncategorized',
+                        brand: p.brand || '',
+                        sku: p.sku || '',
+                        barcode: p.barcode || '',
+                        barcodes: p.barcodes || [],
+                        lowStockAlert: p.lowStockAlert || 5
+                    };
+                    setProducts(prev => [...prev, mappedProduct]);
+                    await db.products.put(mappedProduct as any);
+                    product = mappedProduct;
+                }
+            } catch (err) {
+                console.error('Barcode lookup failed:', err);
             }
         }
 
@@ -416,28 +476,12 @@ export default function POSPage() {
             addToCart(product);
             toast.success(`Added ${product.name}`);
             setShowScanner(false);
+            setSearchTerm(''); // Clear search after successful scan
             return;
         }
 
-        // 3. Network Fallback
-        if (isOnline) {
-            try {
-                const response = await api.searchProduct(barcode, branchData?.id);
-                if (response.data.product) {
-                    const p = response.data.product;
-                    setProducts(prev => [...prev, p]);
-                    await db.products.put(p);
-                    addToCart(p);
-                    toast.success(`Added ${p.name}`);
-                }
-            } catch (error) {
-                console.error('Scan lookup failed:', error);
-                setSearchTerm(barcode);
-                toast.error('Product not found');
-            }
-        } else {
-            setSearchTerm(barcode);
-            toast.error('Offline: Product not in local catalog');
+        if (!isOnline) {
+            toast.error('Offline: Product not in local catalog', { id: 'barcode-error' });
         }
         setShowScanner(false);
     };
@@ -462,6 +506,27 @@ export default function POSPage() {
                 </div>
 
                 <div className="flex items-center gap-3 lg:gap-5">
+                    {/* Currency Selector */}
+                    <div className="flex flex-col items-end mr-2">
+                        <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">Currency Mode</span>
+                        <select
+                            value={targetCurrency}
+                            onChange={handleCurrencyChange}
+                            className="bg-secondary/50 border-none text-[10px] font-black uppercase tracking-tighter rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-primary transition-all"
+                        >
+                            <option value="KES">KES (Base)</option>
+                            <option value="USD">USD</option>
+                            <option value="UGX">UGX</option>
+                            <option value="TZS">TZS</option>
+                        </select>
+                    </div>
+
+                    {/* Account Balance */}
+                    <div className="hidden md:flex flex-col items-end px-4 py-2 bg-primary/10 rounded-2xl border border-primary/20">
+                        <span className="text-[8px] font-black text-primary uppercase tracking-widest">Till Balance</span>
+                        <span className="text-sm font-black text-foreground">{formatPrice(tillBalance)}</span>
+                    </div>
+
                     {pendingSync > 0 && (
                         <button onClick={syncOfflineSales} className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-xl text-[10px] font-black uppercase animate-pulse">
                             <RefreshCw className="w-3 h-3" /> {pendingSync} Pending
@@ -491,89 +556,99 @@ export default function POSPage() {
                 </div>
             </header>
 
-            <div className="flex-1 flex overflow-hidden">
-                <div className="flex-1 flex flex-col min-w-0 bg-secondary/10">
-                    <div className="flex-none p-4 lg:p-8 space-y-6">
-                        <div className="relative group max-w-3xl mx-auto w-full">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                            <input
-                                id="pos-search-input"
-                                type="text"
-                                placeholder="Universal Search (Barcode, SKU, Name)..."
-                                className="glass-input w-full h-14 pl-12 pr-12 text-sm font-bold shadow-2xl focus:ring-4 focus:ring-primary/20 outline-none"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                inputMode="search"
-                                enterKeyHint="search"
-                            />
-                            <button
-                                onClick={() => setShowScanner(true)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-primary/10 rounded-xl text-primary transition-all"
-                            >
-                                <Maximize className="w-5 h-5" />
-                            </button>
+            {/* Main Content Area: Responsive Grid */}
+            <div className="flex-1 flex overflow-hidden relative">
+                {/* Left Side: Products and Search */}
+                <div className={`flex-1 flex flex-col min-w-0 bg-secondary/5 border-r border-border ${showCartMobile ? 'hidden lg:flex' : 'flex'}`}>
+                    <div className="p-3 lg:p-6 space-y-4 lg:space-y-6">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 lg:p-3 bg-primary/10 rounded-xl lg:rounded-2xl border border-primary/20">
+                                    <ShoppingBag className="w-5 h-5 lg:w-6 lg:h-6 text-primary" />
+                                </div>
+                                <h2 className="text-lg lg:text-2xl font-black text-foreground tracking-tighter uppercase italic">Store<span className="text-primary not-italic">Front</span></h2>
+                            </div>
+                            <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
+                                {['All', ...categories].map(cat => (
+                                    <button
+                                        key={cat}
+                                        onClick={() => setSelectedCategory(cat)}
+                                        className={`px-3 py-1.5 lg:px-5 lg:py-2.5 rounded-lg lg:rounded-xl text-[10px] lg:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedCategory === cat
+                                            ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                                            : 'bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground border border-border'
+                                            }`}
+                                    >
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
-                        <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                            {categories.map(cat => (
-                                <button
-                                    key={cat}
-                                    onClick={() => setSelectedCategory(cat)}
-                                    className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedCategory === cat
-                                        ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-105'
-                                        : 'glass text-muted-foreground hover:bg-secondary'
-                                        }`}
-                                >
-                                    {cat}
-                                </button>
-                            ))}
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
+                                <Search className="w-4 h-4 lg:w-5 lg:h-5" />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Search by name, brand, category, or scan..."
+                                className="w-full h-12 lg:h-16 bg-card border-2 border-border rounded-xl lg:rounded-2xl pl-12 pr-12 lg:pl-14 lg:pr-14 text-sm lg:text-lg font-bold placeholder:text-muted-foreground/30 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-sm"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                            <button 
+                                onClick={() => setShowScanner(true)}
+                                className="absolute inset-y-0 right-4 flex items-center text-muted-foreground hover:text-primary transition-colors"
+                            >
+                                <Maximize className="w-5 h-5 lg:w-6 lg:h-6" />
+                            </button>
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto px-4 lg:px-8 pb-32 lg:pb-8">
+                    {/* Products Grid - Highly Responsive */}
+                    <div className="flex-1 overflow-y-auto p-3 lg:p-6 pt-0">
                         {loading ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8">
-                                {[...Array(8)].map((_, i) => (
-                                    <div key={i} className="aspect-square glass-card animate-pulse rounded-3xl" />
-                                ))}
+                            <div className="h-full flex flex-col items-center justify-center gap-4 animate-in fade-in">
+                                <div className="w-10 h-10 lg:w-12 lg:h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                <p className="text-[10px] lg:text-xs font-black text-muted-foreground uppercase tracking-widest">Indexing Inventory...</p>
                             </div>
                         ) : filteredProducts.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center opacity-20 py-20">
-                                <Package className="w-32 h-32 mb-4" />
-                                <p className="font-black uppercase tracking-widest text-sm">No Results Found</p>
+                            <div className="h-full flex flex-col items-center justify-center text-center p-8">
+                                <div className="w-16 h-16 lg:w-20 lg:h-20 bg-secondary/50 rounded-full flex items-center justify-center mb-4 lg:mb-6">
+                                    <Search className="w-8 h-8 lg:w-10 lg:h-10 text-muted-foreground opacity-20" />
+                                </div>
+                                <h3 className="text-base lg:text-lg font-black text-foreground uppercase tracking-tighter">No items found</h3>
+                                <p className="text-xs lg:text-sm text-muted-foreground mt-2 font-bold max-w-xs">Try adjusting your search filters or scan another barcode.</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 lg:gap-6">
                                 {filteredProducts.map(product => (
                                     <button
                                         key={product.id}
                                         onClick={() => addToCart(product)}
-                                        className="glass-card p-4 flex flex-col group text-left min-h-[350px]"
+                                        className="group bg-card hover:bg-secondary/10 border border-border rounded-xl lg:rounded-2xl p-3 lg:p-5 text-left transition-all hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] relative overflow-hidden"
                                     >
-                                        <div className="aspect-square rounded-[2rem] bg-white overflow-hidden mb-6 relative shadow-inner border border-border/50">
+                                        <div className="absolute top-2 right-2 flex flex-col gap-1 items-end z-10">
+                                            {product.stockQty <= 5 && (
+                                                <span className="px-1.5 py-0.5 bg-destructive/10 text-destructive text-[8px] font-black uppercase rounded-md border border-destructive/20 backdrop-blur-md">Low Stock</span>
+                                            )}
+                                        </div>
+                                        <div className="aspect-square bg-secondary/30 rounded-lg lg:rounded-xl mb-3 lg:mb-4 flex items-center justify-center text-muted-foreground group-hover:scale-105 transition-transform overflow-hidden relative border border-border">
                                             {product.imageUrl ? (
-                                                <img src={product.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                                <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                                             ) : (
-                                                <div className="w-full h-full flex items-center justify-center bg-secondary/30 text-muted-foreground">
-                                                    <Package className="w-16 h-16 opacity-20" />
+                                                <ShoppingBag className="w-6 h-6 lg:w-8 lg:h-8 opacity-20" />
+                                            )}
+                                            {product.category && (
+                                                <div className="absolute bottom-2 left-2 px-1.5 py-0.5 bg-black/60 text-white text-[7px] font-black uppercase rounded-md backdrop-blur-md">
+                                                    {product.category}
                                                 </div>
                                             )}
-                                            <div className="absolute top-4 right-4">
-                                                <span className={`text-[10px] font-black px-3 py-1.5 rounded-xl shadow-2xl uppercase tracking-widest ${product.stockQty <= product.lowStockAlert ? 'bg-destructive text-white' : 'bg-primary text-primary-foreground'}`}>
-                                                    {product.stockQty} IN STOCK
-                                                </span>
-                                            </div>
                                         </div>
-                                        <div className="flex-1 space-y-2">
-                                            <h3 className="font-black text-sm lg:text-base text-foreground uppercase tracking-tight leading-tight group-hover:text-primary transition-colors">
-                                                {product.name}
-                                            </h3>
-                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{product.category}</p>
-                                        </div>
-                                        <div className="mt-6 flex items-center justify-between">
-                                            <span className="text-xl font-black text-primary tracking-tighter">{formatPrice(product.price)}</span>
-                                            <div className="w-10 h-10 rounded-xl bg-foreground text-background flex items-center justify-center shadow-xl group-hover:scale-110 transition-all">
-                                                <Plus className="w-5 h-5" />
+                                        <div className="space-y-1">
+                                            <h3 className="text-[10px] lg:text-xs font-black text-foreground uppercase tracking-tight line-clamp-2 leading-tight group-hover:text-primary transition-colors">{product.name}</h3>
+                                            <div className="flex items-center justify-between mt-2">
+                                                <p className="text-xs lg:text-sm font-black text-primary tracking-tighter">{formatPrice(product.price)}</p>
+                                                <p className="text-[8px] lg:text-[10px] font-bold text-muted-foreground">{product.stockQty} in stock</p>
                                             </div>
                                         </div>
                                     </button>
@@ -583,59 +658,49 @@ export default function POSPage() {
                     </div>
                 </div>
 
-                {/* Sidebar Cart - Desktop */}
-                <div className="hidden lg:flex w-[400px] bg-card/30 backdrop-blur-3xl border-l flex-col shadow-2xl z-20">
-                    <CartContent
-                        cart={cart}
-                        setCart={setCart}
-                        updateQuantity={updateQuantity}
-                        formatPrice={formatPrice}
-                        subtotal={subtotal}
-                        total={total}
-                        setShowPaymentModal={setShowPaymentModal}
-                    />
-                </div>
-            </div>
-
-            {/* Mobile Float Navigation */}
-            <div className="lg:hidden fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 z-40">
-                <button
-                    onClick={() => setShowCart(true)}
-                    className="w-20 h-20 bg-foreground text-background rounded-3xl shadow-2xl flex items-center justify-center relative active:scale-95 transition-all shadow-foreground/30"
-                >
-                    <ShoppingCart className="w-8 h-8" />
-                    {cart.length > 0 && (
-                        <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-[10px] font-black w-7 h-7 rounded-full flex items-center justify-center ring-4 ring-background">
-                            {cart.length}
-                        </span>
-                    )}
-                </button>
-            </div>
-
-            {/* Full Screen Mobile Cart Drawer */}
-            {showCart && (
-                <div className="fixed inset-0 z-[100] lg:hidden animate-in fade-in slide-in-from-bottom-10 duration-500">
-                    <div className="h-full w-full bg-background flex flex-col">
-                        <div className="flex-none h-20 glass border-b flex items-center justify-between px-8">
-                            <div className="flex items-center gap-3">
-                                <ShoppingCart className="text-primary w-5 h-5" />
-                                <h2 className="font-black uppercase tracking-widest text-xs">Ledger Overview</h2>
-                            </div>
-                            <button onClick={() => setShowCart(false)} className="w-12 h-12 bg-secondary/50 rounded-2xl flex items-center justify-center"><X /></button>
+                {/* Right Side: Cart - Responsive */}
+                <div className={`${showCartMobile ? 'flex fixed inset-0 z-[100]' : 'hidden lg:flex'} lg:relative w-full lg:w-[350px] xl:w-[400px] flex-col bg-card shadow-2xl shrink-0 border-l border-border animate-in slide-in-from-right duration-300`}>
+                    <div className="lg:hidden absolute top-4 left-4 z-[110]">
+                        <button onClick={() => setShowCartMobile(false)} className="p-2 bg-secondary rounded-full shadow-lg">
+                            <X className="w-6 h-6" />
+                        </button>
+                    </div>
+                    
+                    <div className="p-4 lg:p-6 border-b border-border bg-secondary/5">
+                        <div className="flex items-center justify-between mb-2">
+                            <h2 className="text-lg lg:text-xl font-black text-foreground tracking-tighter uppercase italic">Current<span className="text-primary not-italic">Cart</span></h2>
+                            <span className="px-2 py-1 bg-primary text-primary-foreground text-[10px] font-black rounded-lg">{cart.length} ITEMS</span>
                         </div>
-                        <div className="flex-1 overflow-hidden">
-                            <CartContent
-                                cart={cart}
-                                setCart={setCart}
-                                updateQuantity={updateQuantity}
-                                formatPrice={formatPrice}
-                                subtotal={subtotal}
-                                total={total}
-                                setShowPaymentModal={setShowPaymentModal}
-                            />
-                        </div>
+                        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Transaction: {branchData?.id?.substring(0, 8)}</p>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto">
+                        <CartContent
+                            cart={cart}
+                            setCart={setCart}
+                            updateQuantity={updateQuantity}
+                            formatPrice={formatPrice}
+                            subtotal={subtotal}
+                            total={total}
+                            setShowPaymentModal={setShowPaymentModal}
+                        />
                     </div>
                 </div>
+            </div>
+
+            {/* Mobile Cart Floating Button */}
+            {!showCartMobile && cart.length > 0 && (
+                <button
+                    onClick={() => setShowCartMobile(true)}
+                    className="lg:hidden fixed bottom-6 right-6 w-16 h-16 bg-primary text-primary-foreground rounded-full shadow-2xl shadow-primary/40 flex items-center justify-center z-50 animate-bounce active:scale-95"
+                >
+                    <div className="relative">
+                        <ShoppingBag className="w-7 h-7" />
+                        <span className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground text-[10px] font-black px-1.5 py-0.5 rounded-full border-2 border-primary">
+                            {cart.length}
+                        </span>
+                    </div>
+                </button>
             )}
 
             {/* Modals */}

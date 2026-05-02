@@ -37,18 +37,31 @@ ipcMain.handle('print-receipt', async (event, options = {}) => {
   if (!mainWindow) return { success: false, error: 'No active window' };
 
   try {
-    // List available printers for debugging or selection
     const printers = await mainWindow.webContents.getPrintersAsync();
     
-    // We can filter for 'Thermal' or a specific name if provided in settings
-    const targetPrinter = options.printerName || printers.find(p => p.name.toLowerCase().includes('thermal'))?.name;
+    // Improved printer selection: logic to find the best match or use specified
+    let targetPrinter = options.printerName;
+    if (!targetPrinter) {
+      const thermalPrinter = printers.find(p => 
+        p.name.toLowerCase().includes('thermal') || 
+        p.name.toLowerCase().includes('pos') ||
+        p.name.toLowerCase().includes('58mm') ||
+        p.name.toLowerCase().includes('80mm')
+      );
+      targetPrinter = thermalPrinter?.name;
+    }
+
+    console.log(`[PRINT] Attempting to print to: ${targetPrinter || 'Default Printer'}`);
 
     await mainWindow.webContents.print({
-      silent: true, // Bypass dialog
+      silent: true,
       printBackground: true,
       deviceName: targetPrinter,
-      margins: { marginType: 'none' }, // Critical for 58mm/80mm rolls
-      pageSize: { width: 58000, height: 200000 }, // Standard 58mm roll (height is large to allow auto-cut)
+      margins: { 
+        marginType: 'custom',
+        top: 0, bottom: 0, left: 0, right: 0 
+      },
+      pageSize: options.pageSize || { width: 58000, height: 200000 },
       ...options
     });
 

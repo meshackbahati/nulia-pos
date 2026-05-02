@@ -17,7 +17,7 @@ interface ProductModalProps {
 export default function ProductModal({ product, onClose, onSuccess }: ProductModalProps) {
     const isEdit = !!product;
     const { user } = useAuth();
-    const { symbol } = useCurrency();
+    const { baseSymbol: symbol } = useCurrency();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [branches, setBranches] = useState<any[]>([]);
     const [formData, setFormData] = useState({

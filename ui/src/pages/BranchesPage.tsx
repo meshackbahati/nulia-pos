@@ -23,7 +23,7 @@ interface Branch {
 }
 
 export default function BranchesPage() {
-    const { currency: defaultCurrency } = useCurrency();
+    const { baseCurrency: defaultCurrency } = useCurrency();
     const { showConfirm } = useModal();
     const [branches, setBranches] = useState<Branch[]>([]);
     const [loading, setLoading] = useState(true);

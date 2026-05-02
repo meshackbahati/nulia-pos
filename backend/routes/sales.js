@@ -245,8 +245,16 @@ router.post('/create', authenticate, async (req, res) => {
 
         await transaction.commit();
 
+        // Emit real-time update
+        const io = req.app.get('io');
+        if (io) {
+            io.to(`branch-${branchId}`).emit('inventory-update', { branchId });
+            io.to(`branch-${branchId}`).emit('new-sale', { saleId: sale.id, receiptId: sale.receiptId });
+        }
+
         res.status(201).json({
             success: true,
+            sale: sale, // Include full sale object for UI
             saleId: sale.id,
             receiptId: sale.receiptId,
             totalAmount: finalTotal

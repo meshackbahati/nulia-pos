@@ -182,6 +182,13 @@ router.post('/import-csv', authenticate, authorize('head_of_sales'), upload.sing
         }, { transaction: t });
 
         await t.commit();
+
+        // Emit real-time update
+        const io = req.app.get('io');
+        if (io) {
+            io.to(`branch-${targetBranchId}`).emit('inventory-update', { branchId: targetBranchId });
+        }
+
         res.json({ success: true, results });
     } catch (error) {
         await t.rollback();
@@ -355,6 +362,13 @@ router.post('/create', authenticate, authorize('head_of_sales'), async (req, res
         }
 
         await t.commit();
+
+        // Emit real-time update
+        const io = req.app.get('io');
+        if (io) {
+            io.to(`branch-${targetBranchId}`).emit('inventory-update', { branchId: targetBranchId });
+        }
+
         res.json({ success: true, product });
     } catch (error) {
         await t.rollback();
@@ -374,6 +388,14 @@ router.put('/update/:id', authenticate, authorize('head_of_sales'), async (req, 
         if (!product) return res.status(404).json({ error: 'Product not found' });
 
         await product.update(req.body);
+
+        // Emit real-time update
+        const io = req.app.get('io');
+        if (io) {
+            // Find which branches this product belongs to (simplification: emit to all if not scoped)
+            io.emit('product-update', { productId: id });
+        }
+
         res.json({ success: true, product });
     } catch (error) {
         console.error('Update product error:', error);
@@ -392,6 +414,13 @@ router.delete('/delete/:id', authenticate, authorize('head_of_sales'), async (re
         if (!product) return res.status(404).json({ error: 'Product not found' });
 
         await product.update({ isActive: false });
+
+        // Emit real-time update
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('product-update', { productId: id, deleted: true });
+        }
+
         res.json({ success: true });
     } catch (error) {
         console.error('Delete product error:', error);

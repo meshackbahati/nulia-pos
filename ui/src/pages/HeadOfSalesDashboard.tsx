@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import api from '../lib/api-client';
 import { useCurrency } from '../hooks/useCurrency';
+import { useSocket } from '../hooks/useSocket';
 import {
     Users,
     TrendingUp,
@@ -39,6 +40,17 @@ export default function HeadOfSalesDashboard() {
     useEffect(() => {
         fetchData();
     }, []);
+
+    useSocket({
+        'new-sale': () => {
+            console.log('📈 Head of Sales: New sale detected');
+            fetchData();
+        },
+        'inventory-update': () => {
+            console.log('🔄 Head of Sales: Inventory updated');
+            fetchData();
+        }
+    });
 
     const fetchData = async () => {
         try {
