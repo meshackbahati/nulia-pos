@@ -26,12 +26,12 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
     const [loading, setLoading] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
 
-    const handleScan = (scannedBarcode: string) => {
+    const handleScan = async (scannedBarcode: string) => {
         // Check if scanned product matches current product
         const isMatch = product.sku === scannedBarcode || 
                         product.barcode === scannedBarcode || 
                         (product.barcodes || []).includes(scannedBarcode);
-
+        
         if (isMatch) {
             setQuantity(prev => {
                 const current = parseInt(prev) || 0;
@@ -39,7 +39,18 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
             });
             toast.success(`Incremented ${product.name}`);
         } else {
-            toast.error('Scanned barcode does not match this product');
+            // If it doesn't match, maybe they want to bind this barcode to the product?
+            if (window.confirm(`Scanned barcode (${scannedBarcode}) is not linked to ${product.name}. Link it now?`)) {
+                try {
+                    await api.post(`/products/${product.id}/barcodes`, { barcode: scannedBarcode });
+                    toast.success('Barcode linked to product');
+                    // Update local state if needed (or just let parent refresh)
+                    product.barcodes = [...(product.barcodes || []), scannedBarcode];
+                    setQuantity(prev => (parseInt(prev) || 0 + 1).toString());
+                } catch (error) {
+                    toast.error('Failed to link barcode');
+                }
+            }
         }
         setShowScanner(false);
     };
@@ -103,27 +114,39 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between ml-1">
-                            <label className="text-[10px] font-bold text-muted-foreground uppercase">Addition Quantity</label>
-                            <button 
-                                type="button"
-                                onClick={() => setShowScanner(true)}
-                                className="flex items-center gap-1 text-[10px] font-black text-primary uppercase hover:opacity-80 transition-all"
-                            >
-                                <Maximize className="w-3 h-3" /> Use Scanner
-                            </button>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Inventory Input</label>
+                            <div className="flex gap-2">
+                                <button 
+                                    type="button"
+                                    onClick={() => setShowScanner(true)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-[10px] font-black uppercase hover:bg-primary/20 transition-all shadow-sm ring-1 ring-inset ring-primary/20"
+                                >
+                                    <Maximize className="w-3 h-3" /> External HID
+                                </button>
+                                {!product.barcode && (
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowScanner(true)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-600 rounded-lg text-[10px] font-black uppercase hover:bg-emerald-500/20 transition-all shadow-sm ring-1 ring-inset ring-emerald-500/20"
+                                    >
+                                        <Maximize className="w-3 h-3" /> Capture Barcode
+                                    </button>
+                                )}
+                            </div>
                         </div>
                         <input
                             type="number"
                             min="1"
                             required
-                            className="w-full h-14 rounded-xl border border-input bg-background px-4 text-center text-2xl font-bold text-foreground placeholder-muted-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
+                            className="w-full h-20 rounded-2xl border-2 border-primary/20 bg-primary/5 px-4 text-center text-4xl font-black text-primary placeholder:text-primary/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/10 transition-all shadow-inner"
                             value={quantity}
                             onChange={(e) => setQuantity(e.target.value)}
                             placeholder="0"
                             autoFocus
                         />
+                        <p className="text-[10px] text-center text-muted-foreground font-bold uppercase italic opacity-60">Scanning with HID will automatically increment count</p>
                     </div>
 
                     <div className="space-y-2">

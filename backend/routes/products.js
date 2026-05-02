@@ -600,4 +600,51 @@ router.get('/barcode/:barcode', authenticate, async (req, res) => {
     }
 });
 
+// Bind a new barcode to a product
+router.post('/:id/barcodes', authenticate, authorize('salesperson'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { barcode } = req.body;
+
+        if (!barcode) return res.status(400).json({ error: 'Barcode is required' });
+
+        const product = await models.Product.findByPk(id);
+        if (!product) return res.status(404).json({ error: 'Product not found' });
+
+        const currentBarcodes = product.barcodes || [];
+        if (currentBarcodes.includes(barcode) || product.barcode === barcode) {
+            return res.json({ success: true, message: 'Barcode already linked' });
+        }
+
+        // Check if this barcode belongs to another product
+        const existing = await models.Product.findOne({
+            where: {
+                [Op.or]: [
+                    { barcode: barcode },
+                    { barcodes: { [Op.contains]: [barcode] } }
+                ],
+                id: { [Op.ne]: id },
+                isActive: true
+            }
+        });
+
+        if (existing) {
+            return res.status(400).json({ error: `Barcode already belongs to ${existing.name}` });
+        }
+
+        await product.update({
+            barcodes: [...currentBarcodes, barcode]
+        });
+
+        // Emit update
+        const io = req.app.get('io');
+        if (io) io.emit('product-update', { productId: id });
+
+        res.json({ success: true, barcodes: product.barcodes });
+    } catch (error) {
+        console.error('Bind barcode error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;

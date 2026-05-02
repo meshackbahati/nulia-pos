@@ -81,10 +81,23 @@ export default function SuppliersPage() {
         }
     };
 
-    const filteredSuppliers = suppliers.filter(s =>
-        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.contactPerson?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredSuppliers = suppliers.filter(s => {
+        const searchLower = searchTerm.toLowerCase().trim();
+        if (!searchLower) return true;
+
+        const searchWords = searchLower.split(/\s+/).filter(Boolean);
+        const searchableFields = [
+            s.name || '',
+            s.contactPerson || '',
+            s.email || '',
+            s.phone || '',
+            s.address || ''
+        ].map(f => f.toLowerCase());
+
+        return searchWords.every(word => 
+            searchableFields.some(field => field.includes(word))
+        );
+    });
 
     return (
         <div className="min-h-screen bg-background flex flex-col font-sans transition-colors duration-300">

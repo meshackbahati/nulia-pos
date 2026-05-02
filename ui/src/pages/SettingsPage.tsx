@@ -244,32 +244,44 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                             <div className="glass-card p-6 space-y-6">
-                                <div className="flex gap-4 items-end">
-                                    <div className="flex-1 grid grid-cols-3 gap-4">
-                                        <div className="space-y-1">
-                                            <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">From</label>
-                                            <select className="glass-input h-10 w-full px-3 text-xs font-bold" value={newRate.from} onChange={(e) => setNewRate({ ...newRate, from: e.target.value })}>
-                                                <option value="USD">USD</option>
-                                                <option value="KES">KES</option>
-                                                <option value="UGX">UGX</option>
-                                                <option value="TZS">TZS</option>
-                                            </select>
+                                <div className="flex flex-col gap-6">
+                                    <div className="flex gap-4 items-end">
+                                        <div className="flex-1 grid grid-cols-3 gap-4">
+                                            <div className="space-y-1">
+                                                <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Reference Currency (Base)</label>
+                                                <select className="glass-input h-10 w-full px-3 text-xs font-bold" value={newRate.from} onChange={(e) => setNewRate({ ...newRate, from: e.target.value })}>
+                                                    <option value="USD">USD</option>
+                                                    <option value="KES">KES</option>
+                                                    <option value="UGX">UGX</option>
+                                                    <option value="TZS">TZS</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Target Currency</label>
+                                                <select className="glass-input h-10 w-full px-3 text-xs font-bold" value={newRate.to} onChange={(e) => setNewRate({ ...newRate, to: e.target.value })}>
+                                                    <option value="KES">KES</option>
+                                                    <option value="USD">USD</option>
+                                                    <option value="UGX">UGX</option>
+                                                    <option value="TZS">TZS</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Exchange Rate Value</label>
+                                                <input type="number" step="0.0001" className="glass-input h-10 w-full px-3 text-xs font-bold" value={newRate.rate} onChange={(e) => setNewRate({ ...newRate, rate: e.target.value })} placeholder="e.g. 30.00" />
+                                            </div>
                                         </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">To</label>
-                                            <select className="glass-input h-10 w-full px-3 text-xs font-bold" value={newRate.to} onChange={(e) => setNewRate({ ...newRate, to: e.target.value })}>
-                                                <option value="KES">KES</option>
-                                                <option value="USD">USD</option>
-                                                <option value="UGX">UGX</option>
-                                                <option value="TZS">TZS</option>
-                                            </select>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Rate</label>
-                                            <input type="number" step="0.0001" className="glass-input h-10 w-full px-3 text-xs font-bold" value={newRate.rate} onChange={(e) => setNewRate({ ...newRate, rate: e.target.value })} />
-                                        </div>
+                                        <button type="button" onClick={handleAddRate} className="h-10 px-4 bg-primary text-primary-foreground rounded-xl font-bold text-[10px] uppercase">Authorize</button>
                                     </div>
-                                    <button type="button" onClick={handleAddRate} className="h-10 px-4 bg-primary text-primary-foreground rounded-xl font-bold text-[10px] uppercase">Update</button>
+                                    
+                                    {newRate.rate && (
+                                        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                                            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest text-center">
+                                                Preview: 1 {newRate.from} = {newRate.rate} {newRate.to} 
+                                                <span className="mx-2 opacity-30">|</span> 
+                                                5000 {newRate.from} = {(5000 * parseFloat(newRate.rate)).toLocaleString()} {newRate.to}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="space-y-2 max-h-[150px] overflow-y-auto scrollbar-hide pr-2">

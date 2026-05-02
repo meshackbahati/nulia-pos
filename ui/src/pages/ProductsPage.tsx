@@ -132,18 +132,24 @@ export default function ProductsPage() {
         const searchLower = searchTerm.toLowerCase().trim();
         if (!searchLower) return true;
 
-        const searchWords = searchLower.split(/\s+/);
+        // Split search into individual tokens
+        const searchWords = searchLower.split(/\s+/).filter(Boolean);
         
-        const targetString = [
-            p.name,
-            p.sku,
-            p.barcode,
+        // Build a comprehensive search string for this product
+        const searchableFields = [
+            p.name || '',
+            p.sku || '',
+            p.barcode || '',
             ...(p.barcodes || []),
-            p.category,
-            p.brand || ''
-        ].join(' ').toLowerCase();
+            p.category || '',
+            p.brand || '',
+            p.description || ''
+        ].map(f => f.toLowerCase());
 
-        return searchWords.every(word => targetString.includes(word));
+        // Check if EVERY search word is found in AT LEAST ONE field
+        return searchWords.every(word => 
+            searchableFields.some(field => field.includes(word))
+        );
     });
 
     return (
