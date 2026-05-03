@@ -466,8 +466,8 @@ router.get('/search', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'Search query is required' });
         }
 
-        // Search for exact match in barcode, sku, or barcodes array
-        const product = await models.Product.findOne({
+        // 1. Try Exact match first (Barcode, SKU)
+        const exactProduct = await models.Product.findOne({
             where: {
                 [Op.or]: [
                     { barcode: q },
@@ -492,29 +492,81 @@ router.get('/search', authenticate, async (req, res) => {
             ],
         });
 
-        if (product) {
-            // Format for UI consistency
-            const inventory = product.inventory?.[0];
+        if (exactProduct) {
+            const inventory = exactProduct.inventory?.[0];
             const formatted = {
-                id: product.id,
-                name: product.name,
-                description: product.description,
-                category: product.category,
-                brand: product.brand,
-                basePrice: parseFloat(product.basePrice.toString()),
-                costPrice: parseFloat(product.costPrice.toString()),
-                sku: product.sku,
-                barcode: product.barcode,
-                barcodes: product.barcodes || [],
-                imageUrl: product.imageUrl,
+                id: exactProduct.id,
+                name: exactProduct.name,
+                description: exactProduct.description,
+                category: exactProduct.category,
+                brand: exactProduct.brand,
+                basePrice: parseFloat(exactProduct.basePrice.toString()),
+                costPrice: parseFloat(exactProduct.costPrice.toString()),
+                sku: exactProduct.sku,
+                barcode: exactProduct.barcode,
+                barcodes: exactProduct.barcodes || [],
+                imageUrl: exactProduct.imageUrl,
                 stockQuantity: inventory ? inventory.quantity : 0,
                 minStockLevel: inventory ? inventory.minStockLevel : 0,
-                variants: product.variants || [],
+                variants: exactProduct.variants || [],
             };
-            return res.json({ product: formatted });
+            return res.json({ product: formatted, success: true });
         }
 
-        // Try variants if no main product found
+        // 2. Fuzzy Search by name, brand, or category
+        const fuzzyProducts = await models.Product.findAll({
+            where: {
+                [Op.and]: [
+                    { isActive: true },
+                    {
+                        [Op.or]: [
+                            { name: { [Op.iLike]: `%${q}%` } },
+                            { brand: { [Op.iLike]: `%${q}%` } },
+                            { category: { [Op.iLike]: `%${q}%` } },
+                            { sku: { [Op.iLike]: `%${q}%` } }
+                        ]
+                    }
+                ]
+            },
+            include: [
+                {
+                    model: models.Inventory,
+                    as: 'inventory',
+                    where: targetBranchId ? { branchId: targetBranchId } : {},
+                    required: false,
+                }
+            ],
+            limit: 20
+        });
+
+        if (fuzzyProducts.length > 0) {
+            const formatted = fuzzyProducts.map(p => {
+                const inventory = p.inventory?.[0];
+                return {
+                    id: p.id,
+                    name: p.name,
+                    description: p.description,
+                    category: p.category,
+                    brand: p.brand,
+                    basePrice: parseFloat(p.basePrice.toString()),
+                    costPrice: parseFloat(p.costPrice.toString()),
+                    sku: p.sku,
+                    barcode: p.barcode,
+                    barcodes: p.barcodes || [],
+                    imageUrl: p.imageUrl,
+                    stockQuantity: inventory ? inventory.quantity : 0,
+                    minStockLevel: inventory ? inventory.minStockLevel : 0,
+                };
+            });
+            // Return both single 'product' (for compat) and 'products' list
+            return res.json({
+                product: formatted[0],
+                products: formatted,
+                success: true
+            });
+        }
+
+        // 3. Try variants
         const variant = await models.ProductVariant.findOne({
             where: {
                 [Op.or]: [
@@ -533,7 +585,7 @@ router.get('/search', authenticate, async (req, res) => {
         });
 
         if (variant) {
-            return res.json({ variant });
+            return res.json({ variant, success: true });
         }
 
         res.status(404).json({ error: 'Product not found' });

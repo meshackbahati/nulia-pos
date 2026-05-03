@@ -406,33 +406,30 @@ export default function POSPage() {
 
     const filteredProducts = products.filter(p => {
         const searchLower = searchTerm.toLowerCase().trim();
-        if (!searchLower) return selectedCategory === 'All' || p.category === selectedCategory;
-
-        // Split search into individual tokens
-        const searchWords = searchLower.split(/\s+/).filter(Boolean);
         
-        // Build a comprehensive search string for this product
-        const searchableFields = [
-            p.name || '',
-            p.sku || '',
-            p.barcode || '',
-            ...(p.barcodes || []),
-            p.category || '',
-            p.brand || '',
-            p.description || ''
-        ].map(f => f.toLowerCase());
+        // If there is a search term, ignore the category filter (matches ProductsPage behavior)
+        if (searchLower) {
+            const searchWords = searchLower.split(/\s+/).filter(Boolean);
+            const searchableFields = [
+                p.name || '',
+                p.sku || '',
+                p.barcode || '',
+                ...(p.barcodes || []),
+                p.category || '',
+                p.brand || '',
+                p.description || ''
+            ].map(f => f.toLowerCase());
 
-        // Check if EVERY search word is found in AT LEAST ONE field
-        const matchesSearch = searchWords.every(word => 
-            searchableFields.some(field => field.includes(word))
-        );
+            return searchWords.every(word =>
+                searchableFields.some(field => field.includes(word))
+            );
+        }
 
-        const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
-        
-        return matchesSearch && matchesCategory;
+        // If no search term, filter by category
+        return selectedCategory === 'All' || p.category === selectedCategory;
     });
 
-    const categories = ['All', ...new Set(products.map(p => p.category))];
+    const categories = Array.from(new Set(products.map(p => p.category))).filter(Boolean);
 
     useScanDetection({
         onScan: (barcode) => {
@@ -599,6 +596,7 @@ export default function POSPage() {
                                 <Search className="w-4 h-4 lg:w-5 lg:h-5" />
                             </div>
                             <input
+                                id="pos-search-input"
                                 type="text"
                                 placeholder="Search by name, brand, category, or scan..."
                                 className="w-full h-12 lg:h-16 bg-card border-2 border-border rounded-xl lg:rounded-2xl pl-12 pr-12 lg:pl-14 lg:pr-14 text-sm lg:text-lg font-bold placeholder:text-muted-foreground/30 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-sm"
