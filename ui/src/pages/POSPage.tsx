@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../lib/api-client';
 import PaymentModal from '../components/PaymentModal';
 import ReceiptModal from '../components/ReceiptModal';
+import BargainModal from '../components/BargainModal';
 import BarcodeScanner from '../components/BarcodeScanner';
 import ThemeToggle from '../components/ThemeToggle';
 import TransactionHistoryModal from '../components/TransactionHistoryModal';
@@ -24,7 +25,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCurrency } from '../hooks/useCurrency';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import useScanDetection from '../hooks/useScanDetection';
 import toast from 'react-hot-toast';
 import { db } from '../lib/db';
@@ -69,9 +70,10 @@ interface CartContentProps {
     subtotal: number;
     total: number;
     setShowPaymentModal: (show: boolean) => void;
+    onBargain: (item: CartItem) => void;
 }
 
-function CartContent({ cart, setCart, updateQuantity, updatePrice, resetPrice, formatPrice, subtotal, total, setShowPaymentModal }: CartContentProps) {
+function CartContent({ cart, setCart, updateQuantity, updatePrice, resetPrice, formatPrice, subtotal, total, setShowPaymentModal, onBargain }: CartContentProps) {
     return (
         <div className="flex flex-col h-full overflow-hidden">
             <div className="p-6 border-b flex items-center justify-between">
@@ -140,16 +142,7 @@ function CartContent({ cart, setCart, updateQuantity, updatePrice, resetPrice, f
                                     </div>
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <button
-                                            onClick={() => {
-                                                const nextPrice = window.prompt('Enter negotiated unit price', item.price.toFixed(2));
-                                                if (nextPrice === null) return;
-                                                const parsed = parseFloat(nextPrice);
-                                                if (Number.isNaN(parsed) || parsed < 0) {
-                                                    toast.error('Invalid negotiated price');
-                                                    return;
-                                                }
-                                                updatePrice(item.product_id, item.variant_id || null, parsed);
-                                            }}
+                                            onClick={() => onBargain(item)}
                                             className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[9px] font-black uppercase tracking-wider hover:bg-primary/20 transition-all"
                                         >
                                             Bargain
@@ -200,6 +193,7 @@ function CartContent({ cart, setCart, updateQuantity, updatePrice, resetPrice, f
 export default function POSPage() {
     const [branchData, setBranchData] = useState<any>(null);
     const { user } = useAuth();
+    const navigate = useNavigate();
     const { targetCurrency, setTargetCurrency, formatPrice } = useCurrency(branchData);
     const [products, setProducts] = useState<Product[]>([]);
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -208,6 +202,8 @@ export default function POSPage() {
     const [loading, setLoading] = useState(true);
     const [showScanner, setShowScanner] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [showBargainModal, setShowBargainModal] = useState(false);
+    const [bargainItem, setBargainItem] = useState<CartItem | null>(null);
     const [showReceipt, setShowReceipt] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [pendingSync, setPendingSync] = useState(0);
@@ -553,12 +549,14 @@ export default function POSPage() {
         setShowScanner(false);
     };
 
+    const homePath = user?.role === 'salesperson' ? '/sales-dashboard' : '/dashboard';
+
     return (
         <div className="h-full bg-background flex flex-col overflow-hidden font-body transition-colors duration-500">
             {/* Header - Glassmorphism */}
             <header className="flex-none h-20 glass border-b px-4 lg:px-8 flex items-center justify-between z-30 sticky top-0">
                 <div className="flex items-center gap-4 lg:gap-6">
-                    <Link to="/dashboard" className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-xl shadow-primary/20 hover:scale-105 transition-all group">
+                    <Link to={homePath} className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-xl shadow-primary/20 hover:scale-105 transition-all group">
                         <Store className="w-6 h-6 group-hover:rotate-12 transition-transform" />
                     </Link>
                     <div className="min-w-0">
@@ -615,10 +613,12 @@ export default function POSPage() {
                         <ThemeToggle />
                     </div>
                     <button
-                        onClick={() => window.location.href = '/dashboard'}
-                        className="p-3 bg-destructive/10 text-destructive hover:bg-destructive hover:text-white rounded-2xl transition-all"
+                        onClick={() => navigate(homePath)}
+                        className="p-3 bg-destructive/10 text-destructive hover:bg-destructive hover:text-white rounded-2xl transition-all flex items-center gap-2 group"
+                        title="Exit Terminal"
                     >
                         <LogOut className="w-5 h-5" />
+                        <span className="text-[10px] font-black uppercase tracking-wider hidden lg:inline">Exit</span>
                     </button>
                 </div>
             </header>
@@ -734,7 +734,7 @@ export default function POSPage() {
                         </button>
                     </div>
                     
-                    <div className="p-4 lg:p-6 border-b border-border bg-secondary/5">
+                    <div className="flex-none p-4 lg:p-6 border-b border-border bg-secondary/5">
                         <div className="flex items-center justify-between mb-2">
                             <h2 className="text-lg lg:text-xl font-black text-foreground tracking-tighter uppercase italic">Current<span className="text-primary not-italic">Cart</span></h2>
                             <span className="px-2 py-1 bg-primary text-primary-foreground text-[10px] font-black rounded-lg">{cart.length} ITEMS</span>
@@ -742,7 +742,7 @@ export default function POSPage() {
                         <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Transaction: {branchData?.id?.substring(0, 8)}</p>
                     </div>
                     
-                    <div className="flex-1 overflow-y-auto">
+                    <div className="flex-1 min-h-0">
                         <CartContent
                             cart={cart}
                             setCart={setCart}
@@ -753,6 +753,10 @@ export default function POSPage() {
                             subtotal={subtotal}
                             total={total}
                             setShowPaymentModal={setShowPaymentModal}
+                            onBargain={(item) => {
+                                setBargainItem(item);
+                                setShowBargainModal(true);
+                            }}
                         />
                     </div>
                 </div>
@@ -797,6 +801,23 @@ export default function POSPage() {
                     branchConfig={branchData}
                     onComplete={onPaymentComplete}
                     onClose={() => setShowPaymentModal(false)}
+                />
+            )}
+
+            {showBargainModal && bargainItem && (
+                <BargainModal
+                    isOpen={showBargainModal}
+                    onClose={() => {
+                        setShowBargainModal(false);
+                        setBargainItem(null);
+                    }}
+                    onConfirm={(nextPrice) => {
+                        updatePrice(bargainItem.product_id, bargainItem.variant_id || null, nextPrice);
+                    }}
+                    currentPrice={bargainItem.price}
+                    catalogPrice={bargainItem.catalogPrice}
+                    productName={bargainItem.name}
+                    formatPrice={formatPrice}
                 />
             )}
 

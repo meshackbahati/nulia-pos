@@ -79,7 +79,7 @@ export default function Layout({ children }: LayoutProps) {
                 className={`fixed lg:relative top-0 left-0 z-[110] h-full glass border-r border-white/10 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
                     } ${isCollapsed ? 'lg:w-20' : 'lg:w-72'}`}
             >
-                <div className="h-full flex flex-col p-4 lg:p-6 relative overflow-y-auto overflow-x-hidden">
+                <div className="h-full flex flex-col p-4 lg:p-6 relative overflow-hidden">
                     {/* Desktop Collapse Toggle - Floating Bridge */}
                     <button 
                         onClick={() => setIsCollapsed(!isCollapsed)}
@@ -89,7 +89,7 @@ export default function Layout({ children }: LayoutProps) {
                     </button>
 
                     {/* Header: Brand Node - High Contrast */}
-                    <div className="flex items-center justify-between mb-8 lg:mb-12 overflow-hidden px-1">
+                    <div className="flex-none flex items-center justify-between mb-8 lg:mb-12 overflow-hidden px-1">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 lg:w-12 lg:h-12 bg-primary rounded-xl lg:rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/40 shrink-0 border border-white/30">
                                 <Store className="w-5 h-5 lg:w-6 lg:h-6 text-primary-foreground" />
@@ -110,7 +110,7 @@ export default function Layout({ children }: LayoutProps) {
                     </div>
 
                     {/* Navigation Arena */}
-                    <nav className="flex-1 space-y-2 px-0.5">
+                    <nav className="flex-1 space-y-2 px-0.5 overflow-y-auto scrollbar-hide">
                         {filteredMenu.map((item) => {
                             const isActive = location.pathname === item.path;
                             return (
@@ -134,7 +134,7 @@ export default function Layout({ children }: LayoutProps) {
                     </nav>
 
                     {/* User Node Status */}
-                    <div className="mt-auto pt-6 lg:pt-8 border-t border-white/10 overflow-hidden">
+                    <div className="flex-none mt-auto pt-6 lg:pt-8 border-t border-white/10 overflow-hidden">
                         <div className={`glass-card p-3 lg:p-4 flex items-center gap-3 lg:gap-4 mb-4 lg:mb-6 border-white/5 ${isCollapsed ? 'justify-center' : ''}`}>
                             <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg lg:rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 shrink-0">
                                 <ShieldCheck className="w-4 h-4 lg:w-5 lg:h-5" />
