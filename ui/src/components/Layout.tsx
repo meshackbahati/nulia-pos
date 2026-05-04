@@ -24,9 +24,10 @@ import BranchSelector from './BranchSelector';
 interface LayoutProps {
     children: React.ReactNode;
     role?: 'manager' | 'admin' | 'sales' | 'all';
+    noScroll?: boolean;
 }
 
-export default function Layout({ children }: LayoutProps) {
+export default function Layout({ children, noScroll = false }: LayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const location = useLocation();
@@ -190,7 +191,7 @@ export default function Layout({ children }: LayoutProps) {
                 </header>
 
                 {/* Main Content Node */}
-                <main className="flex-1 p-4 lg:p-10 max-w-[1920px] mx-auto w-full animate-in fade-in duration-1000 overflow-y-auto">
+                <main className={`flex-1 ${noScroll ? 'overflow-hidden' : 'p-4 lg:p-10 max-w-[1920px] mx-auto w-full animate-in fade-in duration-1000 overflow-y-auto'}`}>
                     {children}
                 </main>
             </div>

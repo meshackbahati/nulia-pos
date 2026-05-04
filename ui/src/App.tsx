@@ -189,7 +189,7 @@ function App() {
             {/* Shared Routes */}
             <Route path="/pos" element={
               <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales', 'salesperson']}>
-                <POSPage />
+                <Layout noScroll><POSPage /></Layout>
               </ProtectedRoute>
             } />
 

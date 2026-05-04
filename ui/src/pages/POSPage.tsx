@@ -4,14 +4,11 @@ import PaymentModal from '../components/PaymentModal';
 import ReceiptModal from '../components/ReceiptModal';
 import BargainModal from '../components/BargainModal';
 import BarcodeScanner from '../components/BarcodeScanner';
-import ThemeToggle from '../components/ThemeToggle';
 import TransactionHistoryModal from '../components/TransactionHistoryModal';
 import {
     Plus,
     ShoppingCart,
     Search,
-    Store,
-    LogOut,
     Maximize,
     Package,
     Trash2,
@@ -19,13 +16,11 @@ import {
     CreditCard,
     History,
     X,
-    WifiOff,
     RefreshCw,
     ShoppingBag
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCurrency } from '../hooks/useCurrency';
-import { Link, useNavigate } from 'react-router-dom';
 import useScanDetection from '../hooks/useScanDetection';
 import toast from 'react-hot-toast';
 import { db } from '../lib/db';
@@ -74,13 +69,13 @@ interface CartContentProps {
 
 function CartContent({ cart, setCart, updateQuantity, resetPrice, formatPrice, subtotal, total, setShowPaymentModal, onBargain }: CartContentProps) {
     return (
-        <div className="flex flex-col h-full overflow-hidden">
-            <div className="p-6 border-b flex items-center justify-between">
+        <div className="flex flex-col h-full overflow-hidden bg-card/30 backdrop-blur-md">
+            <div className="p-6 border-b border-border/50 flex items-center justify-between bg-gradient-to-r from-primary/5 to-transparent">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary shadow-inner">
+                    <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20">
                         <ShoppingCart className="w-5 h-5" />
                     </div>
-                    <h2 className="font-black text-xs uppercase tracking-[0.2em] text-foreground">Active Order</h2>
+                    <h2 className="font-black text-[10px] uppercase tracking-[0.3em] text-foreground">Active Order</h2>
                 </div>
                 <button
                     onClick={() => setCart([])}
@@ -165,23 +160,23 @@ function CartContent({ cart, setCart, updateQuantity, resetPrice, formatPrice, s
                 )}
             </div>
 
-            <div className="p-8 border-t glass space-y-6">
+            <div className="p-8 border-t border-border/50 bg-card/50 backdrop-blur-xl space-y-6">
                 <div className="space-y-3">
-                    <div className="flex justify-between text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                    <div className="flex justify-between text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">
                         <span>Ledger Subtotal</span>
                         <span className="text-foreground">{formatPrice(subtotal)}</span>
                     </div>
                     <div className="flex justify-between items-end pt-4 border-t border-dashed border-border/50">
-                        <span className="text-sm font-black text-foreground uppercase tracking-widest">Total Due</span>
-                        <span className="text-3xl font-black text-primary font-display tracking-tighter">{formatPrice(total)}</span>
+                        <span className="text-xs font-black text-foreground uppercase tracking-[0.3em]">Total Due</span>
+                        <span className="text-4xl font-black text-primary font-display tracking-tight">{formatPrice(total)}</span>
                     </div>
                 </div>
                 <button
                     onClick={() => setShowPaymentModal(true)}
                     disabled={cart.length === 0}
-                    className="w-full h-16 bg-foreground text-background rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:scale-100 shadow-foreground/20"
+                    className="w-full h-16 bg-primary text-primary-foreground rounded-2xl font-black uppercase text-xs tracking-[0.3em] shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
                 >
-                    <CreditCard className="w-6 h-6" />
+                    <CreditCard className="w-5 h-5" />
                     AUTHORIZE SALE
                 </button>
             </div>
@@ -192,7 +187,6 @@ function CartContent({ cart, setCart, updateQuantity, resetPrice, formatPrice, s
 export default function POSPage() {
     const [branchData, setBranchData] = useState<any>(null);
     const { user } = useAuth();
-    const navigate = useNavigate();
     const { targetCurrency, setTargetCurrency, formatPrice } = useCurrency(branchData);
     const [products, setProducts] = useState<Product[]>([]);
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -548,37 +542,27 @@ export default function POSPage() {
         setShowScanner(false);
     };
 
-    const homePath = user?.role === 'salesperson' ? '/sales-dashboard' : '/dashboard';
-
     return (
         <div className="h-full bg-background flex flex-col overflow-hidden font-body transition-colors duration-500">
-            {/* Header - Glassmorphism */}
-            <header className="flex-none h-20 glass border-b px-4 lg:px-8 flex items-center justify-between z-30 sticky top-0">
-                <div className="flex items-center gap-4 lg:gap-6">
-                    <Link to={homePath} className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-xl shadow-primary/20 hover:scale-105 transition-all group">
-                        <Store className="w-6 h-6 group-hover:rotate-12 transition-transform" />
-                    </Link>
-                    <div className="min-w-0">
-                        <h1 className="text-xl font-black tracking-tight text-foreground flex items-center gap-2 uppercase">
-                            RE <span className="text-primary hidden sm:inline">TERMINAL</span>
-                        </h1>
-                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-black uppercase tracking-widest">
-                            <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-destructive'}`}></span>
-                            <span className="truncate">{user?.firstName} @ {branchData?.name || 'Loading...'}</span>
-                        </div>
+            {/* Action Bar - Secondary Header */}
+            <div className="flex-none bg-card/40 backdrop-blur-md border-b border-border/50 px-4 lg:px-8 py-2 flex items-center justify-between z-30">
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-destructive'}`} />
+                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{branchData?.name || 'Loading...'}</span>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 lg:gap-5">
+                <div className="flex items-center gap-3">
                     {/* Currency Selector */}
-                    <div className="flex flex-col items-end mr-2">
-                        <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">Currency Mode</span>
+                    <div className="hidden sm:flex items-center gap-3 mr-2 px-3 py-1 bg-secondary/30 rounded-lg border border-border/50">
+                        <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Currency</span>
                         <select
                             value={targetCurrency}
                             onChange={handleCurrencyChange}
-                            className="bg-secondary/50 border-none text-[10px] font-black uppercase tracking-tighter rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-primary transition-all"
+                            className="bg-transparent border-none text-[9px] font-black uppercase tracking-tighter p-0 outline-none focus:ring-0 transition-all cursor-pointer"
                         >
-                            <option value="KES">KES (Base)</option>
+                            <option value="KES">KES</option>
                             <option value="USD">USD</option>
                             <option value="UGX">UGX</option>
                             <option value="TZS">TZS</option>
@@ -586,41 +570,26 @@ export default function POSPage() {
                     </div>
 
                     {/* Account Balance */}
-                    <div className="hidden md:flex flex-col items-end px-4 py-2 bg-primary/10 rounded-2xl border border-primary/20">
-                        <span className="text-[8px] font-black text-primary uppercase tracking-widest">Till Balance</span>
-                        <span className="text-sm font-black text-foreground">{formatPrice(tillBalance)}</span>
+                    <div className="hidden md:flex items-center gap-3 px-3 py-1 bg-primary/10 rounded-lg border border-primary/20">
+                        <span className="text-[8px] font-black text-primary uppercase tracking-widest">Revenue Today</span>
+                        <span className="text-[10px] font-black text-foreground">{formatPrice(tillBalance)}</span>
                     </div>
 
                     {pendingSync > 0 && (
-                        <button onClick={syncOfflineSales} className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-xl text-[10px] font-black uppercase animate-pulse">
-                            <RefreshCw className="w-3 h-3" /> {pendingSync} Pending
+                        <button onClick={syncOfflineSales} className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-lg text-[9px] font-black uppercase animate-pulse">
+                            <RefreshCw className="w-3 h-3" /> {pendingSync}
                         </button>
-                    )}
-                    {!isOnline && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-destructive/10 text-destructive rounded-xl text-[10px] font-black uppercase">
-                            <WifiOff className="w-3 h-3" /> Offline
-                        </div>
                     )}
                     <button
                         onClick={() => setShowHistory(true)}
-                        className="p-3 bg-secondary/50 text-foreground hover:bg-primary/20 hover:text-primary rounded-2xl transition-all flex items-center gap-2 group"
+                        className="p-2 text-foreground hover:bg-primary/20 hover:text-primary rounded-lg transition-all flex items-center gap-2 group"
+                        title="History"
                     >
-                        <History className="w-5 h-5" />
-                        <span className="text-[10px] font-black uppercase tracking-wider hidden lg:inline">Records</span>
-                    </button>
-                    <div className="hidden sm:flex">
-                        <ThemeToggle />
-                    </div>
-                    <button
-                        onClick={() => navigate(homePath)}
-                        className="p-3 bg-destructive/10 text-destructive hover:bg-destructive hover:text-white rounded-2xl transition-all flex items-center gap-2 group"
-                        title="Exit Terminal"
-                    >
-                        <LogOut className="w-5 h-5" />
-                        <span className="text-[10px] font-black uppercase tracking-wider hidden lg:inline">Exit</span>
+                        <History className="w-4 h-4" />
+                        <span className="text-[9px] font-black uppercase tracking-wider hidden lg:inline">Records</span>
                     </button>
                 </div>
-            </header>
+            </div>
 
             {/* Main Content Area: Responsive Grid */}
             <div className="flex-1 flex overflow-hidden relative">
@@ -726,22 +695,27 @@ export default function POSPage() {
                 </div>
 
                 {/* Right Side: Cart - Responsive */}
-                <div className={`${showCartMobile ? 'flex fixed inset-0 z-[100]' : 'hidden lg:flex'} lg:relative w-full lg:w-[350px] xl:w-[400px] flex-col bg-card shadow-2xl shrink-0 border-l border-border animate-in slide-in-from-right duration-300`}>
-                    <div className="lg:hidden absolute top-4 left-4 z-[110]">
+                <div className={`${showCartMobile ? 'flex fixed inset-0 z-[100]' : 'hidden lg:flex'} lg:relative w-full lg:w-[380px] xl:w-[420px] flex-col bg-card shadow-2xl shrink-0 border-l border-border/50 animate-in slide-in-from-right duration-300`}>
+                    <div className="lg:hidden absolute top-4 right-4 z-[110]">
                         <button onClick={() => setShowCartMobile(false)} className="p-2 bg-secondary rounded-full shadow-lg">
                             <X className="w-6 h-6" />
                         </button>
                     </div>
                     
-                    <div className="flex-none p-4 lg:p-6 border-b border-border bg-secondary/5">
+                    <div className="flex-none p-6 border-b border-border/50 bg-gradient-to-br from-card via-card to-primary/5">
                         <div className="flex items-center justify-between mb-2">
-                            <h2 className="text-lg lg:text-xl font-black text-foreground tracking-tighter uppercase italic">Current<span className="text-primary not-italic">Cart</span></h2>
-                            <span className="px-2 py-1 bg-primary text-primary-foreground text-[10px] font-black rounded-lg">{cart.length} ITEMS</span>
+                            <h2 className="text-xl font-black text-foreground tracking-tight uppercase italic">Current<span className="text-primary not-italic">Cart</span></h2>
+                            <div className="flex items-center gap-2">
+                                <span className="px-2 py-1 bg-primary/10 text-primary text-[10px] font-black rounded-lg border border-primary/20">{cart.length} ITEMS</span>
+                            </div>
                         </div>
-                        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Transaction: {branchData?.id?.substring(0, 8)}</p>
+                        <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">Live Session: {branchData?.id?.substring(0, 8)}</p>
+                        </div>
                     </div>
                     
-                    <div className="flex-1 min-h-0">
+                    <div className="flex-1 overflow-hidden">
                         <CartContent
                             cart={cart}
                             setCart={setCart}
