@@ -17,10 +17,11 @@ interface ReceiptModalProps {
             quantity: number;
             price: number;
         }>;
-        subtotal: number;
-        tax: number;
-        total: number;
-        paymentMethod: string;
+        subtotal?: number;
+        tax?: number;
+        total?: number;
+        totalAmount?: number;
+        paymentMethod?: string;
         createdAt?: string;
     };
     companyName: string;
@@ -62,11 +63,11 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
         
         y += 10;
         doc.setFontSize(7);
-        doc.text(`RECEIPT: ${sale.receiptId}`, 5, y);
+        doc.text(`RECEIPT: ${sale?.receiptId || 'N/A'}`, 5, y);
         y += 4;
-        doc.text(`DATE: ${new Date(sale.createdAt || Date.now()).toLocaleString()}`, 5, y);
+        doc.text(`DATE: ${new Date(sale?.createdAt || Date.now()).toLocaleString()}`, 5, y);
         y += 4;
-        doc.text(`METHOD: ${sale.paymentMethod.toUpperCase()}`, 5, y);
+        doc.text(`METHOD: ${(sale?.paymentMethod || 'Mixed').toUpperCase()}`, 5, y);
 
         y += 4;
         doc.setDrawColor(200);
@@ -94,12 +95,12 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
 
         // Totals
         doc.text('SUBTOTAL:', 5, y);
-        doc.text(formatPrice(sale.subtotal), 75, y, { align: 'right' });
+        doc.text(formatPrice(sale?.subtotal || 0), 75, y, { align: 'right' });
         y += 4;
         
-        if (sale.tax > 0) {
+        if ((sale?.tax || 0) > 0) {
             doc.text('TAX:', 5, y);
-            doc.text(formatPrice(sale.tax), 75, y, { align: 'right' });
+            doc.text(formatPrice(sale?.tax || 0), 75, y, { align: 'right' });
             y += 4;
         }
 
@@ -107,7 +108,7 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.text('NET TOTAL:', 5, y);
-        doc.text(formatPrice(sale.total), 75, y, { align: 'right' });
+        doc.text(formatPrice(sale?.total || sale?.totalAmount || 0), 75, y, { align: 'right' });
 
         y += 15;
         doc.setFontSize(8);
@@ -213,7 +214,7 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-inner border border-black/5 dark:border-white/5 mb-8 font-mono">
                     <div className="text-center mb-6 space-y-1">
                         <p className="text-xs font-black uppercase tracking-[0.2em] text-foreground">{companyName}</p>
-                        <p className="text-[8px] text-muted-foreground uppercase font-bold">Node Identity: {sale.receiptId}</p>
+                        <p className="text-[8px] text-muted-foreground uppercase font-bold">Node Identity: {sale?.receiptId || 'OFFLINE'}</p>
                     </div>
 
                     <div className="space-y-3">
@@ -234,15 +235,15 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
                         <div className="pt-4 border-t border-dashed border-black/10 dark:border-white/10 space-y-1">
                             <div className="flex justify-between text-[10px] text-muted-foreground">
                                 <span>Subtotal</span>
-                                <span>{formatPrice(sale.subtotal)}</span>
+                                <span>{formatPrice(sale?.subtotal || 0)}</span>
                             </div>
                             <div className="flex justify-between text-[10px] text-muted-foreground">
                                 <span>Tax Load</span>
-                                <span>{formatPrice(sale.tax)}</span>
+                                <span>{formatPrice(sale?.tax || 0)}</span>
                             </div>
                             <div className="flex justify-between text-xs font-black text-primary pt-2 mt-2 border-t border-black/5 dark:border-white/5">
                                 <span className="uppercase">Net Total</span>
-                                <span>{formatPrice(sale.total)}</span>
+                                <span>{formatPrice(sale?.total || sale?.totalAmount || 0)}</span>
                             </div>
                         </div>
                     </div>

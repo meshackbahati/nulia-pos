@@ -425,6 +425,10 @@ export default function POSPage() {
             // Mock a successful UI state for the cashier
             const mockSale = {
                 ...saleData,
+                subtotal: subtotal,
+                tax: (branchData?.taxRate || 0) > 0 ? (subtotal * branchData.taxRate / 100) : 0,
+                total: total + ((branchData?.taxRate || 0) > 0 ? (subtotal * branchData.taxRate / 100) : 0),
+                paymentMethod: payments.map(p => p.method).join(' + '),
                 receiptId: 'OFFLINE-' + Date.now().toString().slice(-6),
                 createdAt: new Date().toISOString()
             };
@@ -789,6 +793,7 @@ export default function POSPage() {
             {showPaymentModal && (
                 <PaymentModal
                     total={total}
+                    cart={cart}
                     branchConfig={branchData}
                     onComplete={onPaymentComplete}
                     onClose={() => setShowPaymentModal(false)}

@@ -23,12 +23,13 @@ interface ExchangeRate {
 
 interface PaymentModalProps {
     total: number; // Base currency total
+    cart: any[];
     branchConfig?: any;
     onClose: () => void;
     onComplete: (payments: PaymentEntry[]) => Promise<void>;
 }
 
-export default function PaymentModal({ total, branchConfig, onClose, onComplete }: PaymentModalProps) {
+export default function PaymentModal({ total, cart, branchConfig, onClose, onComplete }: PaymentModalProps) {
     const { formatPrice } = useCurrency(branchConfig);
     const { showAlert } = useModal();
     const [entries, setEntries] = useState<PaymentEntry[]>([]);
@@ -131,8 +132,16 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
     const suggestedAmount = (remainingBase * getRate(branchConfig?.currency || 'KES', currentCurrency)).toFixed(2);
 
     return (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
-            <div className="bg-card rounded-2xl shadow-2xl max-w-4xl w-full p-8 border border-border flex flex-col md:flex-row gap-8 overflow-y-auto max-h-[95vh] custom-scrollbar">
+        <div className="fixed inset-0 bg-background/95 backdrop-blur-md flex items-center justify-center z-[200] p-4 animate-in fade-in duration-200">
+            <div className="bg-card rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.3)] max-w-5xl w-full p-8 border border-white/10 flex flex-col md:flex-row gap-8 overflow-y-auto max-h-[95vh] custom-scrollbar relative">
+                
+                {/* Floating Close Button - Highly Visible */}
+                <button 
+                    onClick={onClose} 
+                    className="absolute top-6 right-6 p-3 bg-secondary/50 hover:bg-destructive/10 hover:text-destructive rounded-2xl transition-all z-[210] border border-white/5 shadow-xl"
+                >
+                    <X className="w-6 h-6" />
+                </button>
                 
                 {/* Left Side: Summary & Entries */}
                 <div className="flex-1 space-y-6">
@@ -141,9 +150,8 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
                             <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary shadow-sm ring-1 ring-inset ring-primary/20">
                                 <ShieldCheck className="w-5 h-5" />
                             </div>
-                            <h2 className="text-xl font-bold text-foreground">Split Payment</h2>
+                            <h2 className="text-xl font-bold text-foreground">Checkout Hub</h2>
                         </div>
-                        <button onClick={onClose} className="p-2 hover:bg-muted rounded-full text-muted-foreground"><X /></button>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -157,14 +165,37 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
                         </div>
                     </div>
 
-                    <div className="space-y-3">
-                        <h3 className="text-xs font-bold text-muted-foreground uppercase px-1">Payment Stack</h3>
-                        {entries.length === 0 ? (
-                            <div className="py-12 border-2 border-dashed border-border rounded-2xl flex flex-col items-center justify-center text-muted-foreground opacity-50">
-                                <Calculator className="w-8 h-8 mb-2" />
-                                <p className="text-xs font-medium">No payments added yet</p>
-                            </div>
-                        ) : (
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between px-1">
+                            <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Order Summary</h3>
+                            <span className="text-[10px] font-bold text-primary">{cart.length} Items</span>
+                        </div>
+                        
+                        <div className="max-h-48 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                            {cart.map((item, idx) => (
+                                <div key={idx} className="flex justify-between items-center p-3 bg-secondary/20 rounded-xl border border-white/5">
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-[10px] font-bold text-foreground uppercase truncate">{item.name}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-[9px] text-muted-foreground">{item.quantity} × {formatPrice(item.price)}</p>
+                                            {item.price !== item.catalogPrice && (
+                                                <span className="text-[8px] bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded font-black uppercase tracking-tighter">Bargained</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <p className="text-xs font-black text-foreground ml-4">{formatPrice(item.price * item.quantity)}</p>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="pt-4 border-t border-dashed border-white/10">
+                            <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-3">Payment Stack</h3>
+                            {entries.length === 0 ? (
+                                <div className="py-8 border-2 border-dashed border-border rounded-2xl flex flex-col items-center justify-center text-muted-foreground opacity-50">
+                                    <Calculator className="w-8 h-8 mb-2" />
+                                    <p className="text-xs font-medium">No payments added yet</p>
+                                </div>
+                            ) : (
                             <div className="space-y-2">
                                 {entries.map(entry => (
                                     <div key={entry.id} className="flex items-center gap-4 p-3 bg-secondary/30 rounded-xl border border-border/50 group animate-in slide-in-from-left-2">
@@ -184,6 +215,7 @@ export default function PaymentModal({ total, branchConfig, onClose, onComplete 
                                 ))}
                             </div>
                         )}
+                    </div>
                     </div>
                 </div>
 
