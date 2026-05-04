@@ -64,7 +64,6 @@ interface CartContentProps {
     cart: CartItem[];
     setCart: (cart: CartItem[]) => void;
     updateQuantity: (productId: string, variant_id: string | null, delta: number) => void;
-    updatePrice: (productId: string, variantId: string | null, nextPrice: number) => void;
     resetPrice: (productId: string, variantId: string | null) => void;
     formatPrice: (price: number) => string;
     subtotal: number;
@@ -73,7 +72,7 @@ interface CartContentProps {
     onBargain: (item: CartItem) => void;
 }
 
-function CartContent({ cart, setCart, updateQuantity, updatePrice, resetPrice, formatPrice, subtotal, total, setShowPaymentModal, onBargain }: CartContentProps) {
+function CartContent({ cart, setCart, updateQuantity, resetPrice, formatPrice, subtotal, total, setShowPaymentModal, onBargain }: CartContentProps) {
     return (
         <div className="flex flex-col h-full overflow-hidden">
             <div className="p-6 border-b flex items-center justify-between">
@@ -747,7 +746,6 @@ export default function POSPage() {
                             cart={cart}
                             setCart={setCart}
                             updateQuantity={updateQuantity}
-                            updatePrice={updatePrice}
                             resetPrice={resetPrice}
                             formatPrice={formatPrice}
                             subtotal={subtotal}
