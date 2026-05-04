@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Package, Tag, DollarSign, Info, Barcode, Check, AlertCircle, Image as ImageIcon, Upload, Loader2, Plus as PlusIcon, Camera, CameraOff } from 'lucide-react';
+import { X, Package, Tag, DollarSign, Info, Barcode, Check, AlertCircle, Image as ImageIcon, Upload, Loader2, Plus as PlusIcon, ScanLine } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import useScanDetection from '../hooks/useScanDetection';
 import { useCurrency } from '../hooks/useCurrency';
-import { BrowserMultiFormatReader } from '@zxing/library';
+import BarcodeScanner from './BarcodeScanner';
 
 import { useAuth } from '../contexts/AuthContext';
 
@@ -20,6 +20,7 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
     const { baseSymbol: symbol } = useCurrency();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [branches, setBranches] = useState<any[]>([]);
+    const [showScanner, setShowScanner] = useState(false);
     const [formData, setFormData] = useState({
         branchId: product?.branchId || (user?.role === 'admin' ? '' : user?.branchId) || '',
         name: product?.name || '',
@@ -27,7 +28,7 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
         category: product?.category || '',
         brand: product?.brand || '',
         basePrice: product?.basePrice || '',
-        costPrice: product?.costPrice || '',
+        costPrice: product?.costPrice ?? '',
         sku: product?.sku || '',
         barcode: product?.barcode || '',
         barcodes: product?.barcodes || [],
@@ -46,9 +47,6 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
     );
     const [submitting, setSubmitting] = useState(false);
     const [uploading, setUploading] = useState(false);
-    const [isScanning, setIsScanning] = useState(false);
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const codeReader = useRef<BrowserMultiFormatReader | null>(null);
 
     const [categories, setCategories] = useState<string[]>([]);
 
@@ -76,86 +74,6 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
             console.error('Error fetching branches:', error);
         }
     };
-
-    useEffect(() => {
-        const handleNativeScan = (event: any) => {
-            const barcode = event.detail.data;
-            if (barcode) {
-                handleAddBarcode(barcode);
-                toast.success('Barcode scanned!');
-                setIsScanning(false);
-            }
-        };
-
-        window.addEventListener('nativeBarcodeScanned', handleNativeScan);
-        return () => window.removeEventListener('nativeBarcodeScanned', handleNativeScan);
-    }, []);
-
-    useEffect(() => {
-        let activeReader: BrowserMultiFormatReader | null = null;
-
-        const startScanning = async () => {
-            if (isScanning) {
-                // Check for native scanner first
-                const device = (window as any).RetailProDevice;
-                if (device?.hasNativeScanner && (window as any).startNativeScan) {
-                    (window as any).startNativeScan();
-                    return;
-                }
-
-                if (videoRef.current) {
-                    try {
-                        activeReader = new BrowserMultiFormatReader();
-                        codeReader.current = activeReader;
-
-                        const videoDevices = await activeReader.listVideoInputDevices();
-                        if (videoDevices.length === 0) {
-                            toast.error('No camera found');
-                            setIsScanning(false);
-                            return;
-                        }
-
-                        // Prefer back camera if available
-                        const backCamera = videoDevices.find(device =>
-                            device.label.toLowerCase().includes('back') ||
-                            device.label.toLowerCase().includes('rear')
-                        );
-                        const selectedDeviceId = backCamera ? backCamera.deviceId : videoDevices[0].deviceId;
-
-                        try {
-                            await activeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.current, (result, _err) => {
-                                if (result) {
-                                    handleAddBarcode(result.getText());
-                                    toast.success('Barcode scanned!');
-                                    setIsScanning(false);
-                                }
-                            });
-                        } catch (err: any) {
-                            if (err.name === 'NotReadableError' || (err instanceof Error && err.message?.includes('already playing'))) {
-                                console.log('Video already playing or busy, ignoring.');
-                            } else {
-                                throw err; // Re-throw other errors to be caught by the outer catch block
-                            }
-                        }
-                    } catch (err) {
-                        console.error('Camera access error:', err);
-                        toast.error('Could not access camera. Please check permissions.');
-                        setIsScanning(false);
-                    }
-                }
-            }
-        };
-
-        if (isScanning) {
-            startScanning();
-        }
-
-        return () => {
-            if (activeReader) {
-                activeReader.reset();
-            }
-        };
-    }, [isScanning]);
 
     const handleAddBarcode = (newBarcode: string) => {
         if (!newBarcode || formData.barcodes.includes(newBarcode)) return;
@@ -273,7 +191,7 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                 ...formData,
                 branchId: formData.branchId,
                 basePrice: parseFloat(formData.basePrice),
-                costPrice: parseFloat(formData.costPrice || '0'),
+                costPrice: formData.costPrice === '' ? null : parseFloat(formData.costPrice),
                 stockQuantity: parseInt(formData.stockQuantity || '0'),
                 lowStockThreshold: parseInt(formData.lowStockThreshold.toString()),
                 variants: variants.map(v => ({
@@ -449,23 +367,14 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                                         <label className="text-xs font-bold text-muted-foreground uppercase">Barcodes</label>
                                         <button
                                             type="button"
-                                            onClick={() => setIsScanning(!isScanning)}
-                                            className={`flex items-center gap-1.5 text-[10px] font-bold uppercase px-2 py-1 rounded-md transition-all ${isScanning ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary hover:bg-primary/20'
-                                                }`}
+                                            onClick={() => setShowScanner(true)}
+                                            className="flex items-center gap-1.5 text-[10px] font-bold uppercase px-2 py-1 rounded-md transition-all bg-primary/10 text-primary hover:bg-primary/20"
                                         >
-                                            {isScanning ? <><CameraOff className="w-3 h-3" /> Stop Camera</> : <><Camera className="w-3 h-3" /> Use Camera</>}
+                                            <ScanLine className="w-3 h-3" /> Use Terminal Scanner
                                         </button>
                                     </div>
                                     <div className="space-y-2">
-                                        {isScanning && (
-                                            <div className="relative aspect-video bg-black rounded-lg overflow-hidden border-2 border-primary/50 shadow-inner mb-2 animate-in fade-in zoom-in duration-300">
-                                                <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
-                                                <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 h-0.5 bg-primary/40 animate-pulse shadow-[0_0_15px_rgba(var(--primary),0.5)]"></div>
-                                                <div className="absolute top-2 left-2 text-[8px] font-bold text-white bg-black/40 px-1.5 py-0.5 rounded backdrop-blur">
-                                                    LIVE FEED • SCAN BARCODE
-                                                </div>
-                                            </div>
-                                        )}
+                                        <p className="text-[10px] font-medium text-muted-foreground ml-1">Dedicated scanner input is preferred here. Camera fallback remains inside the scanner dialog when native hardware is unavailable.</p>
                                         <div className="flex gap-2">
                                             <div className="relative flex-1">
                                                 <Barcode className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -552,9 +461,11 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                                                 step="0.01"
                                                 value={formData.costPrice}
                                                 onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
+                                                placeholder="Optional"
                                                 className="w-full h-12 pl-8 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
                                             />
                                         </div>
+                                        <p className="text-[10px] font-medium text-muted-foreground">Leave blank if landed cost is not known yet.</p>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-6 pt-4 border-t border-border/50">
@@ -635,6 +546,17 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                     </div>
                 </form>
             </div>
+            {showScanner && (
+                <BarcodeScanner
+                    onScan={(barcode) => {
+                        handleAddBarcode(barcode);
+                        toast.success('Barcode scanned!');
+                        setShowScanner(false);
+                    }}
+                    onClose={() => setShowScanner(false)}
+                    autoStartNative
+                />
+            )}
         </div>
     );
 }

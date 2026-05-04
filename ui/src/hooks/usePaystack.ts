@@ -5,16 +5,24 @@ import api from '../lib/api-client';
 interface PaystackOptions {
     amount: number;
     email: string;
+    currency?: string;
     metadata?: any;
 }
 
+export interface PaystackResult {
+    success: boolean;
+    reference?: string;
+    transaction?: string;
+    currency?: string;
+}
+
 export default function usePaystack() {
-    const payWithPaystack = useCallback(async (options: PaystackOptions): Promise<boolean> => {
+    const payWithPaystack = useCallback(async (options: PaystackOptions): Promise<PaystackResult> => {
         return new Promise(async (resolve) => {
             // Check if Paystack script is loaded
             if (!(window as any).PaystackPop) {
                 toast.error('Paystack library not loaded. Please check your internet connection.');
-                resolve(false);
+                resolve({ success: false });
                 return;
             }
 
@@ -25,7 +33,7 @@ export default function usePaystack() {
 
                 if (!publicKey) {
                     toast.error('Paystack public key is not configured.');
-                    resolve(false);
+                    resolve({ success: false });
                     return;
                 }
 
@@ -33,15 +41,20 @@ export default function usePaystack() {
                     key: publicKey,
                     email: options.email,
                     amount: Math.round(options.amount * 100), // Paystack expects amount in sub-units (e.g., kobo/cents)
-                    currency: 'KES', // Defaulting to KES for regional compatibility
+                    currency: options.currency || 'KES',
                     metadata: options.metadata,
                     callback: function (response: any) {
                         toast.success('Payment successful! Reference: ' + response.reference);
-                        resolve(true);
+                        resolve({
+                            success: true,
+                            reference: response.reference,
+                            transaction: response.trans,
+                            currency: options.currency || 'KES',
+                        });
                     },
                     onClose: function () {
                         toast.error('Payment window closed.');
-                        resolve(false);
+                        resolve({ success: false });
                     },
                 });
 
@@ -49,7 +62,7 @@ export default function usePaystack() {
             } catch (error) {
                 console.error('Paystack initialization error:', error);
                 toast.error('Failed to initialize Paystack.');
-                resolve(false);
+                resolve({ success: false });
             }
         });
     }, []);

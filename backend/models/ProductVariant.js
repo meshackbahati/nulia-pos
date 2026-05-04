@@ -49,7 +49,7 @@ class ProductVariant extends Model {
                 },
                 costPrice: {
                     type: DataTypes.DECIMAL(10, 2),
-                    allowNull: false,
+                    allowNull: true,
                     validate: {
                         min: 0,
                     },

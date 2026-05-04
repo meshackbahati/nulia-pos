@@ -133,7 +133,9 @@ router.post('/create', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'Branch not found' });
         }
 
-        // 1. Check inventory availability
+        const resolvedItems = [];
+
+        // 1. Check inventory availability and resolve catalog pricing
         for (const item of items) {
             const requestedQty = parseInt(item.quantity);
             const inventory = await models.Inventory.findOne({
@@ -156,14 +158,66 @@ router.post('/create', authenticate, async (req, res) => {
                 await transaction.rollback();
                 return res.status(400).json({ error: `Insufficient stock for ${item.name}. Available: ${available}, Requested: ${requestedQty}` });
             }
+
+            let catalogUnitPrice = Number(item.catalogPrice);
+            if (!Number.isFinite(catalogUnitPrice)) {
+                if (item.variantId) {
+                    const variant = await models.ProductVariant.findOne({
+                        where: {
+                            id: item.variantId,
+                            productId: item.productId,
+                            isActive: true,
+                        },
+                        transaction,
+                    });
+
+                    if (!variant) {
+                        await transaction.rollback();
+                        return res.status(400).json({ error: `Variant for ${item.name} not found` });
+                    }
+
+                    catalogUnitPrice = Number(variant.price);
+                } else {
+                    const product = await models.Product.findOne({
+                        where: {
+                            id: item.productId,
+                            isActive: true,
+                        },
+                        transaction,
+                    });
+
+                    if (!product) {
+                        await transaction.rollback();
+                        return res.status(400).json({ error: `Product ${item.name} not found` });
+                    }
+
+                    catalogUnitPrice = Number(product.basePrice);
+                }
+            }
+
+            const effectiveUnitPrice = Number(item.price);
+            if (!Number.isFinite(effectiveUnitPrice) || effectiveUnitPrice < 0) {
+                await transaction.rollback();
+                return res.status(400).json({ error: `Invalid sale price for ${item.name}` });
+            }
+
+            const lineDiscountAmount = Math.max(0, (catalogUnitPrice - effectiveUnitPrice) * requestedQty);
+
+            resolvedItems.push({
+                ...item,
+                quantity: requestedQty,
+                catalogUnitPrice,
+                effectiveUnitPrice,
+                lineDiscountAmount,
+            });
         }
 
         // 2. Calculate totals in base currency
-        const subtotal = items.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0);
+        const subtotal = resolvedItems.reduce((sum, item) => sum + (item.effectiveUnitPrice * item.quantity), 0);
         const taxRate = branch.taxRate || 0;
         const taxAmount = subtotal * (taxRate / 100);
-        const discountAmount = 0;
-        const finalTotal = subtotal + taxAmount - discountAmount;
+        const discountAmount = resolvedItems.reduce((sum, item) => sum + item.lineDiscountAmount, 0);
+        const finalTotal = subtotal + taxAmount;
 
         // Verify total payment matches total due (with 0.01 tolerance)
         const totalPaidInBase = payments.reduce((acc, p) => acc + (Number(p.amount) / Number(p.exchangeRate || 1)), 0);
@@ -181,7 +235,7 @@ router.post('/create', authenticate, async (req, res) => {
             taxAmount,
             discountAmount,
             totalAmount: finalTotal,
-            paymentMethod: payments.length > 1 ? 'split' : payments[0].method,
+            paymentMethod: payments[0].method === 'mpesa' ? 'mpesa' : payments[0].method,
             paymentStatus: 'completed', // Assuming split payments are only sent when fully paid
             customerPhone,
             customerEmail,
@@ -189,15 +243,15 @@ router.post('/create', authenticate, async (req, res) => {
         }, { transaction });
 
         // 4. Create sale items and update inventory
-        for (const item of items) {
+        for (const item of resolvedItems) {
             await models.SaleItem.create({
                 saleId: sale.id,
                 productId: item.productId,
                 variantId: item.variantId,
                 quantity: item.quantity,
-                unitPrice: item.price,
-                totalPrice: Number(item.price) * item.quantity,
-                discountAmount: 0,
+                unitPrice: item.effectiveUnitPrice,
+                totalPrice: item.effectiveUnitPrice * item.quantity,
+                discountAmount: item.lineDiscountAmount,
             }, { transaction });
 
             await models.Inventory.decrement('quantity', {

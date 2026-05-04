@@ -3,6 +3,10 @@ import { DataTypes, Model } from 'sequelize';
 class Product extends Model {
     // Instance methods
     getProfitMargin() {
+        if (this.costPrice === null || this.costPrice === undefined || Number(this.costPrice) <= 0) {
+            return null;
+        }
+
         return ((this.basePrice - this.costPrice) / this.costPrice) * 100;
     }
 
@@ -48,7 +52,7 @@ class Product extends Model {
                 },
                 costPrice: {
                     type: DataTypes.DECIMAL(10, 2),
-                    allowNull: false,
+                    allowNull: true,
                     validate: {
                         min: 0,
                     },

@@ -18,7 +18,7 @@ interface Product {
     category: string;
     brand?: string;
     basePrice: number;
-    costPrice: number;
+    costPrice: number | null;
     sku: string;
     barcode?: string;
     barcodes?: string[];

@@ -13,6 +13,15 @@ const upload = multer({
     limits: { fileSize: 15 * 1024 * 1024 } // 15MB limit
 });
 
+const parseNullableDecimal = (value) => {
+    if (value === '' || value === null || value === undefined) {
+        return null;
+    }
+
+    const parsed = parseFloat(value);
+    return Number.isNaN(parsed) ? null : parsed;
+};
+
 // Upload image to Cloudinary
 router.post('/upload-image', authenticate, authorize('head_of_sales'), upload.single('image'), async (req, res) => {
     console.log(`[ROUTE] /upload-image hit. Method: ${req.method}. File: ${req.file ? req.file.originalname : 'none'}`);
@@ -97,7 +106,7 @@ router.post('/import-csv', authenticate, authorize('head_of_sales'), upload.sing
 
                 // Parse numeric fields
                 const parsedBasePrice = parseFloat(basePrice || 0);
-                const parsedCostPrice = parseFloat(costPrice || 0);
+                const parsedCostPrice = parseNullableDecimal(costPrice);
                 const parsedStock = parseInt(stockQuantity || 0);
                 const parsedThreshold = parseInt(lowStockThreshold || 10);
 
@@ -236,7 +245,7 @@ router.get('/list', authenticate, async (req, res) => {
                 category: product.category,
                 brand: product.brand,
                 basePrice: parseFloat(product.basePrice.toString()),
-                costPrice: parseFloat(product.costPrice.toString()),
+                costPrice: product.costPrice === null ? null : parseFloat(product.costPrice.toString()),
                 sku: product.sku,
                 barcode: product.barcode,
                 barcodes: product.barcodes || [],
@@ -297,6 +306,7 @@ router.post('/create', authenticate, authorize('head_of_sales'), async (req, res
 
         productData.sku = finalSku;
         productData.barcode = finalBarcode;
+        productData.costPrice = parseNullableDecimal(productData.costPrice);
 
         // 1. Find or create the product (unique by sku/barcode)
         let product = await models.Product.findOne({
@@ -341,7 +351,11 @@ router.post('/create', authenticate, authorize('head_of_sales'), async (req, res
             for (const v of variants) {
                 const [variant] = await models.ProductVariant.findOrCreate({
                     where: { productId: product.id, sku: v.sku },
-                    defaults: { ...v, isActive: true },
+                    defaults: {
+                        ...v,
+                        costPrice: parseNullableDecimal(v.costPrice),
+                        isActive: true
+                    },
                     transaction: t
                 });
 
@@ -387,7 +401,10 @@ router.put('/update/:id', authenticate, authorize('head_of_sales'), async (req, 
         const product = await models.Product.findByPk(id);
         if (!product) return res.status(404).json({ error: 'Product not found' });
 
-        await product.update(req.body);
+        await product.update({
+            ...req.body,
+            costPrice: parseNullableDecimal(req.body.costPrice),
+        });
 
         // Emit real-time update
         const io = req.app.get('io');
@@ -501,7 +518,7 @@ router.get('/search', authenticate, async (req, res) => {
                 category: exactProduct.category,
                 brand: exactProduct.brand,
                 basePrice: parseFloat(exactProduct.basePrice.toString()),
-                costPrice: parseFloat(exactProduct.costPrice.toString()),
+                costPrice: exactProduct.costPrice === null ? null : parseFloat(exactProduct.costPrice.toString()),
                 sku: exactProduct.sku,
                 barcode: exactProduct.barcode,
                 barcodes: exactProduct.barcodes || [],
@@ -549,7 +566,7 @@ router.get('/search', authenticate, async (req, res) => {
                     category: p.category,
                     brand: p.brand,
                     basePrice: parseFloat(p.basePrice.toString()),
-                    costPrice: parseFloat(p.costPrice.toString()),
+                    costPrice: p.costPrice === null ? null : parseFloat(p.costPrice.toString()),
                     sku: p.sku,
                     barcode: p.barcode,
                     barcodes: p.barcodes || [],

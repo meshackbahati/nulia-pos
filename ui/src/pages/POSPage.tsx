@@ -53,6 +53,7 @@ interface CartItem {
     name: string;
     imageUrl?: string;
     price: number;
+    catalogPrice: number;
     quantity: number;
     stockQty: number;
     variantName?: string;
@@ -62,13 +63,15 @@ interface CartContentProps {
     cart: CartItem[];
     setCart: (cart: CartItem[]) => void;
     updateQuantity: (productId: string, variant_id: string | null, delta: number) => void;
+    updatePrice: (productId: string, variantId: string | null, nextPrice: number) => void;
+    resetPrice: (productId: string, variantId: string | null) => void;
     formatPrice: (price: number) => string;
     subtotal: number;
     total: number;
     setShowPaymentModal: (show: boolean) => void;
 }
 
-function CartContent({ cart, setCart, updateQuantity, formatPrice, subtotal, total, setShowPaymentModal }: CartContentProps) {
+function CartContent({ cart, setCart, updateQuantity, updatePrice, resetPrice, formatPrice, subtotal, total, setShowPaymentModal }: CartContentProps) {
     return (
         <div className="flex flex-col h-full overflow-hidden">
             <div className="p-6 border-b flex items-center justify-between">
@@ -109,22 +112,57 @@ function CartContent({ cart, setCart, updateQuantity, formatPrice, subtotal, tot
                             <div className="flex-1 min-w-0 flex flex-col justify-between">
                                 <div>
                                     <h4 className="text-xs font-black text-foreground line-clamp-1 uppercase tracking-tight">{item.name}</h4>
-                                    <p className="text-[10px] font-bold text-primary mt-1">{formatPrice(item.price)}</p>
+                                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                        <p className="text-[10px] font-bold text-primary">{formatPrice(item.price)}</p>
+                                        {item.price !== item.catalogPrice && (
+                                            <>
+                                                <p className="text-[10px] font-bold text-muted-foreground line-through">{formatPrice(item.catalogPrice)}</p>
+                                                <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 text-[9px] font-black uppercase tracking-wider">Negotiated</span>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                    <button
-                                        onClick={() => updateQuantity(item.product_id, item.variant_id || null, -1)}
-                                        className="w-7 h-7 rounded-lg flex items-center justify-center bg-background border shadow-sm hover:bg-primary hover:text-white transition-all"
-                                    >
-                                        <Minus className="w-3 h-3" />
-                                    </button>
-                                    <span className="text-xs font-black w-4 text-center text-foreground">{item.quantity}</span>
-                                    <button
-                                        onClick={() => updateQuantity(item.product_id, item.variant_id || null, 1)}
-                                        className="w-7 h-7 rounded-lg flex items-center justify-center bg-background border shadow-sm hover:bg-primary hover:text-white transition-all"
-                                    >
-                                        <Plus className="w-3 h-3" />
-                                    </button>
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-4">
+                                        <button
+                                            onClick={() => updateQuantity(item.product_id, item.variant_id || null, -1)}
+                                            className="w-7 h-7 rounded-lg flex items-center justify-center bg-background border shadow-sm hover:bg-primary hover:text-white transition-all"
+                                        >
+                                            <Minus className="w-3 h-3" />
+                                        </button>
+                                        <span className="text-xs font-black w-4 text-center text-foreground">{item.quantity}</span>
+                                        <button
+                                            onClick={() => updateQuantity(item.product_id, item.variant_id || null, 1)}
+                                            className="w-7 h-7 rounded-lg flex items-center justify-center bg-background border shadow-sm hover:bg-primary hover:text-white transition-all"
+                                        >
+                                            <Plus className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <button
+                                            onClick={() => {
+                                                const nextPrice = window.prompt('Enter negotiated unit price', item.price.toFixed(2));
+                                                if (nextPrice === null) return;
+                                                const parsed = parseFloat(nextPrice);
+                                                if (Number.isNaN(parsed) || parsed < 0) {
+                                                    toast.error('Invalid negotiated price');
+                                                    return;
+                                                }
+                                                updatePrice(item.product_id, item.variant_id || null, parsed);
+                                            }}
+                                            className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[9px] font-black uppercase tracking-wider hover:bg-primary/20 transition-all"
+                                        >
+                                            Bargain
+                                        </button>
+                                        {item.price !== item.catalogPrice && (
+                                            <button
+                                                onClick={() => resetPrice(item.product_id, item.variant_id || null)}
+                                                className="px-2.5 py-1 rounded-lg bg-secondary text-muted-foreground text-[9px] font-black uppercase tracking-wider hover:text-foreground transition-all"
+                                            >
+                                                Reset Price
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             <div className="text-right flex flex-col justify-end">
@@ -306,6 +344,7 @@ export default function POSPage() {
                 name: product.name,
                 imageUrl: product.imageUrl,
                 price: product.price,
+                catalogPrice: product.price,
                 quantity: 1,
                 stockQty: product.stockQty,
                 variantName: product.variantName
@@ -324,6 +363,22 @@ export default function POSPage() {
         }).filter(item => item.quantity > 0));
     };
 
+    const updatePrice = (productId: string, variantId: string | null = null, nextPrice: number) => {
+        setCart(cart.map(item =>
+            item.product_id === productId && item.variant_id === variantId
+                ? { ...item, price: nextPrice }
+                : item
+        ));
+    };
+
+    const resetPrice = (productId: string, variantId: string | null = null) => {
+        setCart(cart.map(item =>
+            item.product_id === productId && item.variant_id === variantId
+                ? { ...item, price: item.catalogPrice }
+                : item
+        ));
+    };
+
     const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     const total = subtotal;
 
@@ -334,6 +389,7 @@ export default function POSPage() {
                 variantId: item.variant_id,
                 quantity: item.quantity,
                 price: item.price,
+                catalogPrice: item.catalogPrice,
                 name: item.name
             })),
             payments,
@@ -687,6 +743,8 @@ export default function POSPage() {
                             cart={cart}
                             setCart={setCart}
                             updateQuantity={updateQuantity}
+                            updatePrice={updatePrice}
+                            resetPrice={resetPrice}
                             formatPrice={formatPrice}
                             subtotal={subtotal}
                             total={total}

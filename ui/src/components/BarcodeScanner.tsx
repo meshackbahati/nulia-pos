@@ -8,9 +8,10 @@ import toast from 'react-hot-toast';
 interface BarcodeScannerProps {
     onScan: (barcode: string) => void;
     onClose: () => void;
+    autoStartNative?: boolean;
 }
 
-export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
+export default function BarcodeScanner({ onScan, onClose, autoStartNative = false }: BarcodeScannerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
     const [selectedDeviceId, setSelectedDeviceId] = useState('');
@@ -22,13 +23,18 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
     const isCapacitor = Capacitor.isNativePlatform();
 
     useEffect(() => {
+        if (isCapacitor && autoStartNative) {
+            startNativeScan();
+            return;
+        }
+
         if (isCapacitor && mode === 'camera') {
             checkPermissions();
         } else if (mode === 'camera' && scanning) {
             startWebCamera();
         }
         return () => stopWebCamera();
-    }, [mode, scanning, selectedDeviceId]);
+    }, [mode, scanning, selectedDeviceId, autoStartNative, isCapacitor]);
 
     const checkPermissions = async () => {
         try {
@@ -139,7 +145,8 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
                 </div>
 
                 {/* Mode Selector */}
-                <div className="flex p-1.5 bg-secondary/30 rounded-2xl border border-white/5">
+                {!(autoStartNative && isCapacitor) && (
+                    <div className="flex p-1.5 bg-secondary/30 rounded-2xl border border-white/5">
                     <button
                         onClick={() => setMode('camera')}
                         className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${mode === 'camera' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-muted-foreground hover:text-foreground'}`}
@@ -152,7 +159,8 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
                     >
                         <Keyboard className="w-4 h-4" /> Manual
                     </button>
-                </div>
+                    </div>
+                )}
 
                 {mode === 'camera' ? (
                     <div className="space-y-6">
