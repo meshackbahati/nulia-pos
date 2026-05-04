@@ -347,19 +347,7 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                                                         ))}
                                                         <option value="custom">+ New Category...</option>
                                                     </select>
-                                                    {!categories.includes(formData.category) && formData.category !== '' && (
-                                                        <div className="mt-2 animate-in slide-in-from-top-1">
-                                                            <input
-                                                                type="text"
-                                                                autoFocus
-                                                                value={formData.category}
-                                                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                                                className="w-full h-11 rounded-lg border border-primary/50 bg-background px-3 py-2 text-sm text-foreground placeholder-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 transition-all shadow-sm"
-                                                                placeholder="Type new category name..."
-                                                            />
-                                                        </div>
-                                                    )}
-                                                    {(!categories.includes(formData.category) && formData.category === '') && (
+                                                    {!categories.includes(formData.category) && (
                                                         <div className="mt-2 animate-in slide-in-from-top-1">
                                                             <input
                                                                 type="text"
