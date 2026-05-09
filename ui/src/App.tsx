@@ -23,6 +23,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import BranchesPage from './pages/BranchesPage';
 import SuppliersPage from './pages/SuppliersPage';
 import PurchaseOrdersPage from './pages/PurchaseOrdersPage';
+import InventoryTransferPage from './pages/InventoryTransferPage';
 import HeadOfSalesDashboard from './pages/HeadOfSalesDashboard';
 
 function RootRedirect({ needsSetup }: { needsSetup: boolean }) {
@@ -48,17 +49,27 @@ function App() {
     // Check if user is already logged in (local session)
     const hasToken = !!localStorage.getItem('token') || document.cookie.includes('token=');
 
-    try {
-      // Use the actual API URL
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://api2.g24sec.space/api';
-      const response = await fetch(`${apiUrl}/install/check`, {
+    const primaryApi = import.meta.env.VITE_API_URL || 'https://api2.g24sec.space/api';
+    const fallbackApi = 'https://api2.g24sec.com/api';
+
+    const tryFetch = async (url: string) => {
+      const response = await fetch(`${url}/install/check`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
-      
       if (!response.ok) throw new Error('Backend error');
+      return response.json();
+    };
+
+    try {
+      let data;
+      try {
+        data = await tryFetch(primaryApi);
+      } catch (err) {
+        console.warn('Primary API failed, trying fallback...', err);
+        data = await tryFetch(fallbackApi);
+      }
       
-      const data = await response.json();
       setNeedsSetup(data.needsSetup || false);
       
       if (hasToken) {
@@ -176,6 +187,12 @@ function App() {
             <Route path="/manager/purchase-orders" element={
               <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
                 <Layout><PurchaseOrdersPage /></Layout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/manager/inventory-transfer" element={
+              <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                <Layout><InventoryTransferPage /></Layout>
               </ProtectedRoute>
             } />
 

@@ -38,6 +38,9 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
         measurementType: product?.measurementType || 'discrete',
         baseUnit: product?.baseUnit || 'pcs',
         fractionalSalesAllowed: product?.fractionalSalesAllowed ?? false,
+        minimumSaleQuantity: product?.minimumSaleQuantity || 1,
+        purchaseUnit: product?.purchaseUnit || '',
+        conversionFactor: product?.conversionFactor || 1,
     });
     const [variants, setVariants] = useState<{ name: string; sku: string; price: string; stock: string }[]>(
         product?.variants ? product.variants.map((v: any) => ({
@@ -200,6 +203,9 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                 measurementType: formData.measurementType,
                 baseUnit: formData.baseUnit,
                 fractionalSalesAllowed: formData.fractionalSalesAllowed,
+                minimumSaleQuantity: parseFloat(formData.minimumSaleQuantity.toString()),
+                purchaseUnit: formData.purchaseUnit || null,
+                conversionFactor: parseFloat(formData.conversionFactor.toString()),
                 variants: variants.map(v => ({
                     ...v,
                     price: parseFloat(v.price),
@@ -500,6 +506,40 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                                                 </label>
                                             </div>
                                         </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-muted-foreground uppercase ml-1">Min Sale Qty ({formData.baseUnit})</label>
+                                            <input
+                                                type="number"
+                                                step="any"
+                                                value={formData.minimumSaleQuantity}
+                                                onChange={(e) => setFormData({ ...formData, minimumSaleQuantity: e.target.value })}
+                                                className="w-full h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-muted-foreground uppercase ml-1">Purchase Unit</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.purchaseUnit}
+                                                    onChange={(e) => setFormData({ ...formData, purchaseUnit: e.target.value })}
+                                                    className="w-full h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+                                                    placeholder="Roll, Box..."
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-muted-foreground uppercase ml-1">Conversion (to {formData.baseUnit})</label>
+                                                <input
+                                                    type="number"
+                                                    step="any"
+                                                    value={formData.conversionFactor}
+                                                    onChange={(e) => setFormData({ ...formData, conversionFactor: e.target.value })}
+                                                    className="w-full h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -547,7 +587,7 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                                                 <label className="text-xs font-bold text-muted-foreground uppercase">Initial Units</label>
                                                 <input
                                                     type="number"
-                                                    step={formData.measurementType === 'measurable' ? "0.0001" : "1"}
+                                                    step="any"
                                                     value={formData.stockQuantity}
                                                     onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
                                                     className="w-full h-11 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
@@ -557,7 +597,7 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                                                 <label className="text-xs font-bold text-muted-foreground uppercase">Alert Threshold</label>
                                                 <input
                                                     type="number"
-                                                    step={formData.measurementType === 'measurable' ? "0.01" : "1"}
+                                                    step="any"
                                                     value={formData.lowStockThreshold}
                                                     onChange={(e) => setFormData({ ...formData, lowStockThreshold: e.target.value })}
                                                     className="w-full h-11 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"

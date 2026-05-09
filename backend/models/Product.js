@@ -108,6 +108,21 @@ class Product extends Model {
                     allowNull: false,
                     defaultValue: false,
                 },
+                minimumSaleQuantity: {
+                    type: DataTypes.DECIMAL(14, 4),
+                    allowNull: false,
+                    defaultValue: 1.0,
+                },
+                purchaseUnit: {
+                    type: DataTypes.STRING,
+                    allowNull: true,
+                    defaultValue: null,
+                },
+                conversionFactor: {
+                    type: DataTypes.DECIMAL(14, 4),
+                    allowNull: false,
+                    defaultValue: 1.0,
+                },
             },
             {
                 sequelize,

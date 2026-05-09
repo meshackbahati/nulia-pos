@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Decimal } from 'decimal.js';
 import { X, Download, Printer, Mail, FileText, Share2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import api from '../lib/api-client';
@@ -86,7 +87,7 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
         sale.items.forEach(item => {
             const name = item.name.length > 25 ? item.name.substring(0, 22) + '...' : item.name;
             doc.text(`${item.quantity}${item.baseUnit || ''}x ${name}`, 5, y);
-            doc.text(formatPrice(item.price * item.quantity), 75, y, { align: 'right' });
+            doc.text(formatPrice(new Decimal(item.price).times(item.quantity).toNumber()), 75, y, { align: 'right' });
             y += 4;
         });
 
@@ -229,7 +230,7 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
                                     <p className="font-bold text-foreground uppercase">{item.name.substring(0, 20)}</p>
                                     <p className="text-[8px] text-muted-foreground">{item.quantity}{item.baseUnit || ''} @ {formatPrice(item.price)}</p>
                                 </div>
-                                <span className="font-bold text-foreground">{formatPrice(item.quantity * item.price)}</span>
+                                <span className="font-bold text-foreground">{formatPrice(new Decimal(item.quantity).times(item.price).toNumber())}</span>
                             </div>
                         ))}
 

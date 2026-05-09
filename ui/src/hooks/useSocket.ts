@@ -2,7 +2,19 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../contexts/AuthContext';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const getSocketURL = () => {
+    const primary = import.meta.env.VITE_API_URL || 'https://api2.g24sec.space';
+
+    // In dev, use localhost if specified
+    if (import.meta.env.DEV && !import.meta.env.VITE_API_URL) {
+        return 'http://localhost:5000';
+    }
+
+    // Remove /api suffix if present for socket connection
+    return primary.replace(/\/api$/, '');
+};
+
+const SOCKET_URL = getSocketURL();
 
 export const useSocket = (events: { [key: string]: (data: any) => void }) => {
     const { user } = useAuth();
