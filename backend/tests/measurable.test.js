@@ -1,3 +1,4 @@
+/* global jest, describe, beforeEach, test, expect */
 const { Decimal } = require('decimal.js');
 
 // Mock models to test business logic without live DB
