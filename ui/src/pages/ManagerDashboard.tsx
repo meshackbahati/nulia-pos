@@ -13,7 +13,8 @@ import {
   AlertTriangle,
   Plus,
   BarChart3,
-  Scan
+  Scan,
+  Truck
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';

@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 
 const getSocketURL = () => {
     const primary = import.meta.env.VITE_API_URL || 'https://api2.g24sec.space';
-    const fallback = 'https://api2.g24sec.com';
 
     // In dev, use localhost if specified
     if (import.meta.env.DEV && !import.meta.env.VITE_API_URL) {

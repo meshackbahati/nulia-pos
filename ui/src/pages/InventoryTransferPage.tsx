@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Truck, Search, ArrowRight, Package, AlertCircle, Check, X } from 'lucide-react';
+import { Truck, Search, ArrowRight, Package, Check, X } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
