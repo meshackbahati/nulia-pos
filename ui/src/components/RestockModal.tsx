@@ -13,6 +13,9 @@ interface Product {
     barcode?: string;
     barcodes?: string[];
     measurementType?: 'discrete' | 'measurable';
+    baseUnit?: string;
+    purchaseUnit?: string;
+    conversionFactor?: number;
 }
 
 interface RestockModalProps {
@@ -23,6 +26,7 @@ interface RestockModalProps {
 
 export default function RestockModal({ product, onClose, onSuccess }: RestockModalProps) {
     const [quantity, setQuantity] = useState('');
+    const [isPurchaseUnit, setIsPurchaseUnit] = useState(false);
     const [reason, setReason] = useState('');
     const [loading, setLoading] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
@@ -66,10 +70,14 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const qty = parseFloat(quantity);
+        let qty = parseFloat(quantity);
         if (isNaN(qty) || qty <= 0) {
             toast.error('Enter valid quantity');
             return;
+        }
+
+        if (isPurchaseUnit && product.conversionFactor) {
+            qty = qty * product.conversionFactor;
         }
 
         setLoading(true);
@@ -118,8 +126,19 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
 
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Inventory Input</label>
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
+                                Inventory Input ({isPurchaseUnit ? product.purchaseUnit : (product.baseUnit || 'Units')})
+                            </label>
                             <div className="flex gap-2">
+                                {product.purchaseUnit && product.conversionFactor && product.conversionFactor > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsPurchaseUnit(!isPurchaseUnit)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 text-amber-600 rounded-lg text-[10px] font-black uppercase hover:bg-amber-500/20 transition-all shadow-sm ring-1 ring-inset ring-amber-500/20"
+                                    >
+                                        Switch to {isPurchaseUnit ? (product.baseUnit || 'Base') : product.purchaseUnit}
+                                    </button>
+                                )}
                                 <button 
                                     type="button"
                                     onClick={() => setShowScanner(true)}
@@ -138,17 +157,26 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
                                 )}
                             </div>
                         </div>
-                        <input
-                            type="number"
-                            step={product.measurementType === 'measurable' ? "0.01" : "1"}
-                            min="0"
-                            required
-                            className="w-full h-20 rounded-2xl border-2 border-primary/20 bg-primary/5 px-4 text-center text-4xl font-black text-primary placeholder:text-primary/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/10 transition-all shadow-inner"
-                            value={quantity}
-                            onChange={(e) => setQuantity(e.target.value)}
-                            placeholder="0"
-                            autoFocus
-                        />
+                        <div className="relative">
+                            <input
+                                type="number"
+                                step={isPurchaseUnit ? "1" : (product.measurementType === 'measurable' ? "0.01" : "1")}
+                                min="0"
+                                required
+                                className="w-full h-20 rounded-2xl border-2 border-primary/20 bg-primary/5 px-4 text-center text-4xl font-black text-primary placeholder:text-primary/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/10 transition-all shadow-inner"
+                                value={quantity}
+                                onChange={(e) => setQuantity(e.target.value)}
+                                placeholder="0"
+                                autoFocus
+                            />
+                            {isPurchaseUnit && product.conversionFactor && quantity && (
+                                <div className="absolute -bottom-6 left-0 right-0 text-center">
+                                    <p className="text-[10px] font-black text-amber-600 uppercase">
+                                        = {(parseFloat(quantity) * product.conversionFactor).toFixed(2)} {product.baseUnit}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                         <p className="text-[10px] text-center text-muted-foreground font-bold uppercase italic opacity-60">Scanning with HID will automatically increment count</p>
                     </div>
 

@@ -45,6 +45,7 @@ export default function Layout({ children, noScroll = false }: LayoutProps) {
         { label: 'Branches', icon: Globe, path: '/manager/branches' },
         { label: 'Products', icon: Package, path: '/products' },
         { label: 'Inventory', icon: ShoppingBag, path: '/manager/purchase-orders' },
+        { label: 'Transfer', icon: Truck, path: '/manager/inventory-transfer' },
         { label: 'Suppliers', icon: Truck, path: '/manager/suppliers' },
         { label: 'People', icon: Users, path: '/users' },
         { label: 'Analytics', icon: TrendingUp, path: '/analytics' },

@@ -235,12 +235,12 @@ export function ManagerDashboard() {
               Open POS
             </Button>
             <Button
-              onClick={() => navigate('/users')}
+              onClick={() => navigate('/manager/inventory-transfer')}
               variant="outline"
               className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-secondary"
             >
-              <Users className="w-6 h-6" />
-              Manage Staff
+               <Truck className="w-6 h-6" />
+              Inventory Transfer
             </Button>
             <Button
               onClick={() => navigate('/analytics')}

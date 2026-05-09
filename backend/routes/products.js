@@ -94,7 +94,8 @@ router.post('/import-csv', authenticate, authorize('head_of_sales'), upload.sing
                     name, sku, barcode, category, brand,
                     basePrice, costPrice, stockQuantity,
                     lowStockThreshold, barcodes, imageUrl,
-                    measurementType, baseUnit, fractionalSalesAllowed
+                    measurementType, baseUnit, fractionalSalesAllowed,
+                    minimumSaleQuantity, purchaseUnit, conversionFactor
                 } = record;
 
                 if (!name) {
@@ -140,6 +141,9 @@ router.post('/import-csv', authenticate, authorize('head_of_sales'), upload.sing
                         measurementType: measurementType || 'discrete',
                         baseUnit: baseUnit || 'pcs',
                         fractionalSalesAllowed: fractionalSalesAllowed === 'true' || fractionalSalesAllowed === '1',
+                        minimumSaleQuantity: parseFloat(minimumSaleQuantity || 1),
+                        purchaseUnit: purchaseUnit || null,
+                        conversionFactor: parseFloat(conversionFactor || 1),
                         isActive: true
                     }, { transaction: t });
                 } else {
@@ -156,6 +160,9 @@ router.post('/import-csv', authenticate, authorize('head_of_sales'), upload.sing
                         measurementType: measurementType || 'discrete',
                         baseUnit: baseUnit || 'pcs',
                         fractionalSalesAllowed: fractionalSalesAllowed === 'true' || fractionalSalesAllowed === '1',
+                        minimumSaleQuantity: parseFloat(minimumSaleQuantity || 1),
+                        purchaseUnit: purchaseUnit || null,
+                        conversionFactor: parseFloat(conversionFactor || 1),
                         isActive: true
                     }, { transaction: t });
                 }
@@ -261,6 +268,9 @@ router.get('/list', authenticate, async (req, res) => {
                 measurementType: product.measurementType,
                 baseUnit: product.baseUnit,
                 fractionalSalesAllowed: product.fractionalSalesAllowed,
+                minimumSaleQuantity: product.minimumSaleQuantity,
+                purchaseUnit: product.purchaseUnit,
+                conversionFactor: product.conversionFactor,
                 stockQuantity: inventory ? inventory.quantity : 0,
                 reservedQuantity: inventory ? inventory.reservedQuantity : 0,
                 minStockLevel: inventory ? inventory.minStockLevel : 0,
@@ -319,6 +329,12 @@ router.post('/create', authenticate, authorize('head_of_sales'), async (req, res
         productData.sku = finalSku;
         productData.barcode = finalBarcode;
         productData.costPrice = parseNullableDecimal(productData.costPrice);
+        if (productData.minimumSaleQuantity !== undefined) {
+            productData.minimumSaleQuantity = parseFloat(productData.minimumSaleQuantity);
+        }
+        if (productData.conversionFactor !== undefined) {
+            productData.conversionFactor = parseFloat(productData.conversionFactor);
+        }
 
         // 1. Find or create the product (unique by sku/barcode)
         let product = await models.Product.findOne({
@@ -413,10 +429,18 @@ router.put('/update/:id', authenticate, authorize('head_of_sales'), async (req, 
         const product = await models.Product.findByPk(id);
         if (!product) return res.status(404).json({ error: 'Product not found' });
 
-        await product.update({
-            ...req.body,
-            costPrice: parseNullableDecimal(req.body.costPrice),
-        });
+        const updateData = { ...req.body };
+        if (updateData.costPrice !== undefined) {
+            updateData.costPrice = parseNullableDecimal(updateData.costPrice);
+        }
+        if (updateData.minimumSaleQuantity !== undefined) {
+            updateData.minimumSaleQuantity = parseFloat(updateData.minimumSaleQuantity);
+        }
+        if (updateData.conversionFactor !== undefined) {
+            updateData.conversionFactor = parseFloat(updateData.conversionFactor);
+        }
+
+        await product.update(updateData);
 
         // Emit real-time update
         const io = req.app.get('io');
@@ -538,6 +562,9 @@ router.get('/search', authenticate, async (req, res) => {
                 measurementType: exactProduct.measurementType,
                 baseUnit: exactProduct.baseUnit,
                 fractionalSalesAllowed: exactProduct.fractionalSalesAllowed,
+                minimumSaleQuantity: exactProduct.minimumSaleQuantity,
+                purchaseUnit: exactProduct.purchaseUnit,
+                conversionFactor: exactProduct.conversionFactor,
                 stockQuantity: inventory ? inventory.quantity : 0,
                 reservedQuantity: inventory ? inventory.reservedQuantity : 0,
                 minStockLevel: inventory ? inventory.minStockLevel : 0,
@@ -590,6 +617,9 @@ router.get('/search', authenticate, async (req, res) => {
                     measurementType: p.measurementType,
                     baseUnit: p.baseUnit,
                     fractionalSalesAllowed: p.fractionalSalesAllowed,
+                    minimumSaleQuantity: p.minimumSaleQuantity,
+                    purchaseUnit: p.purchaseUnit,
+                    conversionFactor: p.conversionFactor,
                     stockQuantity: inventory ? inventory.quantity : 0,
                     reservedQuantity: inventory ? inventory.reservedQuantity : 0,
                     minStockLevel: inventory ? inventory.minStockLevel : 0,

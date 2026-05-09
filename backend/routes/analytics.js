@@ -161,8 +161,8 @@ router.get('/summary', authenticate, async (req, res) => {
         res.json({
             revenue: parseFloat(sales[0]?.revenue || 0),
             salesCount: parseInt(sales[0]?.count || 0),
-            totalStock: parseInt(inventory[0]?.totalStock || 0),
-            lowStockItems: parseInt(inventory[0]?.lowStock || 0),
+            totalStock: parseFloat(inventory[0]?.totalStock || 0),
+            lowStockItems: parseFloat(inventory[0]?.lowStock || 0),
             branchCount: branches || 1,
             topProducts
         });
@@ -320,7 +320,7 @@ router.get('/top-products', authenticate, async (req, res) => {
                     sku: p.product.sku,
                     price: parseFloat(p.product.price)
                 },
-                quantitySold: parseInt(p.get('totalQty')),
+                quantitySold: parseFloat(p.get('totalQty')),
                 revenue: parseFloat(p.get('totalRevenue'))
             }))
         });

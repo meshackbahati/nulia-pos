@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Decimal } from 'decimal.js';
 import api from '../lib/api-client';
 import PaymentModal from '../components/PaymentModal';
 import ReceiptModal from '../components/ReceiptModal';
@@ -44,6 +45,7 @@ interface Product {
     measurementType?: 'discrete' | 'measurable';
     baseUnit?: string;
     fractionalSalesAllowed?: boolean;
+    minimumSaleQuantity?: number;
 }
 
 interface CartItem {
@@ -59,6 +61,7 @@ interface CartItem {
     measurementType?: 'discrete' | 'measurable';
     baseUnit?: string;
     fractionalSalesAllowed?: boolean;
+    minimumSaleQuantity?: number;
 }
 
 interface CartContentProps {
@@ -171,6 +174,7 @@ function CartContent({ cart, setCart, updateQuantity, resetPrice, formatPrice, s
                                 </div>
                             </div>
                             <div className="text-right flex flex-col justify-end">
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">{item.quantity} {item.baseUnit}</p>
                                 <p className="text-sm font-black text-foreground tracking-tighter">{formatPrice(item.price * item.quantity)}</p>
                             </div>
                         </div>
@@ -313,6 +317,7 @@ export default function POSPage() {
                 measurementType: p.measurementType,
                 baseUnit: p.baseUnit,
                 fractionalSalesAllowed: p.fractionalSalesAllowed,
+                minimumSaleQuantity: p.minimumSaleQuantity,
                 updatedAt: Date.now()
             }));
             
@@ -337,17 +342,25 @@ export default function POSPage() {
             item.product_id === product.id && item.variant_id === (product.variantId || null)
         );
 
+        const increment = (product.measurementType === 'measurable' && product.minimumSaleQuantity)
+            ? product.minimumSaleQuantity
+            : 1;
+
         if (existingItem) {
-            if (existingItem.quantity >= product.stockQty) {
+            if (existingItem.quantity + increment > product.stockQty) {
                 toast.error('Insufficient Stock');
                 return;
             }
             setCart(cart.map(item =>
                 (item.product_id === product.id && item.variant_id === (product.variantId || null))
-                    ? { ...item, quantity: item.quantity + 1 }
+                    ? { ...item, quantity: Math.round((item.quantity + increment) * 10000) / 10000 }
                     : item
             ));
         } else {
+            if (increment > product.stockQty) {
+                toast.error('Insufficient Stock');
+                return;
+            }
             setCart([...cart, {
                 product_id: product.id,
                 variant_id: product.variantId || null,
@@ -355,12 +368,13 @@ export default function POSPage() {
                 imageUrl: product.imageUrl,
                 price: product.price,
                 catalogPrice: product.price,
-                quantity: 1,
+                quantity: increment,
                 stockQty: product.stockQty,
                 variantName: product.variantName,
                 measurementType: product.measurementType,
                 baseUnit: product.baseUnit,
-                fractionalSalesAllowed: product.fractionalSalesAllowed
+                fractionalSalesAllowed: product.fractionalSalesAllowed,
+                minimumSaleQuantity: product.minimumSaleQuantity
             }]);
         }
     };
@@ -378,7 +392,7 @@ export default function POSPage() {
                 return { ...item, quantity: roundedQty };
             }
             return item;
-        }).filter(item => item.quantity > 0 || (item.quantity === 0 && item.measurementType === 'measurable')));
+        }).filter(item => item.quantity > 0));
     };
 
     const updatePrice = (productId: string, variantId: string | null = null, nextPrice: number) => {
@@ -397,7 +411,8 @@ export default function POSPage() {
         ));
     };
 
-    const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    const subtotal = cart.reduce((acc, item) =>
+        new Decimal(acc).plus(new Decimal(item.price).times(item.quantity)).toNumber(), 0);
     const total = subtotal;
 
     const onPaymentComplete = async (payments: any[]) => {
@@ -448,8 +463,12 @@ export default function POSPage() {
             const mockSale = {
                 ...saleData,
                 subtotal: subtotal,
-                tax: (branchData?.taxRate || 0) > 0 ? (subtotal * branchData.taxRate / 100) : 0,
-                total: total + ((branchData?.taxRate || 0) > 0 ? (subtotal * branchData.taxRate / 100) : 0),
+                tax: (branchData?.taxRate || 0) > 0
+                    ? new Decimal(subtotal).times(branchData.taxRate).div(100).toNumber()
+                    : 0,
+                total: (branchData?.taxRate || 0) > 0
+                    ? new Decimal(total).plus(new Decimal(subtotal).times(branchData.taxRate).div(100)).toNumber()
+                    : total,
                 paymentMethod: payments.map(p => p.method).join(' + '),
                 receiptId: 'OFFLINE-' + Date.now().toString().slice(-6),
                 createdAt: new Date().toISOString()
@@ -550,7 +569,8 @@ export default function POSPage() {
                         sku: p.sku || '',
                         barcode: p.barcode || '',
                         barcodes: p.barcodes || [],
-                        lowStockAlert: p.lowStockAlert || 5
+                        lowStockAlert: p.lowStockAlert || 5,
+                        minimumSaleQuantity: p.minimumSaleQuantity
                     };
                     setProducts(prev => [...prev, mappedProduct]);
                     await db.products.put(mappedProduct as any);
