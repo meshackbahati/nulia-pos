@@ -2,6 +2,7 @@ import express from 'express';
 import models, { sequelize } from '../models/index.js';
 import { authenticate, authorize, hasPermission } from '../lib/auth.js';
 import { Op } from 'sequelize';
+import { Decimal } from 'decimal.js';
 
 const router = express.Router();
 
@@ -72,7 +73,8 @@ router.post('/restock', authenticate, async (req, res) => {
                 }, { transaction: t });
             }
 
-            await inventory.increment('quantity', { by: item.quantity, transaction: t });
+            const qtyToAdd = new Decimal(item.quantity);
+            await inventory.increment('quantity', { by: qtyToAdd.toString(), transaction: t });
             await inventory.update({ lastRestockedAt: new Date() }, { transaction: t });
         }
 
@@ -123,7 +125,7 @@ router.post('/adjust', authenticate, async (req, res) => {
 
     // Transform the single item from /adjust to the 'items' array expected by /restock
     req.body = {
-        items: [{ productId, variantId, quantity: Number(quantity) }],
+        items: [{ productId, variantId, quantity: new Decimal(quantity).toString() }],
         branchId: branchId, // Pass branchId explicitly if needed by /restock handler
         reason: reason
     };

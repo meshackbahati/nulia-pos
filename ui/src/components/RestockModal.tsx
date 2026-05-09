@@ -12,6 +12,7 @@ interface Product {
     sku?: string;
     barcode?: string;
     barcodes?: string[];
+    measurementType?: 'discrete' | 'measurable';
 }
 
 interface RestockModalProps {
@@ -34,8 +35,9 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
         
         if (isMatch) {
             setQuantity(prev => {
-                const current = parseInt(prev) || 0;
-                return (current + 1).toString();
+                const current = parseFloat(prev) || 0;
+                const delta = product.measurementType === 'measurable' ? 0.1 : 1;
+                return (current + delta).toFixed(product.measurementType === 'measurable' ? 2 : 0);
             });
             toast.success(`Incremented ${product.name}`);
         } else {
@@ -64,7 +66,7 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const qty = parseInt(quantity);
+        const qty = parseFloat(quantity);
         if (isNaN(qty) || qty <= 0) {
             toast.error('Enter valid quantity');
             return;
@@ -138,7 +140,8 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
                         </div>
                         <input
                             type="number"
-                            min="1"
+                            step={product.measurementType === 'measurable' ? "0.01" : "1"}
+                            min="0"
                             required
                             className="w-full h-20 rounded-2xl border-2 border-primary/20 bg-primary/5 px-4 text-center text-4xl font-black text-primary placeholder:text-primary/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/10 transition-all shadow-inner"
                             value={quantity}

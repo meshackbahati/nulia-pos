@@ -15,8 +15,8 @@
         "db:migrate": "sequelize-cli db:migrate",
         "db:migrate:undo": "sequelize-cli db:migrate:undo",
         "db:seed": "sequelize-cli db:seed:all",
-        "seed:interactive:scratch": "node seeders/scratch-interactive-seeder.js",
-        "seed:REPL": "node seeders/seed_REPL.js",
+        "seed:interactive:scratch": "node scripts/scratch-interactive-seeder.js",
+        "seed:REPL": "node scripts/seed_REPL.js",
         "test": "jest",
         "lint": "eslint . --ext .js"
     },
@@ -26,6 +26,7 @@
         "cloudinary": "^2.9.0",
         "cors": "^2.8.5",
         "csv-parse": "^6.1.0",
+        "decimal.js": "^10.6.0",
         "dotenv": "^16.4.1",
         "express": "^4.18.2",
         "jsonwebtoken": "^9.0.2",

@@ -42,10 +42,10 @@ class SaleItem extends Model {
                     },
                 },
                 quantity: {
-                    type: DataTypes.INTEGER,
+                    type: DataTypes.DECIMAL(14, 4),
                     allowNull: false,
                     validate: {
-                        min: 1,
+                        min: 0,
                     },
                 },
                 unitPrice: {

@@ -16,6 +16,7 @@ interface ReceiptModalProps {
             name: string;
             quantity: number;
             price: number;
+            baseUnit?: string;
         }>;
         subtotal?: number;
         tax?: number;
@@ -84,7 +85,7 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
         // Items
         sale.items.forEach(item => {
             const name = item.name.length > 25 ? item.name.substring(0, 22) + '...' : item.name;
-            doc.text(`${item.quantity}x ${name}`, 5, y);
+            doc.text(`${item.quantity}${item.baseUnit || ''}x ${name}`, 5, y);
             doc.text(formatPrice(item.price * item.quantity), 75, y, { align: 'right' });
             y += 4;
         });
@@ -226,7 +227,7 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
                             <div key={idx} className="flex justify-between items-start text-[10px]">
                                 <div className="min-w-0 pr-4">
                                     <p className="font-bold text-foreground uppercase">{item.name.substring(0, 20)}</p>
-                                    <p className="text-[8px] text-muted-foreground">{item.quantity} @ {formatPrice(item.price)}</p>
+                                    <p className="text-[8px] text-muted-foreground">{item.quantity}{item.baseUnit || ''} @ {formatPrice(item.price)}</p>
                                 </div>
                                 <span className="font-bold text-foreground">{formatPrice(item.quantity * item.price)}</span>
                             </div>

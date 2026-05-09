@@ -1,6 +1,7 @@
 import express from 'express';
 import models, { sequelize } from '../models/index.js';
 import { authenticate, authorize, hasPermission } from '../lib/auth.js';
+import { Decimal } from 'decimal.js';
 
 const router = express.Router();
 
@@ -47,7 +48,7 @@ router.post('/create', authenticate, async (req, res) => {
             branchId: req.user.branchId,
             orderNumber: `PO-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
             status: 'pending',
-            totalAmount: items.reduce((sum, item) => sum + (item.quantity * (item.unitCost || item.unitPrice || 0)), 0),
+            totalAmount: items.reduce((sum, item) => sum.plus(new Decimal(item.quantity).times(item.unitCost || item.unitPrice || 0)), new Decimal(0)).toDecimalPlaces(2).toNumber(),
             notes,
             createdBy: req.user.id || req.user.userId
         }, { transaction: t });
@@ -57,9 +58,9 @@ router.post('/create', authenticate, async (req, res) => {
                 purchaseOrderId: po.id,
                 productId: item.productId,
                 variantId: item.variantId || null,
-                quantity: item.quantity,
+                quantity: new Decimal(item.quantity).toString(),
                 unitCost: item.unitCost || item.unitPrice || 0,
-                totalCost: item.quantity * (item.unitCost || item.unitPrice || 0)
+                totalCost: new Decimal(item.quantity).times(item.unitCost || item.unitPrice || 0).toDecimalPlaces(2).toNumber()
             }, { transaction: t });
         }
 
@@ -116,7 +117,7 @@ router.post('/receive', authenticate, async (req, res) => {
                 }, { transaction: t });
             }
 
-            await inventory.increment('quantity', { by: item.quantity, transaction: t });
+            await inventory.increment('quantity', { by: new Decimal(item.quantity).toString(), transaction: t });
         }
 
         await t.commit();

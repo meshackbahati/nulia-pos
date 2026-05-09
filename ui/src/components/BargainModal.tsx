@@ -9,6 +9,8 @@ interface BargainModalProps {
     catalogPrice: number;
     productName: string;
     formatPrice: (price: number) => string;
+    measurementType?: 'discrete' | 'measurable';
+    baseUnit?: string;
 }
 
 export default function BargainModal({
@@ -18,7 +20,9 @@ export default function BargainModal({
     currentPrice,
     catalogPrice,
     productName,
-    formatPrice
+    formatPrice,
+    measurementType,
+    baseUnit
 }: BargainModalProps) {
     const [price, setPrice] = useState(currentPrice.toString());
 
@@ -59,12 +63,12 @@ export default function BargainModal({
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-4">
                             <div className="flex justify-between items-center p-4 bg-secondary/30 rounded-2xl border border-border/50">
-                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Catalog Price</span>
+                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Catalog Price {measurementType === 'measurable' ? `per ${baseUnit}` : ''}</span>
                                 <span className="text-sm font-black text-foreground">{formatPrice(catalogPrice)}</span>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Negotiated Price</label>
+                                <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Negotiated Price {measurementType === 'measurable' ? `per ${baseUnit}` : ''}</label>
                                 <div className="relative">
                                     <input
                                         autoFocus

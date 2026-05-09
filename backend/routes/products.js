@@ -3,6 +3,7 @@ import models, { sequelize } from '../models/index.js';
 import { authenticate, authorize } from '../lib/auth.js';
 import { createAuditLog, AUDIT_ACTIONS, AUDIT_RESOURCES } from '../lib/audit.js';
 import { Op } from 'sequelize';
+import { Decimal } from 'decimal.js';
 import multer from 'multer';
 import cloudinary from '../lib/cloudinary.js';
 import { parse } from 'csv-parse/sync';
@@ -92,7 +93,8 @@ router.post('/import-csv', authenticate, authorize('head_of_sales'), upload.sing
                 const {
                     name, sku, barcode, category, brand,
                     basePrice, costPrice, stockQuantity,
-                    lowStockThreshold, barcodes, imageUrl
+                    lowStockThreshold, barcodes, imageUrl,
+                    measurementType, baseUnit, fractionalSalesAllowed
                 } = record;
 
                 if (!name) {
@@ -107,8 +109,8 @@ router.post('/import-csv', authenticate, authorize('head_of_sales'), upload.sing
                 // Parse numeric fields
                 const parsedBasePrice = parseFloat(basePrice || 0);
                 const parsedCostPrice = parseNullableDecimal(costPrice);
-                const parsedStock = parseInt(stockQuantity || 0);
-                const parsedThreshold = parseInt(lowStockThreshold || 10);
+                const parsedStock = new Decimal(stockQuantity || 0).toString();
+                const parsedThreshold = new Decimal(lowStockThreshold || 10).toString();
 
                 // Parse barcodes array (comma separated in CSV)
                 const parsedBarcodes = barcodes ? barcodes.split(',').map(b => b.trim()) : [];
@@ -135,6 +137,9 @@ router.post('/import-csv', authenticate, authorize('head_of_sales'), upload.sing
                         costPrice: parsedCostPrice,
                         barcodes: parsedBarcodes,
                         imageUrl: imageUrl || '',
+                        measurementType: measurementType || 'discrete',
+                        baseUnit: baseUnit || 'pcs',
+                        fractionalSalesAllowed: fractionalSalesAllowed === 'true' || fractionalSalesAllowed === '1',
                         isActive: true
                     }, { transaction: t });
                 } else {
@@ -148,6 +153,9 @@ router.post('/import-csv', authenticate, authorize('head_of_sales'), upload.sing
                         costPrice: parsedCostPrice,
                         barcodes: parsedBarcodes,
                         imageUrl: imageUrl || '',
+                        measurementType: measurementType || 'discrete',
+                        baseUnit: baseUnit || 'pcs',
+                        fractionalSalesAllowed: fractionalSalesAllowed === 'true' || fractionalSalesAllowed === '1',
                         isActive: true
                     }, { transaction: t });
                 }
@@ -224,7 +232,7 @@ router.get('/list', authenticate, async (req, res) => {
                     as: 'inventory',
                     where: branchId ? { branchId } : {},
                     required: false,
-                    attributes: ['quantity', 'minStockLevel', 'maxStockLevel'],
+                    attributes: ['quantity', 'minStockLevel', 'maxStockLevel', 'reservedQuantity'],
                 },
                 {
                     model: models.ProductVariant,
@@ -250,7 +258,11 @@ router.get('/list', authenticate, async (req, res) => {
                 barcode: product.barcode,
                 barcodes: product.barcodes || [],
                 imageUrl: product.imageUrl,
+                measurementType: product.measurementType,
+                baseUnit: product.baseUnit,
+                fractionalSalesAllowed: product.fractionalSalesAllowed,
                 stockQuantity: inventory ? inventory.quantity : 0,
+                reservedQuantity: inventory ? inventory.reservedQuantity : 0,
                 minStockLevel: inventory ? inventory.minStockLevel : 0,
                 variants: product.variants || [],
             };
@@ -333,16 +345,16 @@ router.post('/create', authenticate, authorize('head_of_sales'), async (req, res
                 variantId: null // Support for simple products first
             },
             defaults: {
-                quantity: parseInt(stockQuantity || 0),
-                minStockLevel: parseInt(lowStockThreshold || 10)
+                quantity: new Decimal(stockQuantity || 0).toString(),
+                minStockLevel: new Decimal(lowStockThreshold || 10).toString()
             },
             transaction: t
         });
 
         if (inventory) {
             await inventory.update({
-                quantity: parseInt(stockQuantity || 0),
-                minStockLevel: parseInt(lowStockThreshold || 10)
+                quantity: new Decimal(stockQuantity || 0).toString(),
+                minStockLevel: new Decimal(lowStockThreshold || 10).toString()
             }, { transaction: t });
         }
 
@@ -367,7 +379,7 @@ router.post('/create', authenticate, authorize('head_of_sales'), async (req, res
                         variantId: variant.id
                     },
                     defaults: {
-                        quantity: parseInt(v.stock || 0),
+                        quantity: new Decimal(v.stock || 0).toString(),
                         minStockLevel: 5
                     },
                     transaction: t
@@ -523,7 +535,11 @@ router.get('/search', authenticate, async (req, res) => {
                 barcode: exactProduct.barcode,
                 barcodes: exactProduct.barcodes || [],
                 imageUrl: exactProduct.imageUrl,
+                measurementType: exactProduct.measurementType,
+                baseUnit: exactProduct.baseUnit,
+                fractionalSalesAllowed: exactProduct.fractionalSalesAllowed,
                 stockQuantity: inventory ? inventory.quantity : 0,
+                reservedQuantity: inventory ? inventory.reservedQuantity : 0,
                 minStockLevel: inventory ? inventory.minStockLevel : 0,
                 variants: exactProduct.variants || [],
             };
@@ -571,7 +587,11 @@ router.get('/search', authenticate, async (req, res) => {
                     barcode: p.barcode,
                     barcodes: p.barcodes || [],
                     imageUrl: p.imageUrl,
+                    measurementType: p.measurementType,
+                    baseUnit: p.baseUnit,
+                    fractionalSalesAllowed: p.fractionalSalesAllowed,
                     stockQuantity: inventory ? inventory.quantity : 0,
+                    reservedQuantity: inventory ? inventory.reservedQuantity : 0,
                     minStockLevel: inventory ? inventory.minStockLevel : 0,
                 };
             });

@@ -177,7 +177,7 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
                                     <div className="min-w-0 flex-1">
                                         <p className="text-[10px] font-bold text-foreground uppercase truncate">{item.name}</p>
                                         <div className="flex items-center gap-2">
-                                            <p className="text-[9px] text-muted-foreground">{item.quantity} × {formatPrice(item.price)}</p>
+                                            <p className="text-[9px] text-muted-foreground">{item.quantity}{item.baseUnit} × {formatPrice(item.price)}</p>
                                             {item.price !== item.catalogPrice && (
                                                 <span className="text-[8px] bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded font-black uppercase tracking-tighter">Bargained</span>
                                             )}

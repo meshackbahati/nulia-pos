@@ -3,6 +3,7 @@ import models, { sequelize } from '../models/index.js';
 import { authenticate, authorize } from '../lib/auth.js';
 import { createAuditLog, AUDIT_ACTIONS, AUDIT_RESOURCES } from '../lib/audit.js';
 import { Op } from 'sequelize';
+import { Decimal } from 'decimal.js';
 
 const router = express.Router();
 
@@ -137,7 +138,11 @@ router.post('/create', authenticate, async (req, res) => {
 
         // 1. Check inventory availability and resolve catalog pricing
         for (const item of items) {
-            const requestedQty = parseInt(item.quantity);
+            const requestedQty = new Decimal(item.quantity);
+            if (requestedQty.lte(0)) {
+                await transaction.rollback();
+                return res.status(400).json({ error: `Invalid quantity for ${item.name}` });
+            }
             const inventory = await models.Inventory.findOne({
                 where: {
                     branchId,
@@ -152,11 +157,11 @@ router.post('/create', authenticate, async (req, res) => {
                 return res.status(400).json({ error: `Item ${item.name} not available in this branch` });
             }
 
-            const available = parseInt(inventory.quantity) - parseInt(inventory.reservedQuantity || 0);
+            const available = new Decimal(inventory.quantity).minus(inventory.reservedQuantity || 0);
             
-            if (available < requestedQty) {
+            if (available.lt(requestedQty)) {
                 await transaction.rollback();
-                return res.status(400).json({ error: `Insufficient stock for ${item.name}. Available: ${available}, Requested: ${requestedQty}` });
+                return res.status(400).json({ error: `Insufficient stock for ${item.name}. Available: ${available.toString()}, Requested: ${requestedQty.toString()}` });
             }
 
             let catalogUnitPrice = Number(item.catalogPrice);
@@ -177,6 +182,12 @@ router.post('/create', authenticate, async (req, res) => {
                     }
 
                     catalogUnitPrice = Number(variant.price);
+
+                    // Validation: Fractional sales allowed?
+                    if (!variant.product.fractionalSalesAllowed && !requestedQty.isInteger()) {
+                        await transaction.rollback();
+                        return res.status(400).json({ error: `Fractional quantity not allowed for ${variant.product.name} (${variant.name})` });
+                    }
                 } else {
                     const product = await models.Product.findOne({
                         where: {
@@ -192,32 +203,42 @@ router.post('/create', authenticate, async (req, res) => {
                     }
 
                     catalogUnitPrice = Number(product.basePrice);
+                    
+                    // Validation: Fractional sales allowed?
+                    if (!product.fractionalSalesAllowed && !requestedQty.isInteger()) {
+                        await transaction.rollback();
+                        return res.status(400).json({ error: `Fractional quantity not allowed for ${product.name}` });
+                    }
                 }
             }
 
-            const effectiveUnitPrice = Number(item.price);
-            if (!Number.isFinite(effectiveUnitPrice) || effectiveUnitPrice < 0) {
+            const effectiveUnitPrice = new Decimal(item.price);
+            if (effectiveUnitPrice.lt(0)) {
                 await transaction.rollback();
                 return res.status(400).json({ error: `Invalid sale price for ${item.name}` });
             }
 
-            const lineDiscountAmount = Math.max(0, (catalogUnitPrice - effectiveUnitPrice) * requestedQty);
+            const lineDiscountAmount = Decimal.max(0, new Decimal(catalogUnitPrice).minus(effectiveUnitPrice).times(requestedQty));
 
             resolvedItems.push({
                 ...item,
-                quantity: requestedQty,
+                quantity: requestedQty, // Store as Decimal object for calculations
                 catalogUnitPrice,
-                effectiveUnitPrice,
-                lineDiscountAmount,
+                effectiveUnitPrice: effectiveUnitPrice.toNumber(),
+                lineDiscountAmount: lineDiscountAmount.toNumber(),
             });
         }
 
         // 2. Calculate totals in base currency
-        const subtotal = resolvedItems.reduce((sum, item) => sum + (item.effectiveUnitPrice * item.quantity), 0);
-        const taxRate = branch.taxRate || 0;
-        const taxAmount = subtotal * (taxRate / 100);
-        const discountAmount = resolvedItems.reduce((sum, item) => sum + item.lineDiscountAmount, 0);
-        const finalTotal = subtotal + taxAmount;
+        const subtotalDecimal = resolvedItems.reduce((sum, item) => sum.plus(new Decimal(item.effectiveUnitPrice).times(item.quantity)), new Decimal(0));
+        const taxRate = new Decimal(branch.taxRate || 0);
+        const taxAmountDecimal = subtotalDecimal.times(taxRate.div(100));
+        const discountAmountDecimal = resolvedItems.reduce((sum, item) => sum.plus(item.lineDiscountAmount), new Decimal(0));
+        
+        const subtotal = subtotalDecimal.toDecimalPlaces(2).toNumber();
+        const taxAmount = taxAmountDecimal.toDecimalPlaces(2).toNumber();
+        const discountAmount = discountAmountDecimal.toDecimalPlaces(2).toNumber();
+        const finalTotal = subtotalDecimal.plus(taxAmountDecimal).toDecimalPlaces(2).toNumber();
 
         // Verify total payment matches total due (with 0.01 tolerance)
         const totalPaidInBase = payments.reduce((acc, p) => acc + (Number(p.amount) / Number(p.exchangeRate || 1)), 0);
@@ -244,18 +265,19 @@ router.post('/create', authenticate, async (req, res) => {
 
         // 4. Create sale items and update inventory
         for (const item of resolvedItems) {
+            const qty = new Decimal(item.quantity);
             await models.SaleItem.create({
                 saleId: sale.id,
                 productId: item.productId,
                 variantId: item.variantId,
-                quantity: item.quantity,
+                quantity: qty.toString(), // Store as string for Decimal precision in Sequelize
                 unitPrice: item.effectiveUnitPrice,
-                totalPrice: item.effectiveUnitPrice * item.quantity,
+                totalPrice: new Decimal(item.effectiveUnitPrice).times(qty).toDecimalPlaces(2).toNumber(),
                 discountAmount: item.lineDiscountAmount,
             }, { transaction });
 
             await models.Inventory.decrement('quantity', {
-                by: item.quantity,
+                by: qty.toString(),
                 where: {
                     branchId,
                     productId: item.productId,

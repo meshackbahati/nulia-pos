@@ -22,9 +22,9 @@ class PurchaseOrderItem extends Model {
                     allowNull: true
                 },
                 quantity: {
-                    type: DataTypes.INTEGER,
+                    type: DataTypes.DECIMAL(14, 4),
                     allowNull: false,
-                    validate: { min: 1 }
+                    validate: { min: 0 }
                 },
                 unitCost: {
                     type: DataTypes.DECIMAL(10, 2),

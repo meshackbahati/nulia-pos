@@ -51,7 +51,7 @@ class Inventory extends Model {
                     },
                 },
                 quantity: {
-                    type: DataTypes.INTEGER,
+                    type: DataTypes.DECIMAL(14, 4),
                     allowNull: false,
                     defaultValue: 0,
                     validate: {
@@ -59,7 +59,7 @@ class Inventory extends Model {
                     },
                 },
                 reservedQuantity: {
-                    type: DataTypes.INTEGER,
+                    type: DataTypes.DECIMAL(14, 4),
                     allowNull: false,
                     defaultValue: 0,
                     validate: {

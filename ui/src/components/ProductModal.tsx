@@ -35,6 +35,9 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
         stockQuantity: product?.stockQuantity || '',
         lowStockThreshold: product?.lowStockThreshold || 10,
         imageUrl: product?.imageUrl || '',
+        measurementType: product?.measurementType || 'discrete',
+        baseUnit: product?.baseUnit || 'pcs',
+        fractionalSalesAllowed: product?.fractionalSalesAllowed ?? false,
     });
     const [variants, setVariants] = useState<{ name: string; sku: string; price: string; stock: string }[]>(
         product?.variants ? product.variants.map((v: any) => ({
@@ -192,14 +195,17 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                 branchId: formData.branchId,
                 basePrice: parseFloat(formData.basePrice),
                 costPrice: formData.costPrice === '' ? null : parseFloat(formData.costPrice),
-                stockQuantity: parseInt(formData.stockQuantity || '0'),
-                lowStockThreshold: parseInt(formData.lowStockThreshold.toString()),
+                stockQuantity: formData.measurementType === 'measurable' ? parseFloat(formData.stockQuantity || '0') : parseInt(formData.stockQuantity || '0'),
+                lowStockThreshold: formData.measurementType === 'measurable' ? parseFloat(formData.lowStockThreshold.toString()) : parseInt(formData.lowStockThreshold.toString()),
+                measurementType: formData.measurementType,
+                baseUnit: formData.baseUnit,
+                fractionalSalesAllowed: formData.fractionalSalesAllowed,
                 variants: variants.map(v => ({
                     ...v,
                     price: parseFloat(v.price),
-                    stock: parseInt(v.stock || '0')
+                    stock: formData.measurementType === 'measurable' ? parseFloat(v.stock || '0') : parseInt(v.stock || '0')
                 })),
-                initialStock: parseInt(formData.stockQuantity || '0')
+                initialStock: formData.measurementType === 'measurable' ? parseFloat(formData.stockQuantity || '0') : parseInt(formData.stockQuantity || '0')
             };
 
             if (isEdit) {
@@ -445,6 +451,57 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                                         </div>
                                     </div>
                                 </div>
+                                {/* Measurement & Logic Configuration */}
+                                <div className="space-y-4 pt-6 border-t border-border/50">
+                                    <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                        <Info className="w-4 h-4" /> Measurement Logic
+                                    </h3>
+                                    <div className="bg-muted/30 p-4 rounded-xl space-y-4">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-muted-foreground uppercase ml-1">Inventory Type</label>
+                                            <div className="flex gap-2 p-1 bg-card border rounded-lg">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, measurementType: 'discrete', fractionalSalesAllowed: false, baseUnit: 'pcs' })}
+                                                    className={`flex-1 py-2 text-[10px] font-black uppercase rounded-md transition-all ${formData.measurementType === 'discrete' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}
+                                                >
+                                                    Discrete (Items)
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, measurementType: 'measurable' })}
+                                                    className={`flex-1 py-2 text-[10px] font-black uppercase rounded-md transition-all ${formData.measurementType === 'measurable' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}
+                                                >
+                                                    Measurable (m/kg/l)
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-muted-foreground uppercase ml-1">Base Unit</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.baseUnit}
+                                                    onChange={(e) => setFormData({ ...formData, baseUnit: e.target.value })}
+                                                    className="w-full h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+                                                    placeholder="pcs, m, kg, l..."
+                                                />
+                                            </div>
+                                            <div className="flex flex-col justify-end">
+                                                <label className="flex items-center gap-2 cursor-pointer p-2 hover:bg-card rounded-lg transition-all">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={formData.fractionalSalesAllowed}
+                                                        onChange={(e) => setFormData({ ...formData, fractionalSalesAllowed: e.target.checked })}
+                                                        className="w-4 h-4 rounded border-input text-primary focus:ring-primary"
+                                                    />
+                                                    <span className="text-[10px] font-bold text-muted-foreground uppercase">Allow Fractions</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Pricing & Stock */}
@@ -490,6 +547,7 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                                                 <label className="text-xs font-bold text-muted-foreground uppercase">Initial Units</label>
                                                 <input
                                                     type="number"
+                                                    step={formData.measurementType === 'measurable' ? "0.0001" : "1"}
                                                     value={formData.stockQuantity}
                                                     onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
                                                     className="w-full h-11 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
@@ -499,6 +557,7 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                                                 <label className="text-xs font-bold text-muted-foreground uppercase">Alert Threshold</label>
                                                 <input
                                                     type="number"
+                                                    step={formData.measurementType === 'measurable' ? "0.01" : "1"}
                                                     value={formData.lowStockThreshold}
                                                     onChange={(e) => setFormData({ ...formData, lowStockThreshold: e.target.value })}
                                                     className="w-full h-11 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
@@ -531,7 +590,7 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                                                             value={variant.price}
                                                             onChange={(e) => { const n = [...variants]; n[index].price = e.target.value; setVariants(n); }}
                                                             className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                                            placeholder="Price"
+                                                            placeholder={formData.measurementType === 'measurable' ? "Qty" : "Stock"}
                                                         />
                                                     </div>
                                                     <button type="button" onClick={() => setVariants(variants.filter((_, i) => i !== index))} className="p-2 text-muted-foreground hover:text-destructive transition-colors rounded-full hover:bg-destructive/10">

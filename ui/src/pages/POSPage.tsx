@@ -41,6 +41,9 @@ interface Product {
     description?: string;
     lowStockAlert: number;
     variantName?: string;
+    measurementType?: 'discrete' | 'measurable';
+    baseUnit?: string;
+    fractionalSalesAllowed?: boolean;
 }
 
 interface CartItem {
@@ -53,6 +56,9 @@ interface CartItem {
     quantity: number;
     stockQty: number;
     variantName?: string;
+    measurementType?: 'discrete' | 'measurable';
+    baseUnit?: string;
+    fractionalSalesAllowed?: boolean;
 }
 
 interface CartContentProps {
@@ -121,14 +127,26 @@ function CartContent({ cart, setCart, updateQuantity, resetPrice, formatPrice, s
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-4">
                                         <button
-                                            onClick={() => updateQuantity(item.product_id, item.variant_id || null, -1)}
+                                            onClick={() => updateQuantity(item.product_id, item.variant_id || null, item.measurementType === 'measurable' ? -0.1 : -1)}
                                             className="w-7 h-7 rounded-lg flex items-center justify-center bg-background border shadow-sm hover:bg-primary hover:text-white transition-all"
                                         >
                                             <Minus className="w-3 h-3" />
                                         </button>
-                                        <span className="text-xs font-black w-4 text-center text-foreground">{item.quantity}</span>
+                                        <input
+                                            type="number"
+                                            step={item.measurementType === 'measurable' ? "0.01" : "1"}
+                                            value={item.quantity}
+                                            onChange={(e) => {
+                                                const val = parseFloat(e.target.value);
+                                                if (!isNaN(val)) {
+                                                    updateQuantity(item.product_id, item.variant_id || null, val - item.quantity);
+                                                }
+                                            }}
+                                            className="text-xs font-black w-16 text-center text-foreground bg-transparent border-none outline-none focus:ring-0"
+                                        />
+                                        <span className="text-[10px] font-bold text-muted-foreground uppercase">{item.baseUnit}</span>
                                         <button
-                                            onClick={() => updateQuantity(item.product_id, item.variant_id || null, 1)}
+                                            onClick={() => updateQuantity(item.product_id, item.variant_id || null, item.measurementType === 'measurable' ? 0.1 : 1)}
                                             className="w-7 h-7 rounded-lg flex items-center justify-center bg-background border shadow-sm hover:bg-primary hover:text-white transition-all"
                                         >
                                             <Plus className="w-3 h-3" />
@@ -292,6 +310,9 @@ export default function POSPage() {
                 brand: p.brand || '',
                 description: p.description || '',
                 lowStockAlert: p.lowStockAlert || 5,
+                measurementType: p.measurementType,
+                baseUnit: p.baseUnit,
+                fractionalSalesAllowed: p.fractionalSalesAllowed,
                 updatedAt: Date.now()
             }));
             
@@ -336,7 +357,10 @@ export default function POSPage() {
                 catalogPrice: product.price,
                 quantity: 1,
                 stockQty: product.stockQty,
-                variantName: product.variantName
+                variantName: product.variantName,
+                measurementType: product.measurementType,
+                baseUnit: product.baseUnit,
+                fractionalSalesAllowed: product.fractionalSalesAllowed
             }]);
         }
     };
@@ -345,11 +369,16 @@ export default function POSPage() {
         setCart(cart.map(item => {
             if (item.product_id === productId && item.variant_id === variantId) {
                 const newQty = Math.max(0, item.quantity + delta);
-                if (newQty > item.stockQty) return item;
-                return { ...item, quantity: newQty };
+                // Simple precision fix for JS floats
+                const roundedQty = Math.round(newQty * 10000) / 10000;
+                if (roundedQty > item.stockQty) {
+                    toast.error(`Max available: ${item.stockQty}`);
+                    return item;
+                }
+                return { ...item, quantity: roundedQty };
             }
             return item;
-        }).filter(item => item.quantity > 0));
+        }).filter(item => item.quantity > 0 || (item.quantity === 0 && item.measurementType === 'measurable')));
     };
 
     const updatePrice = (productId: string, variantId: string | null = null, nextPrice: number) => {
@@ -379,7 +408,8 @@ export default function POSPage() {
                 quantity: item.quantity,
                 price: item.price,
                 catalogPrice: item.catalogPrice,
-                name: item.name
+                name: item.name,
+                baseUnit: item.baseUnit
             })),
             payments,
             totalAmount: total,
@@ -390,7 +420,10 @@ export default function POSPage() {
         try {
             setLoading(true);
             const response = await api.createSale(saleData);
-            const completedSale = response.data.sale;
+            const completedSale = {
+                ...response.data.sale,
+                items: saleData.items
+            };
 
             setCurrentSale(completedSale);
             setShowPaymentModal(false);
@@ -684,7 +717,7 @@ export default function POSPage() {
                                             <h3 className="text-[10px] lg:text-xs font-black text-foreground uppercase tracking-tight line-clamp-2 leading-tight group-hover:text-primary transition-colors">{product.name}</h3>
                                             <div className="flex items-center justify-between mt-2">
                                                 <p className="text-xs lg:text-sm font-black text-primary tracking-tighter">{formatPrice(product.price)}</p>
-                                                <p className="text-[8px] lg:text-[10px] font-bold text-muted-foreground">{product.stockQty} in stock</p>
+                                                <p className="text-[8px] lg:text-[10px] font-bold text-muted-foreground">{product.stockQty}{product.baseUnit} in stock</p>
                                             </div>
                                         </div>
                                     </button>
@@ -790,6 +823,8 @@ export default function POSPage() {
                     catalogPrice={bargainItem.catalogPrice}
                     productName={bargainItem.name}
                     formatPrice={formatPrice}
+                    measurementType={bargainItem.measurementType}
+                    baseUnit={bargainItem.baseUnit}
                 />
             )}
 

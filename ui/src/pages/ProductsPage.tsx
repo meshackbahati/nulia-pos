@@ -25,6 +25,9 @@ interface Product {
     imageUrl?: string;
     stockQuantity: number;
     lowStockThreshold: number;
+    measurementType: 'discrete' | 'measurable';
+    baseUnit: string;
+    fractionalSalesAllowed: boolean;
     isActive: boolean;
 }
 
@@ -296,7 +299,7 @@ export default function ProductsPage() {
                                         <div>
                                             <p className="text-[9px] font-bold text-muted-foreground uppercase">Stock</p>
                                             <p className={`text-xs font-bold ${product.stockQuantity <= product.lowStockThreshold ? 'text-destructive' : 'text-foreground'}`}>
-                                                {product.stockQuantity} Units
+                                                {product.stockQuantity} {product.baseUnit}
                                             </p>
                                         </div>
                                         <button onClick={() => setRestockingProduct(product)} className="text-emerald-500 hover:text-emerald-600 transition-colors">

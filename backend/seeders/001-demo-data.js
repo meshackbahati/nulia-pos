@@ -10,12 +10,10 @@ Creates sample data for development and testing:
 This seeder only runs if SEED_SAMPLE_DATA=true in environment
 */
 
-'use strict';
+import bcrypt from 'bcryptjs';
+import { v4 as uuidv4 } from 'uuid';
 
-const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
-
-module.exports = {
+export default {
   async up(queryInterface, Sequelize) {
     // Only seed if explicitly enabled
     if (process.env.SEED_SAMPLE_DATA !== 'true') {

@@ -93,6 +93,21 @@ class Product extends Model {
                     type: DataTypes.JSONB,
                     allowNull: true,
                 },
+                measurementType: {
+                    type: DataTypes.ENUM('discrete', 'measurable'),
+                    allowNull: false,
+                    defaultValue: 'discrete',
+                },
+                baseUnit: {
+                    type: DataTypes.STRING,
+                    allowNull: false,
+                    defaultValue: 'pcs',
+                },
+                fractionalSalesAllowed: {
+                    type: DataTypes.BOOLEAN,
+                    allowNull: false,
+                    defaultValue: false,
+                },
             },
             {
                 sequelize,
