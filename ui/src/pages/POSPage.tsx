@@ -4,6 +4,7 @@ import api from '../lib/api-client';
 import PaymentModal from '../components/PaymentModal';
 import ReceiptModal from '../components/ReceiptModal';
 import PaymentSuccessModal from '../components/PaymentSuccessModal';
+import PrinterSetupModal from '../components/PrinterSetupModal';
 import BargainModal from '../components/BargainModal';
 import BarcodeScanner from '../components/BarcodeScanner';
 import TransactionHistoryModal from '../components/TransactionHistoryModal';
@@ -222,6 +223,7 @@ export default function POSPage() {
     const [bargainItem, setBargainItem] = useState<CartItem | null>(null);
     const [showReceipt, setShowReceipt] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showPrinterSetup, setShowPrinterSetup] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [pendingSync, setPendingSync] = useState(0);
     const [showCartMobile, setShowCartMobile] = useState(false);
@@ -247,6 +249,12 @@ export default function POSPage() {
         fetchBranchData();
         fetchDashboardStats();
         checkPendingSync();
+
+        // Check for printer setup on launch
+        const printer = localStorage.getItem('defaultPrinter');
+        if (!printer && (window as any).electronAPI) {
+            setShowPrinterSetup(true);
+        }
 
         // Global focus on search
         const timer = setTimeout(() => {
@@ -821,6 +829,13 @@ export default function POSPage() {
                         setShowSuccessModal(false);
                         setCurrentSale(null);
                     }}
+                />
+            )}
+
+            {showPrinterSetup && (
+                <PrinterSetupModal
+                    isOpen={showPrinterSetup}
+                    onClose={() => setShowPrinterSetup(false)}
                 />
             )}
 

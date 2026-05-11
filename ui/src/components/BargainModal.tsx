@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { X, Check } from 'lucide-react';
+import { useCurrency } from '../hooks/useCurrency';
 
 interface BargainModalProps {
     isOpen: boolean;
@@ -24,13 +25,18 @@ export default function BargainModal({
     measurementType,
     baseUnit
 }: BargainModalProps) {
-    const [price, setPrice] = useState(currentPrice.toString());
+    const { currentRate, targetCurrency } = useCurrency();
+    const [price, setPrice] = useState('');
+
+    const convertedCurrentPrice = useMemo(() => {
+        return (currentPrice * currentRate).toFixed(2);
+    }, [currentPrice, currentRate]);
 
     useEffect(() => {
         if (isOpen) {
-            setPrice(currentPrice.toString());
+            setPrice(convertedCurrentPrice);
         }
-    }, [isOpen, currentPrice]);
+    }, [isOpen, convertedCurrentPrice]);
 
     if (!isOpen) return null;
 
@@ -38,7 +44,9 @@ export default function BargainModal({
         e.preventDefault();
         const parsed = parseFloat(price);
         if (!isNaN(parsed) && parsed >= 0) {
-            onConfirm(parsed);
+            // Convert back to base currency before confirming
+            const basePrice = parsed / currentRate;
+            onConfirm(basePrice);
             onClose();
         }
     };
@@ -80,7 +88,7 @@ export default function BargainModal({
                                         placeholder="0.00"
                                     />
                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-black">
-                                        {formatPrice(0).replace(/[0., ]/g, '') || 'KES'}
+                                        {targetCurrency}
                                     </div>
                                 </div>
                             </div>

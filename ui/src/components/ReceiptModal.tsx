@@ -83,55 +83,61 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
     }, [autoPrint, isElectron]);
 
     const getReceiptPDF = () => {
+        const selectedSize = localStorage.getItem('receiptPaperSize') || '80mm';
+        const width = selectedSize === '58mm' ? 58 : 80;
+
         const doc = new jsPDF({
             unit: 'mm',
-            format: [80, 200]
+            format: [width, 297] // A4 height for continuous roll
         });
 
-        const pageWidth = 80;
+        const pageWidth = width;
+        const margin = 5;
+        const rightAlign = pageWidth - margin;
         let y = 10;
 
         // Company
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
+        doc.setFontSize(width === 58 ? 10 : 14);
         doc.text(companyName.toUpperCase(), pageWidth / 2, y, { align: 'center' });
         
         y += 6;
-        doc.setFontSize(8);
+        doc.setFontSize(width === 58 ? 7 : 8);
         doc.setFont('helvetica', 'normal');
         doc.text('OFFICIAL TRANSACTION RECORD', pageWidth / 2, y, { align: 'center' });
         
-        y += 10;
-        doc.setFontSize(7);
+        y += (width === 58 ? 8 : 10);
+        doc.setFontSize(width === 58 ? 6 : 7);
         if (sale?.user) {
-            doc.text(`SERVED BY: ${sale.user.firstName} ${sale.user.lastName}`.toUpperCase(), 5, y);
+            doc.text(`SERVED BY: ${sale.user.firstName} ${sale.user.lastName}`.toUpperCase(), margin, y);
             y += 4;
         }
-        doc.text(`RECEIPT: ${sale?.receiptId || 'N/A'}`, 5, y);
+        doc.text(`RECEIPT: ${sale?.receiptId || 'N/A'}`, margin, y);
         y += 4;
-        doc.text(`DATE: ${new Date(sale?.createdAt || Date.now()).toLocaleString()}`, 5, y);
+        doc.text(`DATE: ${new Date(sale?.createdAt || Date.now()).toLocaleString()}`, margin, y);
         y += 4;
-        doc.text(`METHOD: ${(sale?.paymentMethod || 'Mixed').toUpperCase()}`, 5, y);
+        doc.text(`METHOD: ${(sale?.paymentMethod || 'Mixed').toUpperCase()}`, margin, y);
 
         y += 4;
         doc.setDrawColor(200);
-        doc.line(5, y, 75, y);
+        doc.line(margin, y, rightAlign, y);
         y += 6;
 
         // Items Header
         doc.setFont('helvetica', 'bold');
-        doc.text('DESCRIPTION', 5, y);
-        doc.text('TOTAL', 75, y, { align: 'right' });
+        doc.text('DESCRIPTION', margin, y);
+        doc.text('TOTAL', rightAlign, y, { align: 'right' });
         y += 4;
         doc.setFont('helvetica', 'normal');
 
         // Items
         sale.items.forEach(item => {
             const displayName = item.productName || item.name || 'Unknown Item';
-            const name = displayName.length > 25 ? displayName.substring(0, 22) + '...' : displayName;
+            const nameLimit = width === 58 ? 18 : 25;
+            const name = displayName.length > nameLimit ? displayName.substring(0, nameLimit - 3) + '...' : displayName;
             const itemPrice = item.price || item.unitPrice || 0;
-            doc.text(`${item.quantity}${item.baseUnit || ''}x ${name}`, 5, y);
-            doc.text(formatPrice(new Decimal(itemPrice).times(item.quantity).toNumber()), 75, y, { align: 'right' });
+            doc.text(`${item.quantity}${item.baseUnit || ''}x ${name}`, margin, y);
+            doc.text(formatPrice(new Decimal(itemPrice).times(item.quantity).toNumber()), rightAlign, y, { align: 'right' });
             y += 3;
 
             // Show unit price and potential bargain
@@ -139,43 +145,43 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
             if (item.catalogPrice && Number(item.catalogPrice) !== Number(itemPrice)) {
                 detailStr += ` (Was ${formatPrice(item.catalogPrice)})`;
             }
-            doc.setFontSize(6);
-            doc.text(detailStr, 5, y);
-            doc.setFontSize(7);
+            doc.setFontSize(width === 58 ? 5 : 6);
+            doc.text(detailStr, margin, y);
+            doc.setFontSize(width === 58 ? 6 : 7);
             y += 4;
         });
 
         y += 2;
-        doc.line(5, y, 75, y);
+        doc.line(margin, y, rightAlign, y);
         y += 6;
 
         // Totals
-        doc.text('SUBTOTAL:', 5, y);
-        doc.text(formatPrice(sale?.subtotal || 0), 75, y, { align: 'right' });
+        doc.text('SUBTOTAL:', margin, y);
+        doc.text(formatPrice(sale?.subtotal || 0), rightAlign, y, { align: 'right' });
         y += 4;
         
         if ((sale?.tax || 0) > 0) {
-            doc.text('TAX:', 5, y);
-            doc.text(formatPrice(sale?.tax || 0), 75, y, { align: 'right' });
+            doc.text('TAX:', margin, y);
+            doc.text(formatPrice(sale?.tax || 0), rightAlign, y, { align: 'right' });
             y += 4;
         }
 
         y += 2;
-        doc.setFontSize(10);
+        doc.setFontSize(width === 58 ? 8 : 10);
         doc.setFont('helvetica', 'bold');
-        doc.text('NET TOTAL:', 5, y);
-        doc.text(formatPrice(sale?.total || sale?.totalAmount || 0), 75, y, { align: 'right' });
+        doc.text('NET TOTAL:', margin, y);
+        doc.text(formatPrice(sale?.total || sale?.totalAmount || 0), rightAlign, y, { align: 'right' });
 
         y += 6;
         if (sale.payments && sale.payments.length > 0) {
-            doc.setFontSize(6);
+            doc.setFontSize(width === 58 ? 5 : 6);
             doc.setFont('helvetica', 'bold');
-            doc.text('PAYMENT DETAILS:', 5, y);
+            doc.text('PAYMENT DETAILS:', margin, y);
             y += 3;
             doc.setFont('helvetica', 'normal');
             sale.payments.forEach(p => {
-                doc.text(`${p.method.toUpperCase()}:`, 5, y);
-                doc.text(`${p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${p.paidCurrency}`, 75, y, { align: 'right' });
+                doc.text(`${p.method.toUpperCase()}:`, margin, y);
+                doc.text(`${p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${p.paidCurrency}`, rightAlign, y, { align: 'right' });
                 y += 3;
             });
         }
@@ -185,6 +191,14 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
         doc.setFont('helvetica', 'italic');
         doc.text('THANK YOU FOR VISITING', pageWidth / 2, y, { align: 'center' });
         y += 4;
+        doc.text(companyName.toUpperCase(), pageWidth / 2, y, { align: 'center' });
+        y += 6;
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'bold');
+        doc.text('GOODS ONCE SOLD CANNOT BE RETURNED', pageWidth / 2, y, { align: 'center' });
+        y += 4;
+        doc.setFontSize(5);
+        doc.setFont('helvetica', 'normal');
         doc.text('POWERED BY RETAILPRO POS', pageWidth / 2, y, { align: 'center' });
         
         return doc;
@@ -225,9 +239,13 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
     const handlePrint = async () => {
         if (isElectron && (window as any).electronAPI) {
             toast.loading('Sending to printer...', { id: 'print-toast' });
+            const selectedSize = localStorage.getItem('receiptPaperSize') || '80mm';
+            const widthMicrons = selectedSize === '58mm' ? 58000 : 80000;
+
             try {
                 const result = await (window as any).electronAPI.printReceipt({
-                    printerName: localStorage.getItem('defaultPrinter') || undefined
+                    printerName: localStorage.getItem('defaultPrinter') || undefined,
+                    pageSize: { width: widthMicrons, height: 297000 }
                 });
                 if (result.success) toast.success('Printing...', { id: 'print-toast' });
                 else throw new Error(result.error);
@@ -341,8 +359,13 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
                             </div>
                         )}
 
-                        <div className="mt-8 pt-4 border-t border-double border-black/20 dark:border-white/20 text-center">
-                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em]">RetailPro POS System</p>
+                        <div className="mt-8 pt-4 border-t border-double border-black/20 dark:border-white/20 text-center space-y-1">
+                            <p className="text-[8px] font-bold text-foreground uppercase tracking-widest">Thank you for visiting</p>
+                            <p className="text-[10px] font-black text-primary uppercase tracking-widest">{companyName}</p>
+                            <p className="text-[6px] font-bold text-muted-foreground uppercase pt-2">Goods once sold cannot be returned</p>
+                            <div className="pt-4 opacity-30">
+                                <p className="text-[5px] font-black text-muted-foreground uppercase tracking-[0.3em]">RetailPro POS System</p>
+                            </div>
                         </div>
                     </div>
                 </div>
