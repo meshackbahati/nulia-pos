@@ -40,7 +40,8 @@ router.get('/', authenticate, async (req, res) => {
             include: [
                 { model: models.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
                 { model: models.Branch, as: 'branch', attributes: ['id', 'name'] },
-                { model: models.Payment, as: 'payments' }
+                { model: models.Payment, as: 'payments' },
+                { model: models.SaleItem, as: 'items' }
             ]
         });
 
@@ -88,7 +89,8 @@ router.get('/list', authenticate, async (req, res) => {
             include: [
                 { model: models.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
                 { model: models.Branch, as: 'branch', attributes: ['id', 'name'] },
-                { model: models.Payment, as: 'payments' }
+                { model: models.Payment, as: 'payments' },
+                { model: models.SaleItem, as: 'items' }
             ]
         });
 
@@ -272,6 +274,7 @@ router.post('/create', authenticate, async (req, res) => {
                 variantId: item.variantId,
                 quantity: qty.toString(), // Store as string for Decimal precision in Sequelize
                 unitPrice: item.effectiveUnitPrice,
+                catalogPrice: item.catalogUnitPrice,
                 totalPrice: new Decimal(item.effectiveUnitPrice).times(qty).toDecimalPlaces(2).toNumber(),
                 discountAmount: item.lineDiscountAmount,
             }, { transaction });

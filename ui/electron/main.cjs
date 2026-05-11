@@ -58,10 +58,9 @@ ipcMain.handle('print-receipt', async (event, options = {}) => {
       printBackground: true,
       deviceName: targetPrinter,
       margins: { 
-        marginType: 'custom',
-        top: 0, bottom: 0, left: 0, right: 0 
+        marginType: 'none'
       },
-      pageSize: options.pageSize || { width: 58000, height: 200000 },
+      pageSize: options.pageSize || { width: 58000, height: 297000 }, // Default to a long strip
       ...options
     });
 

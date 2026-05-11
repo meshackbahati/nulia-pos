@@ -17,7 +17,13 @@ interface ReceiptModalProps {
             name: string;
             quantity: number;
             price: number;
+            catalogPrice?: number;
             baseUnit?: string;
+        }>;
+        payments?: Array<{
+            paidAmount: number;
+            paidCurrency: string;
+            method: string;
         }>;
         subtotal?: number;
         tax?: number;
@@ -88,6 +94,16 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
             const name = item.name.length > 25 ? item.name.substring(0, 22) + '...' : item.name;
             doc.text(`${item.quantity}${item.baseUnit || ''}x ${name}`, 5, y);
             doc.text(formatPrice(new Decimal(item.price).times(item.quantity).toNumber()), 75, y, { align: 'right' });
+            y += 3;
+
+            // Show unit price and potential bargain
+            let detailStr = `@ ${formatPrice(item.price)}`;
+            if (item.catalogPrice && Number(item.catalogPrice) !== Number(item.price)) {
+                detailStr += ` (Was ${formatPrice(item.catalogPrice)})`;
+            }
+            doc.setFontSize(6);
+            doc.text(detailStr, 5, y);
+            doc.setFontSize(7);
             y += 4;
         });
 
@@ -112,7 +128,21 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
         doc.text('NET TOTAL:', 5, y);
         doc.text(formatPrice(sale?.total || sale?.totalAmount || 0), 75, y, { align: 'right' });
 
-        y += 15;
+        y += 6;
+        if (sale.payments && sale.payments.length > 0) {
+            doc.setFontSize(6);
+            doc.setFont('helvetica', 'bold');
+            doc.text('PAYMENT DETAILS:', 5, y);
+            y += 3;
+            doc.setFont('helvetica', 'normal');
+            sale.payments.forEach(p => {
+                doc.text(`${p.method.toUpperCase()}:`, 5, y);
+                doc.text(`${p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${p.paidCurrency}`, 75, y, { align: 'right' });
+                y += 3;
+            });
+        }
+
+        y += 10;
         doc.setFontSize(8);
         doc.setFont('helvetica', 'italic');
         doc.text('THANK YOU FOR VISITING', pageWidth / 2, y, { align: 'center' });
@@ -228,7 +258,12 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
                             <div key={idx} className="flex justify-between items-start text-[10px]">
                                 <div className="min-w-0 pr-4">
                                     <p className="font-bold text-foreground uppercase">{item.name.substring(0, 20)}</p>
-                                    <p className="text-[8px] text-muted-foreground">{item.quantity}{item.baseUnit || ''} @ {formatPrice(item.price)}</p>
+                                    <div className="flex items-center gap-1">
+                                        <p className="text-[8px] text-muted-foreground">{item.quantity}{item.baseUnit || ''} @ {formatPrice(item.price)}</p>
+                                        {item.catalogPrice && Number(item.catalogPrice) !== Number(item.price) && (
+                                            <p className="text-[7px] text-muted-foreground/50 line-through italic">({formatPrice(item.catalogPrice)})</p>
+                                        )}
+                                    </div>
                                 </div>
                                 <span className="font-bold text-foreground">{formatPrice(new Decimal(item.quantity).times(item.price).toNumber())}</span>
                             </div>
@@ -248,6 +283,18 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
                                 <span>{formatPrice(sale?.total || sale?.totalAmount || 0)}</span>
                             </div>
                         </div>
+
+                        {sale.payments && sale.payments.length > 0 && (
+                            <div className="mt-4 pt-4 border-t border-dashed border-black/10 dark:border-white/10 space-y-1">
+                                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Payment Breakdown</p>
+                                {sale.payments.map((p, idx) => (
+                                    <div key={idx} className="flex justify-between text-[9px]">
+                                        <span className="uppercase">{p.method}</span>
+                                        <span className="font-bold">{p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {p.paidCurrency}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 

@@ -55,6 +55,13 @@ class SaleItem extends Model {
                         min: 0,
                     },
                 },
+                catalogPrice: {
+                    type: DataTypes.DECIMAL(10, 2),
+                    allowNull: true,
+                    validate: {
+                        min: 0,
+                    },
+                },
                 totalPrice: {
                     type: DataTypes.DECIMAL(10, 2),
                     allowNull: false,
