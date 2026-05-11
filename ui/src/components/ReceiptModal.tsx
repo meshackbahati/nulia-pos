@@ -34,9 +34,10 @@ interface ReceiptModalProps {
     };
     companyName: string;
     onClose: () => void;
+    autoPrint?: boolean;
 }
 
-export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModalProps) {
+export default function ReceiptModal({ sale, companyName, onClose, autoPrint = false }: ReceiptModalProps) {
     const { formatPrice } = useCurrency();
     const [customerEmail, setCustomerEmail] = useState('');
     const [sending, setSending] = useState(false);
@@ -49,6 +50,31 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
             setIsElectron(true);
         }
     }, []);
+
+    useEffect(() => {
+        if (autoPrint) {
+            const checkPrinters = async () => {
+                if (isElectron && (window as any).electronAPI) {
+                    try {
+                        const printers = await (window as any).electronAPI.getPrinters();
+                        const hasThermal = printers.some((p: any) =>
+                            p.name.toLowerCase().includes('thermal') ||
+                            p.name.toLowerCase().includes('pos') ||
+                            p.name.toLowerCase().includes('58mm') ||
+                            p.name.toLowerCase().includes('80mm')
+                        );
+                        if (hasThermal) {
+                            toast.success('Thermal printer detected, auto-generating receipt...', { icon: '🖨️' });
+                        }
+                    } catch (err) {
+                        console.error('Failed to check printers:', err);
+                    }
+                }
+                handlePrint();
+            };
+            checkPrinters();
+        }
+    }, [autoPrint, isElectron]);
 
     const getReceiptPDF = () => {
         const doc = new jsPDF({
@@ -330,7 +356,7 @@ export default function ReceiptModal({ sale, companyName, onClose }: ReceiptModa
                         onClick={handleDownload} 
                         className="h-14 bg-foreground text-background hover:bg-foreground/90 rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-[1.02] active:scale-95 transition-all"
                     >
-                        <Download className="w-5 h-5" /> Save PDF
+                        <Download className="w-5 h-5" /> Generate PDF Receipt
                     </button>
                 </div>
             </div>

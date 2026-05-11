@@ -435,12 +435,9 @@ export default function POSPage() {
         try {
             setLoading(true);
             const response = await api.createSale(saleData);
-            const completedSale = {
-                ...response.data.sale,
-                items: saleData.items
-            };
 
-            setCurrentSale(completedSale);
+            // The backend now returns the full sale object with items and payments
+            setCurrentSale(response.data.sale);
             setShowPaymentModal(false);
             setShowReceipt(true);
             setCart([]);
@@ -811,6 +808,7 @@ export default function POSPage() {
                 <ReceiptModal
                     sale={currentSale}
                     companyName="RetailPro"
+                    autoPrint={true}
                     onClose={() => {
                         setShowReceipt(false);
                         setCurrentSale(null);

@@ -322,6 +322,17 @@ router.post('/create', authenticate, async (req, res) => {
             },
         }, req);
 
+        // Fetch full sale with associations for the UI
+        const completedSale = await models.Sale.findByPk(sale.id, {
+            include: [
+                { model: models.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
+                { model: models.Branch, as: 'branch', attributes: ['id', 'name'] },
+                { model: models.Payment, as: 'payments' },
+                { model: models.SaleItem, as: 'items' }
+            ],
+            transaction
+        });
+
         await transaction.commit();
 
         // Emit real-time update
@@ -333,7 +344,7 @@ router.post('/create', authenticate, async (req, res) => {
 
         res.status(201).json({
             success: true,
-            sale: sale, // Include full sale object for UI
+            sale: completedSale,
             saleId: sale.id,
             receiptId: sale.receiptId,
             totalAmount: finalTotal

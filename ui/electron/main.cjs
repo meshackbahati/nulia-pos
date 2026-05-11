@@ -33,6 +33,11 @@ function createWindow() {
 
 // --- Thermal Printer Bridge ---
 // Handle silent printing requests from the UI
+ipcMain.handle('get-printers', async () => {
+  if (!mainWindow) return [];
+  return await mainWindow.webContents.getPrintersAsync();
+});
+
 ipcMain.handle('print-receipt', async (event, options = {}) => {
   if (!mainWindow) return { success: false, error: 'No active window' };
 
