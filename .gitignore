@@ -1,7 +1,8 @@
 # Ignore dependencies
 node_modules/
 */node_modules/
-
+*.exe
+*exe*
 # Ignore env files
 .env
 .env.local
