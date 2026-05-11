@@ -16,7 +16,8 @@ interface ReceiptModalProps {
         items: Array<{
             name: string;
             quantity: number;
-            price: number;
+            price?: number;
+            unitPrice?: number;
             catalogPrice?: number;
             baseUnit?: string;
         }>;
@@ -31,6 +32,10 @@ interface ReceiptModalProps {
         totalAmount?: number;
         paymentMethod?: string;
         createdAt?: string;
+        user?: {
+            firstName: string;
+            lastName: string;
+        };
     };
     companyName: string;
     onClose: () => void;
@@ -97,6 +102,10 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
         
         y += 10;
         doc.setFontSize(7);
+        if (sale?.user) {
+            doc.text(`SERVED BY: ${sale.user.firstName} ${sale.user.lastName}`.toUpperCase(), 5, y);
+            y += 4;
+        }
         doc.text(`RECEIPT: ${sale?.receiptId || 'N/A'}`, 5, y);
         y += 4;
         doc.text(`DATE: ${new Date(sale?.createdAt || Date.now()).toLocaleString()}`, 5, y);
@@ -118,13 +127,14 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
         // Items
         sale.items.forEach(item => {
             const name = item.name.length > 25 ? item.name.substring(0, 22) + '...' : item.name;
+            const itemPrice = item.price || item.unitPrice || 0;
             doc.text(`${item.quantity}${item.baseUnit || ''}x ${name}`, 5, y);
-            doc.text(formatPrice(new Decimal(item.price).times(item.quantity).toNumber()), 75, y, { align: 'right' });
+            doc.text(formatPrice(new Decimal(itemPrice).times(item.quantity).toNumber()), 75, y, { align: 'right' });
             y += 3;
 
             // Show unit price and potential bargain
-            let detailStr = `@ ${formatPrice(item.price)}`;
-            if (item.catalogPrice && Number(item.catalogPrice) !== Number(item.price)) {
+            let detailStr = `@ ${formatPrice(itemPrice)}`;
+            if (item.catalogPrice && Number(item.catalogPrice) !== Number(itemPrice)) {
                 detailStr += ` (Was ${formatPrice(item.catalogPrice)})`;
             }
             doc.setFontSize(6);
@@ -272,6 +282,9 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-inner border border-black/5 dark:border-white/5 mb-8 font-mono">
                     <div className="text-center mb-6 space-y-1">
                         <p className="text-xs font-black uppercase tracking-[0.2em] text-foreground">{companyName}</p>
+                        {sale?.user && (
+                            <p className="text-[8px] text-muted-foreground uppercase font-bold">Served By: {sale.user.firstName} {sale.user.lastName}</p>
+                        )}
                         <p className="text-[8px] text-muted-foreground uppercase font-bold">Node Identity: {sale?.receiptId || 'OFFLINE'}</p>
                     </div>
 
@@ -280,20 +293,23 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
                             <span>Description</span>
                             <span>Value</span>
                         </div>
-                        {sale.items.map((item, idx) => (
-                            <div key={idx} className="flex justify-between items-start text-[10px]">
-                                <div className="min-w-0 pr-4">
-                                    <p className="font-bold text-foreground uppercase">{item.name.substring(0, 20)}</p>
-                                    <div className="flex items-center gap-1">
-                                        <p className="text-[8px] text-muted-foreground">{item.quantity}{item.baseUnit || ''} @ {formatPrice(item.price)}</p>
-                                        {item.catalogPrice && Number(item.catalogPrice) !== Number(item.price) && (
-                                            <p className="text-[7px] text-muted-foreground/50 line-through italic">({formatPrice(item.catalogPrice)})</p>
-                                        )}
+                        {sale.items.map((item, idx) => {
+                            const itemPrice = item.price || item.unitPrice || 0;
+                            return (
+                                <div key={idx} className="flex justify-between items-start text-[10px]">
+                                    <div className="min-w-0 pr-4">
+                                        <p className="font-bold text-foreground uppercase">{item.name.substring(0, 20)}</p>
+                                        <div className="flex items-center gap-1">
+                                            <p className="text-[8px] text-muted-foreground">{item.quantity}{item.baseUnit || ''} @ {formatPrice(itemPrice)}</p>
+                                            {item.catalogPrice && Number(item.catalogPrice) !== Number(itemPrice) && (
+                                                <p className="text-[7px] text-muted-foreground/50 line-through italic">({formatPrice(item.catalogPrice)})</p>
+                                            )}
+                                        </div>
                                     </div>
+                                    <span className="font-bold text-foreground">{formatPrice(new Decimal(item.quantity).times(itemPrice).toNumber())}</span>
                                 </div>
-                                <span className="font-bold text-foreground">{formatPrice(new Decimal(item.quantity).times(item.price).toNumber())}</span>
-                            </div>
-                        ))}
+                            );
+                        })}
 
                         <div className="pt-4 border-t border-dashed border-black/10 dark:border-white/10 space-y-1">
                             <div className="flex justify-between text-[10px] text-muted-foreground">

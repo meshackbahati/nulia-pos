@@ -108,6 +108,7 @@ router.get('/list', authenticate, async (req, res) => {
 // Create sale
 router.post('/create', authenticate, async (req, res) => {
     const transaction = await sequelize.transaction();
+    const io = req.app.get('io');
     try {
         const { items, payments, customerPhone, customerEmail, notes } = req.body;
         const { userId, branchId } = req.user;
@@ -322,21 +323,19 @@ router.post('/create', authenticate, async (req, res) => {
             },
         }, req);
 
-        // Fetch full sale with associations for the UI
+        await transaction.commit();
+
+        // Fetch full sale with associations for the UI (without transaction as it is committed)
         const completedSale = await models.Sale.findByPk(sale.id, {
             include: [
                 { model: models.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
                 { model: models.Branch, as: 'branch', attributes: ['id', 'name'] },
                 { model: models.Payment, as: 'payments' },
                 { model: models.SaleItem, as: 'items' }
-            ],
-            transaction
+            ]
         });
 
-        await transaction.commit();
-
-        // Emit real-time update
-        const io = req.app.get('io');
+        // Emit real-time update (io is already declared above)
         if (io) {
             io.to(`branch-${branchId}`).emit('inventory-update', { branchId });
             io.to(`branch-${branchId}`).emit('new-sale', { saleId: sale.id, receiptId: sale.receiptId });

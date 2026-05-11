@@ -3,6 +3,7 @@ import { Decimal } from 'decimal.js';
 import api from '../lib/api-client';
 import PaymentModal from '../components/PaymentModal';
 import ReceiptModal from '../components/ReceiptModal';
+import PaymentSuccessModal from '../components/PaymentSuccessModal';
 import BargainModal from '../components/BargainModal';
 import BarcodeScanner from '../components/BarcodeScanner';
 import TransactionHistoryModal from '../components/TransactionHistoryModal';
@@ -220,6 +221,7 @@ export default function POSPage() {
     const [showBargainModal, setShowBargainModal] = useState(false);
     const [bargainItem, setBargainItem] = useState<CartItem | null>(null);
     const [showReceipt, setShowReceipt] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [pendingSync, setPendingSync] = useState(0);
     const [showCartMobile, setShowCartMobile] = useState(false);
@@ -439,7 +441,7 @@ export default function POSPage() {
             // The backend now returns the full sale object with items and payments
             setCurrentSale(response.data.sale);
             setShowPaymentModal(false);
-            setShowReceipt(true);
+            setShowSuccessModal(true);
             setCart([]);
             fetchProducts();
             toast.success('Sale completed successfully!');
@@ -804,6 +806,24 @@ export default function POSPage() {
                 <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
             )}
 
+            {showSuccessModal && currentSale && (
+                <PaymentSuccessModal
+                    isOpen={showSuccessModal}
+                    amount={formatPrice(currentSale.totalAmount).split(' ')[1] || formatPrice(currentSale.totalAmount).replace(/[A-Za-z$]/g, '').trim()}
+                    currency={formatPrice(currentSale.totalAmount).replace(/[0., ]/g, '') || 'KES'}
+                    receiptId={currentSale.receiptId}
+                    servedBy={`${currentSale.user?.firstName || user?.firstName} ${currentSale.user?.lastName || user?.lastName}`}
+                    onGenerateReceipt={() => {
+                        setShowSuccessModal(false);
+                        setShowReceipt(true);
+                    }}
+                    onClose={() => {
+                        setShowSuccessModal(false);
+                        setCurrentSale(null);
+                    }}
+                />
+            )}
+
             {showReceipt && currentSale && (
                 <ReceiptModal
                     sale={currentSale}
@@ -812,7 +832,6 @@ export default function POSPage() {
                     onClose={() => {
                         setShowReceipt(false);
                         setCurrentSale(null);
-                        setCart([]);
                     }}
                 />
             )}
