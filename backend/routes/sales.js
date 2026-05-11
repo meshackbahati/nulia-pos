@@ -273,6 +273,7 @@ router.post('/create', authenticate, async (req, res) => {
                 saleId: sale.id,
                 productId: item.productId,
                 variantId: item.variantId,
+                productName: item.name,
                 quantity: qty.toString(), // Store as string for Decimal precision in Sequelize
                 unitPrice: item.effectiveUnitPrice,
                 catalogPrice: item.catalogUnitPrice,

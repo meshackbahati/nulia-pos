@@ -10,9 +10,14 @@ module.exports = {
         min: 0,
       },
     });
+    await queryInterface.addColumn('sale_items', 'productName', {
+      type: Sequelize.STRING,
+      allowNull: true,
+    });
   },
 
   async down (queryInterface, Sequelize) {
     await queryInterface.removeColumn('sale_items', 'catalogPrice');
+    await queryInterface.removeColumn('sale_items', 'productName');
   }
 };

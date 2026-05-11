@@ -827,7 +827,7 @@ export default function POSPage() {
             {showReceipt && currentSale && (
                 <ReceiptModal
                     sale={currentSale}
-                    companyName="RetailPro"
+                    companyName={branchData?.name || 'RetailPro'}
                     autoPrint={true}
                     onClose={() => {
                         setShowReceipt(false);

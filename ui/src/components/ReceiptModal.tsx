@@ -14,7 +14,8 @@ interface ReceiptModalProps {
         id?: string;
         receiptId: string;
         items: Array<{
-            name: string;
+            name?: string;
+            productName?: string;
             quantity: number;
             price?: number;
             unitPrice?: number;
@@ -126,7 +127,8 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
 
         // Items
         sale.items.forEach(item => {
-            const name = item.name.length > 25 ? item.name.substring(0, 22) + '...' : item.name;
+            const displayName = item.productName || item.name || 'Unknown Item';
+            const name = displayName.length > 25 ? displayName.substring(0, 22) + '...' : displayName;
             const itemPrice = item.price || item.unitPrice || 0;
             doc.text(`${item.quantity}${item.baseUnit || ''}x ${name}`, 5, y);
             doc.text(formatPrice(new Decimal(itemPrice).times(item.quantity).toNumber()), 75, y, { align: 'right' });
@@ -183,7 +185,7 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
         doc.setFont('helvetica', 'italic');
         doc.text('THANK YOU FOR VISITING', pageWidth / 2, y, { align: 'center' });
         y += 4;
-        doc.text('RETAILPRO NODE v2.0', pageWidth / 2, y, { align: 'center' });
+        doc.text('POWERED BY RETAILPRO POS', pageWidth / 2, y, { align: 'center' });
         
         return doc;
     };
@@ -295,10 +297,11 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
                         </div>
                         {sale.items.map((item, idx) => {
                             const itemPrice = item.price || item.unitPrice || 0;
+                            const displayName = item.productName || item.name || 'Unknown Item';
                             return (
                                 <div key={idx} className="flex justify-between items-start text-[10px]">
                                     <div className="min-w-0 pr-4">
-                                        <p className="font-bold text-foreground uppercase">{item.name.substring(0, 20)}</p>
+                                        <p className="font-bold text-foreground uppercase">{displayName.substring(0, 20)}</p>
                                         <div className="flex items-center gap-1">
                                             <p className="text-[8px] text-muted-foreground">{item.quantity}{item.baseUnit || ''} @ {formatPrice(itemPrice)}</p>
                                             {item.catalogPrice && Number(item.catalogPrice) !== Number(itemPrice) && (
@@ -337,6 +340,10 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
                                 ))}
                             </div>
                         )}
+
+                        <div className="mt-8 pt-4 border-t border-double border-black/20 dark:border-white/20 text-center">
+                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em]">RetailPro POS System</p>
+                        </div>
                     </div>
                 </div>
 

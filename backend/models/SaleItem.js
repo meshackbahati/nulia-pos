@@ -41,6 +41,10 @@ class SaleItem extends Model {
                         key: 'id',
                     },
                 },
+                productName: {
+                    type: DataTypes.STRING,
+                    allowNull: true,
+                },
                 quantity: {
                     type: DataTypes.DECIMAL(14, 4),
                     allowNull: false,
