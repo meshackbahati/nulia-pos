@@ -185,6 +185,14 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
         doc.setFont('helvetica', 'italic');
         doc.text('THANK YOU FOR VISITING', pageWidth / 2, y, { align: 'center' });
         y += 4;
+        doc.text(companyName.toUpperCase(), pageWidth / 2, y, { align: 'center' });
+        y += 6;
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'bold');
+        doc.text('GOODS ONCE SOLD CANNOT BE RETURNED', pageWidth / 2, y, { align: 'center' });
+        y += 4;
+        doc.setFontSize(5);
+        doc.setFont('helvetica', 'normal');
         doc.text('POWERED BY RETAILPRO POS', pageWidth / 2, y, { align: 'center' });
         
         return doc;
@@ -341,8 +349,13 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
                             </div>
                         )}
 
-                        <div className="mt-8 pt-4 border-t border-double border-black/20 dark:border-white/20 text-center">
-                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em]">RetailPro POS System</p>
+                        <div className="mt-8 pt-4 border-t border-double border-black/20 dark:border-white/20 text-center space-y-1">
+                            <p className="text-[8px] font-bold text-foreground uppercase tracking-widest">Thank you for visiting</p>
+                            <p className="text-[10px] font-black text-primary uppercase tracking-widest">{companyName}</p>
+                            <p className="text-[6px] font-bold text-muted-foreground uppercase pt-2">Goods once sold cannot be returned</p>
+                            <div className="pt-4 opacity-30">
+                                <p className="text-[5px] font-black text-muted-foreground uppercase tracking-[0.3em]">RetailPro POS System</p>
+                            </div>
                         </div>
                     </div>
                 </div>

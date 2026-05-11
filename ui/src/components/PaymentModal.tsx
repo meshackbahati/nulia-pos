@@ -7,7 +7,7 @@ import api from '../lib/api-client';
 
 interface PaymentEntry {
     id: string;
-    method: 'cash' | 'card' | 'mpesa';
+    method: 'cash' | 'card' | 'mpesa' | 'mobile_money' | 'airtel' | 'mtn';
     currency: string;
     amount: number;
     amountInBase: number;
@@ -30,12 +30,16 @@ interface PaymentModalProps {
 }
 
 export default function PaymentModal({ total, cart, branchConfig, onClose, onComplete }: PaymentModalProps) {
-    const { formatPrice } = useCurrency(branchConfig);
+    const { formatPrice, setTargetCurrency } = useCurrency(branchConfig);
     const { showAlert } = useModal();
     const [entries, setEntries] = useState<PaymentEntry[]>([]);
     const [availableRates, setAvailableRates] = useState<ExchangeRate[]>([]);
-    const [currentMethod, setCurrentMethod] = useState<'cash' | 'card' | 'mpesa'>('cash');
+    const [currentMethod, setCurrentMethod] = useState<'cash' | 'card' | 'mpesa' | 'mobile_money' | 'airtel' | 'mtn'>('cash');
     const [currentCurrency, setCurrentCurrency] = useState(branchConfig?.currency || 'KES');
+
+    useEffect(() => {
+        setTargetCurrency(currentCurrency);
+    }, [currentCurrency, setTargetCurrency]);
     const [inputAmount, setInputAmount] = useState('');
     const [customerPhone, setCustomerPhone] = useState('');
     const [processing, setProcessing] = useState(false);
@@ -92,14 +96,15 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
             amount: amt,
             amountInBase: amountInBase,
             exchangeRate: rate,
-            details: currentMethod === 'mpesa' ? { customerPhone } : {}
+            details: (['mpesa', 'airtel', 'mtn', 'mobile_money'].includes(currentMethod)) ? { customerPhone } : {}
         };
 
-        if (currentMethod === 'card') {
+        if (['card', 'airtel', 'mtn', 'mobile_money'].includes(currentMethod)) {
             setProcessing(true);
             const success = await payWithPaystack({
                 amount: amt,
                 email: 'customer@retailpro.io',
+                currency: currentCurrency,
             });
             setProcessing(false);
             if (!success) return;
@@ -226,14 +231,21 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
                         
                         {/* Method Toggle */}
                         <div className="grid grid-cols-3 gap-2">
-                            {['cash', 'card', 'mpesa'].map(m => (
+                            {[
+                                { id: 'cash', icon: <DollarSign className="w-4 h-4" /> },
+                                { id: 'card', icon: <CreditCard className="w-4 h-4" /> },
+                                { id: 'mpesa', icon: <Smartphone className="w-4 h-4" /> },
+                                { id: 'airtel', icon: <Smartphone className="w-4 h-4 text-red-500" /> },
+                                { id: 'mtn', icon: <Smartphone className="w-4 h-4 text-yellow-500" /> },
+                                { id: 'mobile_money', icon: <Smartphone className="w-4 h-4" /> }
+                            ].map(m => (
                                 <button
-                                    key={m}
-                                    onClick={() => setCurrentMethod(m as any)}
-                                    className={`p-3 rounded-xl border flex flex-col items-center gap-1 transition-all ${currentMethod === m ? 'bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20' : 'bg-background border-border text-muted-foreground hover:border-primary/50'}`}
+                                    key={m.id}
+                                    onClick={() => setCurrentMethod(m.id as any)}
+                                    className={`p-3 rounded-xl border flex flex-col items-center gap-1 transition-all ${currentMethod === m.id ? 'bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20' : 'bg-background border-border text-muted-foreground hover:border-primary/50'}`}
                                 >
-                                    {m === 'cash' ? <DollarSign className="w-4 h-4" /> : m === 'card' ? <CreditCard className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
-                                    <span className="text-[8px] font-black uppercase">{m}</span>
+                                    {m.icon}
+                                    <span className="text-[7px] font-black uppercase">{m.id.replace('_', ' ')}</span>
                                 </button>
                             ))}
                         </div>
@@ -274,7 +286,7 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
                             </div>
                         </div>
 
-                        {currentMethod === 'mpesa' && (
+                        {['mpesa', 'airtel', 'mtn', 'mobile_money'].includes(currentMethod) && (
                             <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
                                 <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">M-Pesa Phone</label>
                                 <input
