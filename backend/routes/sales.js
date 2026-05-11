@@ -40,7 +40,8 @@ router.get('/', authenticate, async (req, res) => {
             include: [
                 { model: models.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
                 { model: models.Branch, as: 'branch', attributes: ['id', 'name'] },
-                { model: models.Payment, as: 'payments' }
+                { model: models.Payment, as: 'payments' },
+                { model: models.SaleItem, as: 'items' }
             ]
         });
 
@@ -88,7 +89,8 @@ router.get('/list', authenticate, async (req, res) => {
             include: [
                 { model: models.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
                 { model: models.Branch, as: 'branch', attributes: ['id', 'name'] },
-                { model: models.Payment, as: 'payments' }
+                { model: models.Payment, as: 'payments' },
+                { model: models.SaleItem, as: 'items' }
             ]
         });
 
@@ -106,6 +108,7 @@ router.get('/list', authenticate, async (req, res) => {
 // Create sale
 router.post('/create', authenticate, async (req, res) => {
     const transaction = await sequelize.transaction();
+    const io = req.app.get('io');
     try {
         const { items, payments, customerPhone, customerEmail, notes } = req.body;
         const { userId, branchId } = req.user;
@@ -270,8 +273,10 @@ router.post('/create', authenticate, async (req, res) => {
                 saleId: sale.id,
                 productId: item.productId,
                 variantId: item.variantId,
+                productName: item.name,
                 quantity: qty.toString(), // Store as string for Decimal precision in Sequelize
                 unitPrice: item.effectiveUnitPrice,
+                catalogPrice: item.catalogUnitPrice,
                 totalPrice: new Decimal(item.effectiveUnitPrice).times(qty).toDecimalPlaces(2).toNumber(),
                 discountAmount: item.lineDiscountAmount,
             }, { transaction });
@@ -321,8 +326,17 @@ router.post('/create', authenticate, async (req, res) => {
 
         await transaction.commit();
 
-        // Emit real-time update
-        const io = req.app.get('io');
+        // Fetch full sale with associations for the UI (without transaction as it is committed)
+        const completedSale = await models.Sale.findByPk(sale.id, {
+            include: [
+                { model: models.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
+                { model: models.Branch, as: 'branch', attributes: ['id', 'name'] },
+                { model: models.Payment, as: 'payments' },
+                { model: models.SaleItem, as: 'items' }
+            ]
+        });
+
+        // Emit real-time update (io is already declared above)
         if (io) {
             io.to(`branch-${branchId}`).emit('inventory-update', { branchId });
             io.to(`branch-${branchId}`).emit('new-sale', { saleId: sale.id, receiptId: sale.receiptId });
@@ -330,7 +344,7 @@ router.post('/create', authenticate, async (req, res) => {
 
         res.status(201).json({
             success: true,
-            sale: sale, // Include full sale object for UI
+            sale: completedSale,
             saleId: sale.id,
             receiptId: sale.receiptId,
             totalAmount: finalTotal

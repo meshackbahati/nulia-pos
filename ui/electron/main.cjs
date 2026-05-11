@@ -33,6 +33,11 @@ function createWindow() {
 
 // --- Thermal Printer Bridge ---
 // Handle silent printing requests from the UI
+ipcMain.handle('get-printers', async () => {
+  if (!mainWindow) return [];
+  return await mainWindow.webContents.getPrintersAsync();
+});
+
 ipcMain.handle('print-receipt', async (event, options = {}) => {
   if (!mainWindow) return { success: false, error: 'No active window' };
 
@@ -58,10 +63,9 @@ ipcMain.handle('print-receipt', async (event, options = {}) => {
       printBackground: true,
       deviceName: targetPrinter,
       margins: { 
-        marginType: 'custom',
-        top: 0, bottom: 0, left: 0, right: 0 
+        marginType: 'none'
       },
-      pageSize: options.pageSize || { width: 58000, height: 200000 },
+      pageSize: options.pageSize || { width: 58000, height: 297000 }, // Default to a long strip
       ...options
     });
 

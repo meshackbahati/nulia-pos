@@ -41,6 +41,10 @@ class SaleItem extends Model {
                         key: 'id',
                     },
                 },
+                productName: {
+                    type: DataTypes.STRING,
+                    allowNull: true,
+                },
                 quantity: {
                     type: DataTypes.DECIMAL(14, 4),
                     allowNull: false,
@@ -51,6 +55,13 @@ class SaleItem extends Model {
                 unitPrice: {
                     type: DataTypes.DECIMAL(10, 2),
                     allowNull: false,
+                    validate: {
+                        min: 0,
+                    },
+                },
+                catalogPrice: {
+                    type: DataTypes.DECIMAL(10, 2),
+                    allowNull: true,
                     validate: {
                         min: 0,
                     },
