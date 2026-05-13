@@ -4,7 +4,9 @@ import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import useScanDetection from '../hooks/useScanDetection';
 import { useCurrency } from '../hooks/useCurrency';
+import { useHardware } from '../contexts/HardwareContext';
 import BarcodeScanner from './BarcodeScanner';
+import { Capacitor } from '@capacitor/core';
 
 import { useAuth } from '../contexts/AuthContext';
 
@@ -160,6 +162,36 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
         }
     });
 
+    const { isMobile } = useHardware();
+
+    const handleCapturePhoto = async () => {
+        try {
+            const { Camera } = await import('@capacitor/camera');
+            const image = await Camera.getPhoto({
+                quality: 90,
+                allowEditing: true,
+                resultType: 'file' as any
+            });
+
+            if (image.path) {
+                const response = await fetch(Capacitor.convertFileSrc(image.path));
+                const blob = await response.blob();
+                const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+                
+                setUploading(true);
+                const uploadRes = await api.uploadImage(file);
+                setFormData({ ...formData, imageUrl: uploadRes.data.url });
+                toast.success('Image captured and uploaded');
+            }
+        } catch (error: any) {
+            if (error.message !== 'User cancelled photos app') {
+                toast.error('Failed to capture photo');
+            }
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -258,7 +290,7 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
                                     <ImageIcon className="w-4 h-4" /> Product Visual
                                 </h3>
                                 <div
-                                    onClick={() => fileInputRef.current?.click()}
+                                    onClick={() => isMobile ? handleCapturePhoto() : fileInputRef.current?.click()}
                                     className="aspect-square rounded-2xl border-2 border-dashed border-border hover:border-primary/50 transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center bg-muted/20 relative group"
                                 >
                                     {formData.imageUrl ? (

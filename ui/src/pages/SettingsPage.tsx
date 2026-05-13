@@ -5,6 +5,9 @@ import toast from 'react-hot-toast';
 import ThemeToggle from '../components/ThemeToggle';
 import { useCurrency } from '../hooks/useCurrency';
 import { useAuth } from '../contexts/AuthContext';
+import { useHardware } from '../contexts/HardwareContext';
+import PrinterSetupModal from '../components/PrinterSetupModal';
+import { Printer as PrinterIcon } from 'lucide-react';
 
 export default function SettingsPage() {
     const { user } = useAuth();
@@ -48,6 +51,14 @@ export default function SettingsPage() {
     const [activeGateway, setActiveGateway] = useState<'mpesa' | 'paystack' | 'none'>('none');
     const [exchangeRates, setExchangeRates] = useState<any[]>([]);
     const [newRate, setNewRate] = useState({ from: 'USD', to: 'KES', rate: '' });
+    const [showPrinterModal, setShowPrinterModal] = useState(false);
+    const { 
+        handheldMode, 
+        setHandheldMode, 
+        defaultPrinter, 
+        bluetoothPrinter, 
+        networkPrinter 
+    } = useHardware();
 
     useEffect(() => {
         fetchSettings();
@@ -297,6 +308,62 @@ export default function SettingsPage() {
                         </section>
                     </div>
 
+                    {/* Hardware & Printers */}
+                    <section className="space-y-6">
+                        <div className="flex items-center gap-3 border-l-4 border-amber-500 pl-4">
+                            <div>
+                                <h2 className="text-sm font-black text-foreground uppercase tracking-wider">Hardware & Peripherals</h2>
+                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Device Nodes & External Links</p>
+                            </div>
+                        </div>
+                        <div className="glass-card p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Default Output Node</label>
+                                    <div className="p-4 rounded-xl bg-secondary/30 border border-border flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <PrinterIcon className="w-5 h-5 text-primary" />
+                                            <div>
+                                                <p className="text-xs font-black uppercase">{defaultPrinter || bluetoothPrinter?.name || networkPrinter?.name || 'No Printer Configured'}</p>
+                                                <p className="text-[8px] font-bold text-muted-foreground uppercase">Target Device</p>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setShowPrinterModal(true)}
+                                            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-[10px] font-black uppercase tracking-widest"
+                                        >
+                                            Configure
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="space-y-4">
+                                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Input Protocols</label>
+                                    <div 
+                                        onClick={() => setHandheldMode(!handheldMode)}
+                                        className="p-4 rounded-xl border border-border flex items-center justify-between cursor-pointer hover:bg-secondary/20 transition-all"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${handheldMode ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                                                <Smartphone className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-black uppercase">Handheld Scanner Mode</p>
+                                                <p className="text-[8px] font-bold text-muted-foreground uppercase">Optimize for HID Keyboards</p>
+                                            </div>
+                                        </div>
+                                        <div className={`w-12 h-6 rounded-full transition-all relative ${handheldMode ? 'bg-primary' : 'bg-muted'}`}>
+                                            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${handheldMode ? 'left-7' : 'left-1'}`} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
                     {/* Payment Gateways */}
                     <section className="space-y-6">
                         <div className="flex items-center gap-3 border-l-4 border-purple-500 pl-4">
@@ -401,6 +468,7 @@ export default function SettingsPage() {
                     </div>
                 </form>
             </main>
+            <PrinterSetupModal isOpen={showPrinterModal} onClose={() => setShowPrinterModal(false)} />
         </div>
     );
 }

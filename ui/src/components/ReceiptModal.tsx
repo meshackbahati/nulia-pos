@@ -5,6 +5,7 @@ import jsPDF from 'jspdf';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import { useCurrency } from '../hooks/useCurrency';
+import { useHardware } from '../contexts/HardwareContext';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
@@ -236,16 +237,85 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
         }
     };
 
-    const handlePrint = async () => {
-        if (isElectron && (window as any).electronAPI) {
-            toast.loading('Sending to printer...', { id: 'print-toast' });
-            const selectedSize = localStorage.getItem('receiptPaperSize') || '80mm';
-            const widthMicrons = selectedSize === '58mm' ? 58000 : 80000;
+    const { 
+        defaultPrinter, 
+        paperSize, 
+        isElectron: isHardwareElectron, 
+        isMobile: isHardwareMobile 
+    } = useHardware();
 
+    const getReceiptHTML = () => {
+        const itemsHtml = sale.items.map(item => {
+            const itemPrice = item.price || item.unitPrice || 0;
+            const displayName = item.productName || item.name || 'Unknown Item';
+            return `
+                <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 4px;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold; text-transform: uppercase;">${displayName}</div>
+                        <div style="font-size: 8px; color: #666;">${item.quantity}${item.baseUnit || ''} @ ${formatPrice(itemPrice)}</div>
+                    </div>
+                    <div style="font-weight: bold;">${formatPrice(new Decimal(item.quantity).times(itemPrice).toNumber())}</div>
+                </div>
+            `;
+        }).join('');
+
+        const paymentsHtml = (sale.payments || []).map(p => `
+            <div style="display: flex; justify-content: space-between; font-size: 9px;">
+                <span style="text-transform: uppercase;">${p.method}</span>
+                <span style="font-weight: bold;">${p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${p.paidCurrency}</span>
+            </div>
+        `).join('');
+
+        return `
+            <div style="padding: 10px; text-align: center;">
+                <div style="font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">${companyName}</div>
+                <div style="font-size: 8px; color: #666; text-transform: uppercase;">Served By: ${sale.user?.firstName || ''} ${sale.user?.lastName || ''}</div>
+                <div style="font-size: 8px; color: #666; text-transform: uppercase; margin-bottom: 10px;">Receipt: ${sale.receiptId}</div>
+                
+                <div style="border-top: 1px dashed #ccc; margin: 10px 0;"></div>
+                
+                <div style="text-align: left;">
+                    ${itemsHtml}
+                </div>
+                
+                <div style="border-top: 1px dashed #ccc; margin: 10px 0;"></div>
+                
+                <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                    <span>Subtotal</span>
+                    <span>${formatPrice(sale.subtotal || 0)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                    <span>Tax</span>
+                    <span>${formatPrice(sale.tax || 0)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; margin-top: 5px;">
+                    <span style="text-transform: uppercase;">Net Total</span>
+                    <span>${formatPrice(sale.total || sale.totalAmount || 0)}</span>
+                </div>
+                
+                <div style="border-top: 1px dashed #ccc; margin: 10px 0;"></div>
+                
+                <div style="text-align: left;">
+                    <div style="font-size: 9px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">Payment Breakdown</div>
+                    ${paymentsHtml}
+                </div>
+                
+                <div style="border-top: 1px double #ccc; margin: 20px 0 10px 0;"></div>
+                
+                <div style="font-size: 8px; font-weight: bold; text-transform: uppercase;">Thank you for visiting</div>
+                <div style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: #10b981;">${companyName}</div>
+                <div style="font-size: 6px; font-weight: bold; text-transform: uppercase; margin-top: 5px;">Goods once sold cannot be returned</div>
+            </div>
+        `;
+    };
+
+    const handlePrint = async () => {
+        if (isHardwareElectron && (window as any).electronAPI) {
+            toast.loading('Sending to printer...', { id: 'print-toast' });
             try {
-                const result = await (window as any).electronAPI.printReceipt({
-                    printerName: localStorage.getItem('defaultPrinter') || undefined,
-                    pageSize: { width: widthMicrons, height: 297000 }
+                const result = await (window as any).electronAPI.printReceiptHTML(getReceiptHTML(), {
+                    printerName: defaultPrinter || undefined,
+                    paperSize: paperSize
                 });
                 if (result.success) toast.success('Printing...', { id: 'print-toast' });
                 else throw new Error(result.error);
@@ -253,7 +323,7 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
                 toast.error('Printer link failed, using system print', { id: 'print-toast' });
                 window.print();
             }
-        } else if (isMobile) {
+        } else if (isHardwareMobile) {
             handleShare();
         } else {
             window.print();

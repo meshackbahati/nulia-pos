@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ModalProvider } from './contexts/ModalContext';
+import { HardwareProvider } from './contexts/HardwareContext';
 import { Toaster, toast } from 'react-hot-toast';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -139,79 +140,81 @@ function App() {
       <ThemeProvider>
         <AuthProvider>
           <ModalProvider>
-            <Routes>
-            <Route path="/" element={<RootRedirect needsSetup={needsSetup} />} />
-            <Route path="/install" element={<InstallPage />} />
-            <Route path="/auth/login" element={<LoginPage />} />
-            <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+            <HardwareProvider>
+              <Routes>
+              <Route path="/" element={<RootRedirect needsSetup={needsSetup} />} />
+              <Route path="/install" element={<InstallPage />} />
+              <Route path="/auth/login" element={<LoginPage />} />
+              <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
 
-            {/* Manager & Head of Sales Routes */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
-                <Layout>
-                  <DashboardSwitcher />
-                </Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/products" element={
-              <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
-                <Layout><ProductsPage /></Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/users" element={
-              <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
-                <Layout><UsersPage /></Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/manager/settings" element={
-              <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
-                <Layout><SettingsPage /></Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/analytics" element={
-              <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
-                <Layout><AnalyticsPage /></Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/manager/branches" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <Layout><BranchesPage /></Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/manager/suppliers" element={
-              <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
-                <Layout><SuppliersPage /></Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/manager/purchase-orders" element={
-              <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
-                <Layout><PurchaseOrdersPage /></Layout>
-              </ProtectedRoute>
-            } />
+              {/* Manager & Head of Sales Routes */}
+              <Route path="/dashboard" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                  <Layout>
+                    <DashboardSwitcher />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/products" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                  <Layout><ProductsPage /></Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/users" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                  <Layout><UsersPage /></Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/manager/settings" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                  <Layout><SettingsPage /></Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/analytics" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                  <Layout><AnalyticsPage /></Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/manager/branches" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <Layout><BranchesPage /></Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/manager/suppliers" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                  <Layout><SuppliersPage /></Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/manager/purchase-orders" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                  <Layout><PurchaseOrdersPage /></Layout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/manager/inventory-transfer" element={
-              <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
-                <Layout><InventoryTransferPage /></Layout>
-              </ProtectedRoute>
-            } />
+              <Route path="/manager/inventory-transfer" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                  <Layout><InventoryTransferPage /></Layout>
+                </ProtectedRoute>
+              } />
 
-            {/* Sales Person Routes */}
-            <Route path="/sales-dashboard" element={
-              <ProtectedRoute allowedRoles={['admin', 'manager', 'salesperson']}>
-                <SalesDashboard />
-              </ProtectedRoute>
-            } />
+              {/* Sales Person Routes */}
+              <Route path="/sales-dashboard" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'salesperson']}>
+                  <SalesDashboard />
+                </ProtectedRoute>
+              } />
 
-            {/* Shared Routes */}
-            <Route path="/pos" element={
-              <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales', 'salesperson']}>
-                <Layout noScroll><POSPage /></Layout>
-              </ProtectedRoute>
-            } />
+              {/* Shared Routes */}
+              <Route path="/pos" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales', 'salesperson']}>
+                  <Layout noScroll><POSPage /></Layout>
+                </ProtectedRoute>
+              } />
 
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
+                <Route path="*" element={<Navigate to="/" />} />
+              </Routes>
+            </HardwareProvider>
             <Toaster position="top-right" />
           </ModalProvider>
         </AuthProvider>

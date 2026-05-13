@@ -28,6 +28,7 @@ import useScanDetection from '../hooks/useScanDetection';
 import toast from 'react-hot-toast';
 import { db } from '../lib/db';
 import { useSocket } from '../hooks/useSocket';
+import { useHardware } from '../contexts/HardwareContext';
 
 interface Product {
     id: string;
@@ -244,6 +245,8 @@ export default function POSPage() {
         }
     });
 
+    const { defaultPrinter, bluetoothPrinter, networkPrinter, isElectron } = useHardware();
+
     useEffect(() => {
         fetchProducts();
         fetchBranchData();
@@ -251,8 +254,8 @@ export default function POSPage() {
         checkPendingSync();
 
         // Check for printer setup on launch
-        const printer = localStorage.getItem('defaultPrinter');
-        if (!printer && (window as any).electronAPI) {
+        const hasPrinter = isElectron ? !!defaultPrinter : (!!bluetoothPrinter || !!networkPrinter);
+        if (!hasPrinter) {
             setShowPrinterSetup(true);
         }
 
@@ -549,6 +552,13 @@ export default function POSPage() {
 
     const handleScan = async (barcode: string) => {
         if (!barcode) return;
+
+        // Auto-close success/receipt modals to start new session
+        if (showSuccessModal || showReceipt) {
+            setShowSuccessModal(false);
+            setShowReceipt(false);
+            setCart([]); // Ensure cart is empty for new session
+        }
 
         // 1. Memory Check
         let product = products.find(p =>
