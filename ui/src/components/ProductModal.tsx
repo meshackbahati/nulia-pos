@@ -107,7 +107,7 @@ export default function ProductModal({ product, initialBarcode, onClose, onSucce
     };
 
     // Utility to compress image before upload to avoid proxy 413 errors
-    const compressImage = (file: File): Promise<File> => {
+    const compressImage = (file: File | Blob): Promise<Blob> => {
         return new Promise((resolve) => {
             const maxSize = 0.8 * 1024 * 1024; // 800KB limit for absolute proxy safety
             if (file.size <= maxSize) {
@@ -124,7 +124,6 @@ export default function ProductModal({ product, initialBarcode, onClose, onSucce
                     let width = img.width;
                     let height = img.height;
 
-                    // Standardize resolution if very large
                     const MAX_RES = 1200;
                     if (width > MAX_RES || height > MAX_RES) {
                         if (width > height) {
@@ -144,11 +143,7 @@ export default function ProductModal({ product, initialBarcode, onClose, onSucce
                     canvas.toBlob(
                         (blob) => {
                             if (blob) {
-                                // Return as a new File object
-                                resolve(new File([blob], file.name, {
-                                    type: 'image/jpeg',
-                                    lastModified: Date.now(),
-                                }));
+                                resolve(blob);
                             } else {
                                 resolve(file);
                             }
@@ -170,28 +165,42 @@ export default function ProductModal({ product, initialBarcode, onClose, onSucce
     });
 
     const { isMobile } = useHardware();
-
     const handleCapturePhoto = async () => {
         try {
             const { Camera } = await import('@capacitor/camera');
+            const isAndroid = Capacitor.getPlatform() === 'android';
+            
             const image = await Camera.getPhoto({
                 quality: 90,
                 allowEditing: false,
-                resultType: 'file' as any
+                resultType: isAndroid ? 'base64' as any : 'uri' as any
             });
 
-            if (image.path) {
+            setUploading(true);
+            let blob: Blob;
+
+            if (isAndroid && image.base64String) {
+                // More reliable on Android than file URIs
+                const rawData = atob(image.base64String);
+                const bytes = new Uint8Array(rawData.length);
+                for (let i = 0; i < rawData.length; i++) bytes[i] = rawData.charCodeAt(i);
+                blob = new Blob([bytes], { type: 'image/jpeg' });
+                console.log('[Capture] Base64 conversion successful');
+            } else if (image.path) {
                 const response = await fetch(Capacitor.convertFileSrc(image.path));
-                const blob = await response.blob();
-                const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
-                
-                setUploading(true);
-                const uploadRes = await api.uploadImage(file);
-                setFormData({ ...formData, imageUrl: uploadRes.data.url });
-                toast.success('Image captured and uploaded');
+                blob = await response.blob();
+                console.log('[Capture] URI fetch successful');
+            } else {
+                throw new Error('No image data available');
             }
+
+            // Using Blob instead of File constructor for better WebView compatibility
+            const uploadRes = await api.uploadImage(blob as any);
+            setFormData({ ...formData, imageUrl: uploadRes.data.url });
+            toast.success('Image captured and uploaded');
         } catch (error: any) {
             if (error.message !== 'User cancelled photos app') {
+                console.error('[Capture] Error:', error);
                 toast.error('Failed to capture photo');
             }
         } finally {
@@ -208,10 +217,10 @@ export default function ProductModal({ product, initialBarcode, onClose, onSucce
 
             // Compress image if it's too large to bypass proxy 413 errors
             console.log(`[Upload] Original size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-            const compressedFile = await compressImage(file);
-            console.log(`[Upload] Final size: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+            const compressedBlob = await compressImage(file);
+            console.log(`[Upload] Final size: ${(compressedBlob.size / 1024 / 1024).toFixed(2)}MB`);
 
-            const response = await api.uploadImage(compressedFile);
+            const response = await api.uploadImage(compressedBlob as any);
             setFormData({ ...formData, imageUrl: response.data.url });
             toast.success('Image uploaded successfully');
         } catch (error: any) {
