@@ -61,6 +61,9 @@ class Product extends Model {
                     type: DataTypes.STRING,
                     allowNull: true,
                     unique: true,
+                    set(value) {
+                        this.setDataValue('sku', (value === '' || value === null || value === undefined) ? null : value);
+                    },
                     validate: {
                         len: [0, 50],
                     },
@@ -70,7 +73,7 @@ class Product extends Model {
                     allowNull: true,
                     unique: true,
                     validate: {
-                        len: [8, 50],
+                        len: [0, 50],
                     },
                 },
                 imageUrl: {

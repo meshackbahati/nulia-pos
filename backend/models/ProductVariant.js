@@ -26,10 +26,13 @@ class ProductVariant extends Model {
                 },
                 sku: {
                     type: DataTypes.STRING,
-                    allowNull: false,
+                    allowNull: true,
                     unique: true,
+                    set(value) {
+                        this.setDataValue('sku', (value === '' || value === null || value === undefined) ? null : value);
+                    },
                     validate: {
-                        len: [1, 50],
+                        len: [0, 50],
                     },
                 },
                 barcode: {
@@ -37,7 +40,7 @@ class ProductVariant extends Model {
                     allowNull: true,
                     unique: true,
                     validate: {
-                        len: [8, 50],
+                        len: [0, 50],
                     },
                 },
                 price: {
