@@ -39,6 +39,9 @@ class ProductVariant extends Model {
                     type: DataTypes.STRING,
                     allowNull: true,
                     unique: true,
+                    set(value) {
+                        this.setDataValue('barcode', (value === '' || value === null || value === undefined) ? null : value);
+                    },
                     validate: {
                         len: [0, 50],
                     },
