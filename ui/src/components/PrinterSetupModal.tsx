@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { Printer, RefreshCw, Check, X, Wifi, Bluetooth, Cable, Globe } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useHardware } from '../contexts/HardwareContext';
@@ -25,13 +26,15 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
         paperSize,
         setPaperSize,
         isElectron,
-        discoverPrinters
+        discoverPrinters,
+        requestWebUsbPrinter,
+        requestWebBluetoothPrinter
     } = useHardware();
 
     const [printers, setPrinters] = useState<Device[]>([]);
     const [loading, setLoading] = useState(false);
     const [manualIp, setManualIp] = useState(networkPrinter?.address || '');
-    const [activeTab, setActiveTab] = useState<'system' | 'bluetooth' | 'network'>(isElectron ? 'system' : 'bluetooth');
+    const [activeTab, setActiveTab] = useState<'system' | 'bluetooth' | 'network' | 'usb'>(isElectron ? 'system' : 'usb');
 
     useEffect(() => {
         if (isOpen) {
@@ -100,6 +103,14 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
                                 <Cable className="w-3 h-3 mx-auto mb-1" /> System
                             </button>
                         )}
+                        {!isElectron && !Capacitor.isNativePlatform() && (
+                            <button
+                                onClick={() => setActiveTab('usb')}
+                                className={`flex-1 py-2 text-[8px] font-black uppercase rounded-lg transition-all ${activeTab === 'usb' ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground'}`}
+                            >
+                                <Cable className="w-3 h-3 mx-auto mb-1" /> USB (Web)
+                            </button>
+                        )}
                         <button
                             onClick={() => setActiveTab('bluetooth')}
                             className={`flex-1 py-2 text-[8px] font-black uppercase rounded-lg transition-all ${activeTab === 'bluetooth' ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground'}`}
@@ -149,6 +160,35 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
                                     </div>
                                 )}
                             </div>
+                        ) : activeTab === 'usb' && !isElectron ? (
+                            <div className="space-y-4 animate-in slide-in-from-bottom-4">
+                                <button
+                                    onClick={async () => {
+                                        const p = await requestWebUsbPrinter();
+                                        if (p) {
+                                            setPrinters([p]);
+                                            setDefaultPrinter(p.name);
+                                            toast.success(`USB Printer Connected: ${p.name}`);
+                                        }
+                                    }}
+                                    className="w-full h-20 bg-primary/10 border-2 border-dashed border-primary/30 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-primary/20 transition-all text-primary"
+                                >
+                                    <Cable className="w-6 h-6" />
+                                    <span className="text-[10px] font-black uppercase">Pair New USB Printer</span>
+                                </button>
+                                {defaultPrinter && !isElectron && (
+                                    <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <Cable className="w-5 h-5 text-primary" />
+                                            <div className="text-left">
+                                                <p className="text-[10px] font-black uppercase">Active USB Device</p>
+                                                <p className="text-[8px] font-bold text-muted-foreground">{defaultPrinter}</p>
+                                            </div>
+                                        </div>
+                                        <Check className="w-5 h-5 text-primary" />
+                                    </div>
+                                )}
+                            </div>
                         ) : (
                             <div className="space-y-2 animate-in fade-in">
                                 <div className="flex items-center justify-between px-1">
@@ -167,6 +207,21 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
                                         <Printer className="w-8 h-8 mx-auto mb-2 opacity-20" />
                                         <p className="text-[10px] font-bold text-muted-foreground uppercase">No Devices found</p>
                                         <p className="text-[8px] mt-1 italic">Ensure printer is on and discoverable</p>
+                                        {activeTab === 'bluetooth' && !isElectron && !Capacitor.isNativePlatform() && (
+                                            <button
+                                                onClick={async () => {
+                                                    const p = await requestWebBluetoothPrinter();
+                                                    if (p) {
+                                                        setPrinters([p]);
+                                                        setBluetoothPrinter(p as any);
+                                                        toast.success(`Bluetooth Printer Linked: ${p.name}`);
+                                                    }
+                                                }}
+                                                className="mt-4 px-4 py-2 bg-primary text-white rounded-lg text-[8px] font-black uppercase shadow-lg shadow-primary/20"
+                                            >
+                                                Pair Bluetooth Device
+                                            </button>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="space-y-2">

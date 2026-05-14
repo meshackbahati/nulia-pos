@@ -24,6 +24,9 @@ interface HardwareContextType {
     setPaperSize: (size: '58mm' | '80mm') => void;
     setHandheldMode: (enabled: boolean) => void;
     discoverPrinters: () => Promise<PrinterDevice[]>;
+    requestWebUsbPrinter: () => Promise<PrinterDevice | null>;
+    requestWebBluetoothPrinter: () => Promise<PrinterDevice | null>;
+    printToWebDevice: (html: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const HardwareContext = createContext<HardwareContextType | undefined>(undefined);
@@ -130,8 +133,95 @@ export function HardwareProvider({ children }: { children: React.ReactNode }) {
                 return [];
             }
         }
-
         return [];
+    };
+
+    const requestWebUsbPrinter = async (): Promise<PrinterDevice | null> => {
+        if (!(navigator as any).usb) {
+            toast.error('WebUSB not supported in this browser');
+            return null;
+        }
+        try {
+            const device = await (navigator as any).usb.requestDevice({ filters: [] });
+            const p: PrinterDevice = {
+                name: device.productName || 'USB Printer',
+                address: device.serialNumber,
+                type: 'usb',
+                displayName: device.productName
+            };
+            return p;
+        } catch (err) {
+            console.error('WebUSB request failed:', err);
+            return null;
+        }
+    };
+
+    const requestWebBluetoothPrinter = async (): Promise<PrinterDevice | null> => {
+        if (!(navigator as any).bluetooth) {
+            toast.error('Web Bluetooth not supported in this browser');
+            return null;
+        }
+        try {
+            const device = await (navigator as any).bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] // Common printer service
+            });
+            const p: PrinterDevice = {
+                name: device.name || 'BT Printer',
+                address: device.id,
+                type: 'bluetooth',
+                displayName: device.name
+            };
+            return p;
+        } catch (err) {
+            console.error('Web Bluetooth request failed:', err);
+            return null;
+        }
+    };
+
+    const printToWebDevice = async (html: string): Promise<{ success: boolean; error?: string }> => {
+        // This is a complex task as it requires converting HTML to ESC/POS.
+        // For now, we'll implement a basic "Text-only" or "Image" driver.
+        // Most web-to-thermal solutions use a hidden canvas to generate a bitmap.
+        
+        try {
+            if (bluetoothPrinter && (navigator as any).bluetooth) {
+                // Web Bluetooth logic
+                const devices = await (navigator as any).bluetooth.getDevices();
+                const device = devices.find((d: any) => d.id === bluetoothPrinter.address);
+                if (!device) throw new Error('Bluetooth device not found');
+                
+                if (!device.gatt.connected) await device.gatt.connect();
+                const service = await device.gatt.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
+                const characteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
+                
+                // For now, just send a "Print started" placeholder or try to convert.
+                // In a real production app, we'd use a library like 'esc-pos-encoder'.
+                const encoder = new TextEncoder();
+                await characteristic.writeValue(encoder.encode('\x1b\x40\x1b\x61\x01RECEIPT\n\n' + html.replace(/<[^>]*>/g, '') + '\n\n\n\n'));
+                return { success: true };
+            }
+
+            if (defaultPrinter && (navigator as any).usb && !isElectron) {
+                // WebUSB logic
+                const devices = await (navigator as any).usb.getDevices();
+                const device = devices.find((d: any) => d.productName === defaultPrinter);
+                if (!device) throw new Error('USB device not found');
+                
+                await device.open();
+                await device.selectConfiguration(1);
+                await device.claimInterface(0);
+                
+                const encoder = new TextEncoder();
+                await device.transferOut(1, encoder.encode('\x1b\x40\x1b\x61\x01RECEIPT\n\n' + html.replace(/<[^>]*>/g, '') + '\n\n\n\n'));
+                return { success: true };
+            }
+
+            return { success: false, error: 'No web-paired printer available' };
+        } catch (err: any) {
+            console.error('Web Printing failed:', err);
+            return { success: false, error: err.message };
+        }
     };
 
     return (
@@ -148,7 +238,10 @@ export function HardwareProvider({ children }: { children: React.ReactNode }) {
             setNetworkPrinter,
             setPaperSize,
             setHandheldMode,
-            discoverPrinters
+            discoverPrinters,
+            requestWebUsbPrinter,
+            requestWebBluetoothPrinter,
+            printToWebDevice
         }}>
             {children}
         </HardwareContext.Provider>

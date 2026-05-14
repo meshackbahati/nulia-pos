@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { useModal } from '../contexts/ModalContext';
 import { useSocket } from '../hooks/useSocket';
+import useScanDetection from '../hooks/useScanDetection';
 
 interface Product {
     id: string;
@@ -41,6 +42,7 @@ export default function ProductsPage() {
     const [showScanner, setShowScanner] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [restockingProduct, setRestockingProduct] = useState<Product | null>(null);
+    const [initialBarcode, setInitialBarcode] = useState('');
     const { formatPrice } = useCurrency();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [branches, setBranches] = useState<any[]>([]);
@@ -56,6 +58,23 @@ export default function ProductsPage() {
         setShowScanner(false);
         toast.success(`Scanned: ${barcode}`);
     };
+
+    useScanDetection({
+        onScan: (barcode) => {
+            const product = products.find(p => p.sku === barcode || p.barcode === barcode || (p.barcodes || []).includes(barcode));
+            if (product) {
+                setSearchTerm(barcode);
+                toast.success(`Product Found: ${product.name}`);
+            } else {
+                toast.success(`New Barcode: ${barcode}. Opening Registry...`);
+                setEditingProduct(null);
+                setShowAddModal(true);
+                // We'll need a way to pass the barcode to the modal. 
+                // I'll update ProductModal to accept an initialBarcode prop.
+                setInitialBarcode(barcode);
+            }
+        }
+    });
 
     useEffect(() => {
         fetchProducts();
@@ -240,6 +259,10 @@ export default function ProductsPage() {
                         </button>
                     </div>
                     <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full animate-pulse">
+                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Hardware Scanner Ready</span>
+                        </div>
                         <span className="text-[10px] font-bold text-muted-foreground uppercase">Catalog Size:</span>
                         <div className="bg-card border border-border px-3 py-1 rounded-full text-xs font-bold text-primary shadow-sm">
                             {products.length} Units
@@ -329,9 +352,11 @@ export default function ProductsPage() {
             {(showAddModal || editingProduct) && (
                 <ProductModal
                     product={editingProduct || undefined}
+                    initialBarcode={initialBarcode}
                     onClose={() => {
                         setShowAddModal(false);
                         setEditingProduct(null);
+                        setInitialBarcode('');
                     }}
                     onSuccess={fetchProducts}
                 />

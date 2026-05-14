@@ -101,13 +101,13 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
 
         if (['card', 'airtel', 'mtn', 'mobile_money'].includes(currentMethod)) {
             setProcessing(true);
-            const success = await payWithPaystack({
+            const result = await payWithPaystack({
                 amount: amt,
                 email: 'customer@retailpro.io',
                 currency: currentCurrency,
             });
             setProcessing(false);
-            if (!success) return;
+            if (!result.success) return;
         }
 
         setEntries([...entries, newEntry]);
@@ -139,15 +139,15 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
     return (
         <div className="fixed inset-0 bg-background/95 backdrop-blur-md flex items-center justify-center z-[200] p-4 animate-in fade-in duration-200">
             <div className="bg-card rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.3)] max-w-5xl w-full p-8 border border-white/10 flex flex-col md:flex-row gap-8 overflow-y-auto max-h-[95vh] custom-scrollbar relative">
-                
+
                 {/* Floating Close Button - Highly Visible */}
-                <button 
-                    onClick={onClose} 
+                <button
+                    onClick={onClose}
                     className="absolute top-6 right-6 p-3 bg-secondary/50 hover:bg-destructive/10 hover:text-destructive rounded-2xl transition-all z-[210] border border-white/5 shadow-xl"
                 >
                     <X className="w-6 h-6" />
                 </button>
-                
+
                 {/* Left Side: Summary & Entries */}
                 <div className="flex-1 space-y-6">
                     <div className="flex items-center justify-between">
@@ -175,7 +175,7 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
                             <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Order Summary</h3>
                             <span className="text-[10px] font-bold text-primary">{cart.length} Items</span>
                         </div>
-                        
+
                         <div className="max-h-48 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
                             {cart.map((item, idx) => (
                                 <div key={idx} className="flex justify-between items-center p-3 bg-secondary/20 rounded-xl border border-white/5">
@@ -201,26 +201,26 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
                                     <p className="text-xs font-medium">No payments added yet</p>
                                 </div>
                             ) : (
-                            <div className="space-y-2">
-                                {entries.map(entry => (
-                                    <div key={entry.id} className="flex items-center gap-4 p-3 bg-secondary/30 rounded-xl border border-border/50 group animate-in slide-in-from-left-2">
-                                        <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center text-foreground shadow-sm">
-                                            {entry.method === 'cash' ? <DollarSign className="w-4 h-4" /> : entry.method === 'card' ? <CreditCard className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
+                                <div className="space-y-2">
+                                    {entries.map(entry => (
+                                        <div key={entry.id} className="flex items-center gap-4 p-3 bg-secondary/30 rounded-xl border border-border/50 group animate-in slide-in-from-left-2">
+                                            <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center text-foreground shadow-sm">
+                                                {entry.method === 'cash' ? <DollarSign className="w-4 h-4" /> : entry.method === 'card' ? <CreditCard className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-xs font-bold text-foreground uppercase">{entry.method} - {entry.currency}</p>
+                                                <p className="text-[10px] text-muted-foreground">Rate: 1 {branchConfig?.currency} = {entry.exchangeRate} {entry.currency}</p>
+                                            </div>
+                                            <div className="text-right mr-2">
+                                                <p className="text-sm font-bold text-foreground">{entry.amount.toLocaleString()} {entry.currency}</p>
+                                                <p className="text-[10px] text-primary font-bold">≈ {formatPrice(entry.amountInBase)}</p>
+                                            </div>
+                                            <button onClick={() => removeEntry(entry.id)} className="p-2 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="w-4 h-4" /></button>
                                         </div>
-                                        <div className="flex-1">
-                                            <p className="text-xs font-bold text-foreground uppercase">{entry.method} - {entry.currency}</p>
-                                            <p className="text-[10px] text-muted-foreground">Rate: 1 {branchConfig?.currency} = {entry.exchangeRate} {entry.currency}</p>
-                                        </div>
-                                        <div className="text-right mr-2">
-                                            <p className="text-sm font-bold text-foreground">{entry.amount.toLocaleString()} {entry.currency}</p>
-                                            <p className="text-[10px] text-primary font-bold">≈ {formatPrice(entry.amountInBase)}</p>
-                                        </div>
-                                        <button onClick={() => removeEntry(entry.id)} className="p-2 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="w-4 h-4" /></button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -228,7 +228,7 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
                 <div className="w-full md:w-80 space-y-6 bg-muted/20 p-6 rounded-2xl border border-border">
                     <div className="space-y-4">
                         <h3 className="text-xs font-bold text-foreground uppercase">Add Entry</h3>
-                        
+
                         {/* Method Toggle */}
                         <div className="grid grid-cols-3 gap-2">
                             {[
@@ -253,8 +253,8 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
                         {/* Currency Select */}
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Currency</label>
-                            <select 
-                                value={currentCurrency} 
+                            <select
+                                value={currentCurrency}
                                 onChange={(e) => setCurrentCurrency(e.target.value)}
                                 className="w-full h-11 bg-background border border-border rounded-xl px-3 text-sm font-bold focus:ring-2 focus:ring-primary outline-none"
                             >
@@ -276,7 +276,7 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
                                     placeholder={suggestedAmount}
                                     className="w-full h-12 bg-background border border-border rounded-xl pl-4 pr-12 text-lg font-bold focus:ring-2 focus:ring-primary outline-none"
                                 />
-                                <button 
+                                <button
                                     onClick={() => setInputAmount(suggestedAmount)}
                                     className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-primary hover:bg-primary/10 rounded-lg"
                                     title="Set remaining"
@@ -288,7 +288,7 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
 
                         {['mpesa', 'airtel', 'mtn', 'mobile_money'].includes(currentMethod) && (
                             <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
-                                <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">M-Pesa Phone</label>
+                                <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Phone Number</label>
                                 <input
                                     type="tel"
                                     value={customerPhone}

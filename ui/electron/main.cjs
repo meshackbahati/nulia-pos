@@ -79,51 +79,58 @@ ipcMain.handle('print-receipt', async (event, options = {}) => {
 ipcMain.handle('print-receipt-html', async (event, html, options = {}) => {
   if (!workerWindow) return { success: false, error: 'Worker window not ready' };
 
+  console.log(`[Print] Starting print job for ${options.printerName || 'default printer'}`);
+  const startTime = Date.now();
+
   try {
     const paperSize = options.paperSize || '80mm';
     const width = paperSize === '58mm' ? '58mm' : '80mm';
     
-    // Wrap HTML with necessary styles for receipt printing
     const styledHtml = `
       <html>
         <head>
           <style>
-            @page {
-              size: ${width} auto;
-              margin: 0;
-            }
-            body {
-              width: ${width};
-              margin: 0;
-              padding: 0;
-              font-family: 'Courier New', Courier, monospace;
-              color: black;
-              background-color: white;
-            }
-            * {
-              -webkit-print-color-adjust: exact !important;
-              color-adjust: exact !important;
-            }
-            img { max-width: 100%; }
+            @page { size: ${width} auto; margin: 0; }
+            body { width: ${width}; margin: 0; padding: 0; font-family: 'Courier New', Courier, monospace; color: black; background-color: white; }
+            * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
           </style>
         </head>
-        <body>
-          ${html}
-        </body>
+        <body>${html}</body>
       </html>
     `;
 
-    await workerWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(styledHtml)}`);
-    
-    await workerWindow.webContents.print({
-      silent: true,
-      printBackground: true,
-      deviceName: options.printerName || undefined,
-      margins: { marginType: 'none' },
-      pageSize: options.pageSize || { 
-        width: paperSize === '58mm' ? 58000 : 80000, 
-        height: 297000 
-      }
+    // Load content and wait for it to finish
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Print load timeout')), 10000);
+      workerWindow.webContents.once('did-finish-load', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+      workerWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(styledHtml)}`);
+    });
+
+    console.log(`[Print] Content loaded in ${Date.now() - startTime}ms. Sending to printer...`);
+
+    // Print the content
+    await new Promise((resolve, reject) => {
+      workerWindow.webContents.print({
+        silent: true,
+        printBackground: true,
+        deviceName: options.printerName || undefined,
+        margins: { marginType: 'none' },
+        pageSize: { 
+          width: paperSize === '58mm' ? 58000 : 80000, 
+          height: 297000 
+        }
+      }, (success, failureReason) => {
+        if (success) {
+          console.log(`[Print] Print successful in ${Date.now() - startTime}ms`);
+          resolve();
+        } else {
+          console.error(`[Print] Print failed: ${failureReason}`);
+          reject(new Error(failureReason));
+        }
+      });
     });
 
     return { success: true };

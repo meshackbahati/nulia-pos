@@ -109,6 +109,10 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
                             <Package className="w-5 h-5" />
                         </div>
                         <h2 className="text-xl font-bold text-foreground">Restock Inventory</h2>
+                        <div className="flex items-center gap-2 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full ml-2">
+                            <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></div>
+                            <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Scanner Ready</span>
+                        </div>
                     </div>
                     <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors p-2 hover:bg-muted rounded-full">
                         <X className="w-6 h-6" />

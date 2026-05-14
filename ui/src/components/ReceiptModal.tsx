@@ -48,40 +48,26 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
     const { formatPrice } = useCurrency();
     const [customerEmail, setCustomerEmail] = useState('');
     const [sending, setSending] = useState(false);
-    const [isElectron, setIsElectron] = useState(false);
     const isMobile = Capacitor.isNativePlatform();
 
-    useEffect(() => {
-        const userAgent = navigator.userAgent.toLowerCase();
-        if (userAgent.indexOf(' electron/') > -1) {
-            setIsElectron(true);
-        }
-    }, []);
+    const { 
+        defaultPrinter, 
+        bluetoothPrinter,
+        paperSize, 
+        isElectron: isHardwareElectron, 
+        isMobile: isHardwareMobile,
+        printToWebDevice
+    } = useHardware();
+
 
     useEffect(() => {
-        if (autoPrint) {
-            const checkPrinters = async () => {
-                if (isElectron && (window as any).electronAPI) {
-                    try {
-                        const printers = await (window as any).electronAPI.getPrinters();
-                        const hasThermal = printers.some((p: any) =>
-                            p.name.toLowerCase().includes('thermal') ||
-                            p.name.toLowerCase().includes('pos') ||
-                            p.name.toLowerCase().includes('58mm') ||
-                            p.name.toLowerCase().includes('80mm')
-                        );
-                        if (hasThermal) {
-                            toast.success('Thermal printer detected, auto-generating receipt...', { icon: '🖨️' });
-                        }
-                    } catch (err) {
-                        console.error('Failed to check printers:', err);
-                    }
-                }
+        if (autoPrint && isHardwareElectron !== undefined) {
+            const timer = setTimeout(() => {
                 handlePrint();
-            };
-            checkPrinters();
+            }, 1000); // Small delay to ensure everything is rendered
+            return () => clearTimeout(timer);
         }
-    }, [autoPrint, isElectron]);
+    }, [autoPrint, isHardwareElectron, defaultPrinter]);
 
     const getReceiptPDF = () => {
         const selectedSize = localStorage.getItem('receiptPaperSize') || '80mm';
@@ -157,6 +143,8 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
         y += 6;
 
         // Totals
+        doc.line(margin, y, rightAlign, y);
+        y += 6;
         doc.text('SUBTOTAL:', margin, y);
         doc.text(formatPrice(sale?.subtotal || 0), rightAlign, y, { align: 'right' });
         y += 4;
@@ -168,12 +156,20 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
         }
 
         y += 2;
+        doc.setLineWidth(0.5);
+        doc.line(margin, y, rightAlign, y);
+        y += 6;
         doc.setFontSize(width === 58 ? 8 : 10);
         doc.setFont('helvetica', 'bold');
         doc.text('NET TOTAL:', margin, y);
         doc.text(formatPrice(sale?.total || sale?.totalAmount || 0), rightAlign, y, { align: 'right' });
 
+        y += 8;
+        doc.setLineWidth(0.1);
+        doc.setDrawColor(200);
+        doc.line(margin, y, rightAlign, y);
         y += 6;
+
         if (sale.payments && sale.payments.length > 0) {
             doc.setFontSize(width === 58 ? 5 : 6);
             doc.setFont('helvetica', 'bold');
@@ -188,18 +184,18 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
         }
 
         y += 10;
+        doc.line(margin, y, rightAlign, y);
+        y += 6;
         doc.setFontSize(8);
-        doc.setFont('helvetica', 'italic');
+        doc.setFont('helvetica', 'bold');
         doc.text('THANK YOU FOR VISITING', pageWidth / 2, y, { align: 'center' });
         y += 4;
         doc.text(companyName.toUpperCase(), pageWidth / 2, y, { align: 'center' });
         y += 6;
-        doc.setFontSize(6);
-        doc.setFont('helvetica', 'bold');
-        doc.text('GOODS ONCE SOLD CANNOT BE RETURNED', pageWidth / 2, y, { align: 'center' });
-        y += 4;
         doc.setFontSize(5);
         doc.setFont('helvetica', 'normal');
+        doc.text('GOODS ONCE SOLD CANNOT BE RETURNED', pageWidth / 2, y, { align: 'center' });
+        y += 3;
         doc.text('POWERED BY RETAILPRO POS', pageWidth / 2, y, { align: 'center' });
         
         return doc;
@@ -237,74 +233,82 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
         }
     };
 
-    const { 
-        defaultPrinter, 
-        paperSize, 
-        isElectron: isHardwareElectron, 
-        isMobile: isHardwareMobile 
-    } = useHardware();
 
     const getReceiptHTML = () => {
         const itemsHtml = sale.items.map(item => {
             const itemPrice = item.price || item.unitPrice || 0;
             const displayName = item.productName || item.name || 'Unknown Item';
             return `
-                <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 4px;">
-                    <div style="flex: 1;">
-                        <div style="font-weight: bold; text-transform: uppercase;">${displayName}</div>
-                        <div style="font-size: 8px; color: #666;">${item.quantity}${item.baseUnit || ''} @ ${formatPrice(itemPrice)}</div>
+                <div style="margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold;">
+                        <span style="text-transform: uppercase;">${displayName}</span>
+                        <span>${formatPrice(new Decimal(item.quantity).times(itemPrice).toNumber())}</span>
                     </div>
-                    <div style="font-weight: bold;">${formatPrice(new Decimal(item.quantity).times(itemPrice).toNumber())}</div>
+                    <div style="font-size: 9px; color: #444; margin-top: 1px;">
+                        ${item.quantity}${item.baseUnit || ''} x ${formatPrice(itemPrice)}
+                        ${item.catalogPrice && Number(item.catalogPrice) !== Number(itemPrice) ? `<span style="text-decoration: line-through; opacity: 0.5; margin-left: 4px;">(${formatPrice(item.catalogPrice)})</span>` : ''}
+                    </div>
                 </div>
             `;
         }).join('');
 
         const paymentsHtml = (sale.payments || []).map(p => `
-            <div style="display: flex; justify-content: space-between; font-size: 9px;">
+            <div style="display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px;">
                 <span style="text-transform: uppercase;">${p.method}</span>
                 <span style="font-weight: bold;">${p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${p.paidCurrency}</span>
             </div>
         `).join('');
 
         return `
-            <div style="padding: 10px; text-align: center;">
-                <div style="font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">${companyName}</div>
-                <div style="font-size: 8px; color: #666; text-transform: uppercase;">Served By: ${sale.user?.firstName || ''} ${sale.user?.lastName || ''}</div>
-                <div style="font-size: 8px; color: #666; text-transform: uppercase; margin-bottom: 10px;">Receipt: ${sale.receiptId}</div>
+            <div style="padding: 15px; font-family: 'Courier New', Courier, monospace; color: #000; background: #fff;">
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <div style="font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">${companyName}</div>
+                    <div style="font-size: 10px; font-weight: bold; border: 1px solid #000; display: inline-block; padding: 2px 8px; margin: 5px 0;">OFFICIAL RECEIPT</div>
+                    <div style="font-size: 8px; color: #444; text-transform: uppercase; margin-top: 8px;">
+                        ${new Date(sale?.createdAt || Date.now()).toLocaleString()}<br/>
+                        Receipt: ${sale.receiptId}<br/>
+                        Served By: ${sale.user?.firstName || ''} ${sale.user?.lastName || ''}
+                    </div>
+                </div>
                 
-                <div style="border-top: 1px dashed #ccc; margin: 10px 0;"></div>
+                <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
                 
-                <div style="text-align: left;">
+                <div style="text-align: left; margin: 10px 0;">
                     ${itemsHtml}
                 </div>
                 
-                <div style="border-top: 1px dashed #ccc; margin: 10px 0;"></div>
+                <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
                 
-                <div style="display: flex; justify-content: space-between; font-size: 10px;">
-                    <span>Subtotal</span>
-                    <span>${formatPrice(sale.subtotal || 0)}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 10px;">
-                    <span>Tax</span>
-                    <span>${formatPrice(sale.tax || 0)}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; margin-top: 5px;">
-                    <span style="text-transform: uppercase;">Net Total</span>
-                    <span>${formatPrice(sale.total || sale.totalAmount || 0)}</span>
+                <div style="margin: 10px 0;">
+                    <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 2px;">
+                        <span>SUBTOTAL</span>
+                        <span>${formatPrice(sale.subtotal || 0)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 2px;">
+                        <span>TAX (VAT)</span>
+                        <span>${formatPrice(sale.tax || 0)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 900; margin-top: 8px; padding-top: 8px; border-top: 1px double #000;">
+                        <span>NET TOTAL</span>
+                        <span>${formatPrice(sale.total || sale.totalAmount || 0)}</span>
+                    </div>
                 </div>
                 
-                <div style="border-top: 1px dashed #ccc; margin: 10px 0;"></div>
+                <div style="border-top: 1px dashed #000; margin: 15px 0;"></div>
                 
-                <div style="text-align: left;">
-                    <div style="font-size: 9px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">Payment Breakdown</div>
+                <div style="text-align: left; margin: 10px 0;">
+                    <div style="font-size: 9px; font-weight: 900; text-transform: uppercase; margin-bottom: 6px; text-decoration: underline;">Payment Breakdown</div>
                     ${paymentsHtml}
                 </div>
                 
-                <div style="border-top: 1px double #ccc; margin: 20px 0 10px 0;"></div>
+                <div style="border-top: 1px dashed #000; margin: 15px 0;"></div>
                 
-                <div style="font-size: 8px; font-weight: bold; text-transform: uppercase;">Thank you for visiting</div>
-                <div style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: #10b981;">${companyName}</div>
-                <div style="font-size: 6px; font-weight: bold; text-transform: uppercase; margin-top: 5px;">Goods once sold cannot be returned</div>
+                <div style="text-align: center; margin-top: 15px;">
+                    <div style="font-size: 10px; font-weight: 900; text-transform: uppercase;">Thank you for your business</div>
+                    <div style="font-size: 12px; font-weight: 900; text-transform: uppercase; color: #000; margin: 4px 0;">${companyName}</div>
+                    <div style="font-size: 7px; font-weight: bold; text-transform: uppercase; margin-top: 10px; opacity: 0.8;">Goods once sold cannot be returned</div>
+                    <div style="font-size: 6px; font-weight: bold; text-transform: uppercase; margin-top: 15px; letter-spacing: 2px; opacity: 0.5;">POWERED BY RETAILPRO POS</div>
+                </div>
             </div>
         `;
     };
@@ -326,9 +330,22 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
         } else if (isHardwareMobile) {
             handleShare();
         } else {
-            window.print();
+            // Check if we have a web-paired printer
+            if (defaultPrinter || bluetoothPrinter) {
+                toast.loading('Sending to web printer...', { id: 'web-print' });
+                const result = await printToWebDevice(getReceiptHTML());
+                if (result.success) {
+                    toast.success('Printed successfully!', { id: 'web-print' });
+                } else {
+                    toast.error('Web print failed, using system print', { id: 'web-print' });
+                    window.print();
+                }
+            } else {
+                window.print();
+            }
         }
     };
+
 
     const handleEmailReceipt = async () => {
         if (!customerEmail) {
@@ -466,7 +483,7 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
                         className="h-14 bg-secondary/50 text-foreground hover:bg-primary/20 hover:text-primary rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all"
                     >
                         {isMobile ? <Share2 className="w-5 h-5" /> : <Printer className="w-5 h-5" />}
-                        {isElectron ? 'Direct Print' : (isMobile ? 'Share/Print' : 'System Print')}
+                        {isHardwareElectron ? 'Direct Print' : (isMobile ? 'Share/Print' : 'System Print')}
                     </button>
                     <button 
                         onClick={handleDownload} 

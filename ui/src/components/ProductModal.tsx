@@ -12,11 +12,12 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface ProductModalProps {
     product?: any;
+    initialBarcode?: string;
     onClose: () => void;
     onSuccess: () => void;
 }
 
-export default function ProductModal({ product, onClose, onSuccess }: ProductModalProps) {
+export default function ProductModal({ product, initialBarcode, onClose, onSuccess }: ProductModalProps) {
     const isEdit = !!product;
     const { user } = useAuth();
     const { baseSymbol: symbol } = useCurrency();
@@ -57,6 +58,12 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
     const [uploading, setUploading] = useState(false);
 
     const [categories, setCategories] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (initialBarcode) {
+            handleAddBarcode(initialBarcode);
+        }
+    }, [initialBarcode]);
 
     useEffect(() => {
         if (user?.role === 'admin') {
@@ -169,7 +176,7 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
             const { Camera } = await import('@capacitor/camera');
             const image = await Camera.getPhoto({
                 quality: 90,
-                allowEditing: true,
+                allowEditing: false,
                 resultType: 'file' as any
             });
 
@@ -268,14 +275,18 @@ export default function ProductModal({ product, onClose, onSuccess }: ProductMod
             <div className="bg-card sm:rounded-2xl shadow-xl max-w-5xl w-full border border-border h-full sm:h-auto sm:max-h-[90vh] flex flex-col overflow-hidden ring-1 ring-border/50">
                 {/* Modal Header - Sticky */}
                 <div className="flex items-center justify-between p-4 sm:p-8 border-b border-border bg-card shrink-0">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary shadow-sm ring-1 ring-inset ring-primary/20">
-                            <Package className="w-5 h-5" />
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary shadow-sm ring-1 ring-inset ring-primary/20">
+                                <Package className="w-5 h-5" />
+                            </div>
+                            <h2 className="text-lg sm:text-xl font-bold text-foreground truncate">
+                                {isEdit ? 'Update Catalog Item' : 'New Catalog Item'}
+                            </h2>
+                            <div className="hidden sm:flex items-center gap-2 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full ml-2">
+                                <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></div>
+                                <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Scanner Active</span>
+                            </div>
                         </div>
-                        <h2 className="text-lg sm:text-xl font-bold text-foreground truncate">
-                            {isEdit ? 'Update Catalog Item' : 'New Catalog Item'}
-                        </h2>
-                    </div>
                     <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors p-2 hover:bg-muted rounded-full">
                         <X className="w-6 h-6" />
                     </button>
