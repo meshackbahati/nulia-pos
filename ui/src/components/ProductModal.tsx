@@ -106,7 +106,7 @@ export default function ProductModal({ product, initialBarcode, onClose, onSucce
         }));
     };
 
-    // Utility to compress image before upload to avoid proxy 413 errors
+    // Utility to compress image before upload to avoid proxy 413 errors and OOM
     const compressImage = (file: File | Blob): Promise<Blob> => {
         return new Promise((resolve) => {
             const maxSize = 0.8 * 1024 * 1024; // 800KB limit for absolute proxy safety
@@ -114,44 +114,46 @@ export default function ProductModal({ product, initialBarcode, onClose, onSucce
                 return resolve(file);
             }
 
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target?.result as string;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
+            const objectUrl = URL.createObjectURL(file);
+            const img = new Image();
+            img.src = objectUrl;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
 
-                    const MAX_RES = 1200;
-                    if (width > MAX_RES || height > MAX_RES) {
-                        if (width > height) {
-                            height *= MAX_RES / width;
-                            width = MAX_RES;
-                        } else {
-                            width *= MAX_RES / height;
-                            height = MAX_RES;
-                        }
+                const MAX_RES = 1200;
+                if (width > MAX_RES || height > MAX_RES) {
+                    if (width > height) {
+                        height *= MAX_RES / width;
+                        width = MAX_RES;
+                    } else {
+                        width *= MAX_RES / height;
+                        height = MAX_RES;
                     }
+                }
 
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx?.drawImage(img, 0, 0, width, height);
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0, width, height);
 
-                    canvas.toBlob(
-                        (blob) => {
-                            if (blob) {
-                                resolve(blob);
-                            } else {
-                                resolve(file);
-                            }
-                        },
-                        'image/jpeg',
-                        0.8 // 80% quality
-                    );
-                };
+                canvas.toBlob(
+                    (blob) => {
+                        URL.revokeObjectURL(objectUrl); // Clean up memory
+                        if (blob) {
+                            resolve(blob);
+                        } else {
+                            resolve(file);
+                        }
+                    },
+                    'image/jpeg',
+                    0.8 // 80% quality
+                );
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                resolve(file);
             };
         });
     };
@@ -166,42 +168,39 @@ export default function ProductModal({ product, initialBarcode, onClose, onSucce
 
     const { isMobile } = useHardware();
     const handleCapturePhoto = async () => {
+        let tempPath: string | undefined;
         try {
             const { Camera } = await import('@capacitor/camera');
-            const isAndroid = Capacitor.getPlatform() === 'android';
+            const { Filesystem } = await import('@capacitor/filesystem');
             
             const image = await Camera.getPhoto({
                 quality: 90,
                 allowEditing: false,
-                resultType: isAndroid ? 'base64' as any : 'uri' as any
+                resultType: 'uri' as any // Use URI for efficiency
             });
 
+            tempPath = image.path;
             setUploading(true);
-            let blob: Blob;
 
-            if (isAndroid && image.base64String) {
-                // More reliable on Android than file URIs
-                const rawData = atob(image.base64String);
-                const bytes = new Uint8Array(rawData.length);
-                for (let i = 0; i < rawData.length; i++) bytes[i] = rawData.charCodeAt(i);
-                blob = new Blob([bytes], { type: 'image/jpeg' });
-                console.log('[Capture] Base64 conversion successful');
-            } else if (image.path) {
-                const response = await fetch(Capacitor.convertFileSrc(image.path));
-                blob = await response.blob();
-                console.log('[Capture] URI fetch successful');
-            } else {
-                throw new Error('No image data available');
-            }
+            // Fetch blob from URI (handles Android FileProvider)
+            const response = await fetch(Capacitor.convertFileSrc(image.path!));
+            const rawBlob = await response.blob();
 
-            // Using Blob instead of File constructor for better WebView compatibility
-            const uploadRes = await api.uploadImage(blob as any);
+            // Always compress to ensure safe upload size
+            const compressedBlob = await compressImage(rawBlob);
+            
+            const uploadRes = await api.uploadImage(compressedBlob as any);
             setFormData({ ...formData, imageUrl: uploadRes.data.url });
             toast.success('Image captured and uploaded');
+
+            // Cleanup: Delete temporary file after successful upload to prevent storage bloat
+            if (tempPath) {
+                await Filesystem.deleteFile({ path: tempPath }).catch(e => console.warn('[Cleanup] Failed:', e));
+            }
         } catch (error: any) {
             if (error.message !== 'User cancelled photos app') {
                 console.error('[Capture] Error:', error);
-                toast.error('Failed to capture photo');
+                toast.error(error.response?.data?.error || 'Failed to capture or upload photo');
             }
         } finally {
             setUploading(false);
