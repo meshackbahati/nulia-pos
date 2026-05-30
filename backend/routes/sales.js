@@ -483,7 +483,7 @@ router.get('/:id', authenticate, async (req, res) => {
         const sale = await models.Sale.findByPk(req.params.id, {
             include: [
                 { model: models.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
-                { model: models.Branch, as: 'branch', attributes: ['id', 'name', 'currency', 'currencySymbol', 'taxRate', 'address', 'phoneNumber'] },
+                { model: models.Branch, as: 'branch', attributes: ['id', 'name', 'currency', 'currencySymbol', 'taxRate', 'address', 'phone'] },
                 { model: models.Payment, as: 'payments' },
                 { model: models.SaleItem, as: 'items' }
             ]

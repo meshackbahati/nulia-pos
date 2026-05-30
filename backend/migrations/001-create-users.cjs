@@ -30,6 +30,15 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
+    // Create the enum type first
+    await queryInterface.sequelize.query(`
+      DO $$ BEGIN
+        CREATE TYPE enum_users_role AS ENUM ('admin', 'manager', 'head_of_sales', 'salesperson');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
     await queryInterface.createTable('users', {
       id: {
         type: Sequelize.UUID,
@@ -54,7 +63,7 @@ module.exports = {
         allowNull: false,
       },
       role: {
-        type: Sequelize.ENUM('admin', 'manager', 'head_of_sales', 'salesperson'),
+        type: 'enum_users_role',
         allowNull: false,
         defaultValue: 'salesperson',
       },
@@ -86,10 +95,10 @@ module.exports = {
       },
     });
 
-    // Add indexes
-    await queryInterface.addIndex('users', ['email'], { unique: true });
-    await queryInterface.addIndex('users', ['branchId']);
-    await queryInterface.addIndex('users', ['role']);
+    // Add indexes after table creation
+    await queryInterface.addIndex('users', ['email'], { unique: true, name: 'users_email' });
+    await queryInterface.addIndex('users', ['branchId'], { name: 'users_branch_id' });
+    await queryInterface.addIndex('users', ['role'], { name: 'users_role' });
   },
 
   async down(queryInterface, Sequelize) {
