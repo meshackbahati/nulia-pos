@@ -357,4 +357,147 @@ router.post('/create', authenticate, async (req, res) => {
     }
 });
 
+// Search sales — by receipt, product, customer phone/name, cashier, date range, amount
+router.get('/search', authenticate, async (req, res) => {
+    try {
+        const {
+            query,
+            productId,
+            customerPhone,
+            customerName,
+            cashierId,
+            startDate,
+            endDate,
+            minAmount,
+            maxAmount,
+            page = 1,
+            limit = 50
+        } = req.query;
+
+        const offset = (Number(page) - 1) * Number(limit);
+        const where = {};
+
+        // Role-based restrictions
+        if (req.user.role === 'salesperson') {
+            where.userId = req.user.userId;
+        } else if (req.user.role === 'manager') {
+            where.branchId = req.user.branchId;
+        }
+
+        if (startDate && endDate) {
+            where.createdAt = { [Op.between]: [new Date(startDate), new Date(endDate)] };
+        }
+        if (minAmount != null || maxAmount != null) {
+            where.totalAmount = {};
+            if (minAmount != null) where.totalAmount[Op.gte] = Number(minAmount);
+            if (maxAmount != null) where.totalAmount[Op.lte] = Number(maxAmount);
+        }
+        if (cashierId) {
+            where.userId = cashierId;
+        }
+        if (customerPhone) {
+            where.customerPhone = { [Op.iLike]: `%${customerPhone}%` };
+        }
+
+        // If a general query is provided, search across receiptId, customerPhone, notes
+        // or join with items to search by product name
+        let include = [
+            { model: models.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
+            { model: models.Branch, as: 'branch', attributes: ['id', 'name'] },
+            { model: models.Payment, as: 'payments' },
+            { model: models.SaleItem, as: 'items' }
+        ];
+
+        if (query) {
+            const searchLower = query.toLowerCase();
+            // Try matching receiptId, customerPhone, notes, or customerEmail
+            where[Op.or] = [
+                { receiptId: { [Op.iLike]: `%${searchLower}%` } },
+                { customerPhone: { [Op.iLike]: `%${searchLower}%` } },
+                { customerEmail: { [Op.iLike]: `%${searchLower}%` } },
+                { notes: { [Op.iLike]: `%${searchLower}%` } },
+            ];
+
+            // Also search for product names in sale items
+            if (productId || query) {
+                include[3].where = {
+                    [Op.or]: [
+                        { productName: { [Op.iLike]: `%${searchLower}%` } }
+                    ]
+                };
+                include[3].required = false;
+            }
+        }
+
+        if (productId) {
+            // Ensure at least one sale item matches the productId
+            include[3] = {
+                model: models.SaleItem,
+                as: 'items',
+                where: { productId },
+                required: true
+            };
+        }
+
+        // If customer name search, join with user table
+        if (customerName) {
+            const nameParts = customerName.trim().split(/\s+/);
+            const userWhere = {};
+            if (nameParts.length === 1) {
+                userWhere[Op.or] = [
+                    { firstName: { [Op.iLike]: `%${nameParts[0]}%` } },
+                    { lastName: { [Op.iLike]: `%${nameParts[0]}%` } }
+                ];
+            } else {
+                userWhere.firstName = { [Op.iLike]: `%${nameParts[0]}%` };
+                userWhere.lastName = { [Op.iLike]: `%${nameParts[1]}%` };
+            }
+            include[0].where = userWhere;
+            include[0].required = true;
+        }
+
+        const { count, rows } = await models.Sale.findAndCountAll({
+            where,
+            include,
+            limit: Number(limit),
+            offset,
+            order: [['createdAt', 'DESC']],
+            distinct: true
+        });
+
+        res.json({
+            sales: rows,
+            total: count,
+            page: Number(page),
+            totalPages: Math.ceil(count / Number(limit))
+        });
+    } catch (error) {
+        console.error('Search sales error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get single sale details (for reprint)
+router.get('/:id', authenticate, async (req, res) => {
+    try {
+        const sale = await models.Sale.findByPk(req.params.id, {
+            include: [
+                { model: models.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
+                { model: models.Branch, as: 'branch', attributes: ['id', 'name', 'currency', 'currencySymbol', 'taxRate', 'address', 'phoneNumber'] },
+                { model: models.Payment, as: 'payments' },
+                { model: models.SaleItem, as: 'items' }
+            ]
+        });
+
+        if (!sale) {
+            return res.status(404).json({ error: 'Sale not found' });
+        }
+
+        res.json({ sale });
+    } catch (error) {
+        console.error('Get sale error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;

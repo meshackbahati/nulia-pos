@@ -26,6 +26,7 @@ import SuppliersPage from './pages/SuppliersPage';
 import PurchaseOrdersPage from './pages/PurchaseOrdersPage';
 import InventoryTransferPage from './pages/InventoryTransferPage';
 import HeadOfSalesDashboard from './pages/HeadOfSalesDashboard';
+import SalesHistoryPage from './pages/SalesHistoryPage';
 
 function RootRedirect({ needsSetup }: { needsSetup: boolean }) {
   const { user, isLoading } = useAuth();
@@ -50,8 +51,7 @@ function App() {
     // Check if user is already logged in (local session)
     const hasToken = !!localStorage.getItem('token') || document.cookie.includes('token=');
 
-    const primaryApi = import.meta.env.VITE_API_URL || 'https://api2.g24sec.space/api';
-    const fallbackApi = 'https://api2.g24sec.com/api';
+    const primaryApi = import.meta.env.VITE_API_URL || 'https://api2.g24sec.com/api';
 
     const tryFetch = async (url: string) => {
       const response = await fetch(`${url}/install/check`, {
@@ -64,12 +64,7 @@ function App() {
 
     try {
       let data;
-      try {
-        data = await tryFetch(primaryApi);
-      } catch (err) {
-        console.warn('Primary API failed, trying fallback...', err);
-        data = await tryFetch(fallbackApi);
-      }
+      data = await tryFetch(primaryApi);
       
       setNeedsSetup(data.needsSetup || false);
       
@@ -195,6 +190,12 @@ function App() {
               <Route path="/manager/inventory-transfer" element={
                 <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
                   <Layout><InventoryTransferPage /></Layout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/sales-history" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales', 'salesperson']}>
+                  <Layout><SalesHistoryPage /></Layout>
                 </ProtectedRoute>
               } />
 

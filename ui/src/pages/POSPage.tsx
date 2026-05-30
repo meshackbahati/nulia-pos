@@ -547,7 +547,7 @@ export default function POSPage() {
             handleScan(barcode);
         },
         minLength: 3,
-        timeLimit: 50
+        timeLimit: 150
     });
 
     const handleScan = async (barcode: string) => {
@@ -881,7 +881,6 @@ export default function POSPage() {
                     onConfirm={(nextPrice) => {
                         updatePrice(bargainItem.product_id, bargainItem.variant_id || null, nextPrice);
                     }}
-                    currentPrice={bargainItem.price}
                     catalogPrice={bargainItem.catalogPrice}
                     productName={bargainItem.name}
                     formatPrice={formatPrice}

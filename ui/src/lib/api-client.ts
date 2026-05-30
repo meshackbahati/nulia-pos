@@ -1,9 +1,9 @@
 import axios from 'axios';
 
 const getBaseURL = () => {
-    // Production domains provided by user
-    const PRIMARY_API = 'https://api2.g24sec.space/api';
-    
+    // Production domain
+    const PRIMARY_API = 'https://api2.g24sec.com/api';
+
     if (import.meta.env.DEV) {
         return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
     }
@@ -21,24 +21,10 @@ const apiClient = axios.create({
     timeout: 15000, // 15s timeout
 });
 
-// Fallback Interceptor
-apiClient.interceptors.response.use(
-    response => response,
-    async (error) => {
-        const originalRequest = error.config;
-        if (
-            !import.meta.env.DEV && 
-            (error.code === 'ECONNABORTED' || error.message === 'Network Error') && 
-            !originalRequest._retry &&
-            originalRequest.baseURL && !originalRequest.baseURL.includes('https://api2.g24sec.com')
-        ) {
-            originalRequest._retry = true;
-            originalRequest.baseURL = 'https://api2.g24sec.com/api';
-            return apiClient(originalRequest);
-        }
-        return Promise.reject(error);
-    }
-);
+// Fallback Interceptor — removed silent retry to different domain.
+// A failed request should surface to the user rather than silently
+// retrying against a mirror endpoint, which doubles latency and
+// produces confusing "Login Failed" errors on slow connections.
 
 // Add a request interceptor to inject auth token
 apiClient.interceptors.request.use(
@@ -105,11 +91,13 @@ export const api = {
 
     // Sales
     createSale: (data: any) => apiClient.post('/sales/create', data),
+    searchSales: (params?: any) => apiClient.get('/sales/search', { params }),
+    getSale: (id: string) => apiClient.get(`/sales/${id}`),
+    listSales: (params?: any) => apiClient.get('/sales/list', { params }),
 
     // M-Pesa
     checkMpesaStatus: (checkoutRequestId: string) =>
         apiClient.get('/mpesa/status', { params: { checkoutRequestId } }),
-    listSales: (params?: any) => apiClient.get('/sales/list', { params }),
 
     // Analytics
     getDashboardStats: () => apiClient.get('/analytics/dashboard'),

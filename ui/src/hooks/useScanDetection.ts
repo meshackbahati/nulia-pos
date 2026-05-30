@@ -11,8 +11,11 @@ interface UseScanDetectionOptions {
  * High-speed scanners simulate a keyboard but at speeds much faster than human typing.
  * This implementation prevents "ghost" keystrokes from entering focused inputs by 
  * capturing rapid sequences and stopping event propagation when a scan is detected.
+ * 
+ * Updated: timeLimit increased to 150ms to support slower USB barcode scanners
+ * that may have delays up to 100-150ms between characters.
  */
-export default function useScanDetection({ onScan, minLength = 3, timeLimit = 40 }: UseScanDetectionOptions) {
+export default function useScanDetection({ onScan, minLength = 3, timeLimit = 150 }: UseScanDetectionOptions) {
     const buffer = useRef<string>('');
     const lastKeyTime = useRef<number>(0);
     const timer = useRef<any>(null);

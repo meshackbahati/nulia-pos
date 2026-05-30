@@ -5,7 +5,9 @@ export const setCookie = (name: string, value: string, days: number) => {
     const date = new Date();
     date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
     const expires = "; expires=" + date.toUTCString();
-    document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Lax; Secure";
+    // Only set Secure flag when running over HTTPS (not in Electron file:// or localhost)
+    const isSecure = window.location.protocol === 'https:';
+    document.cookie = name + "=" + (value || "") + expires + "; path=/" + (isSecure ? "; Secure" : "") + "; SameSite=Lax";
 };
 
 /**

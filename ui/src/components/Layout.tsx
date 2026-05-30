@@ -15,7 +15,8 @@ import {
     X,
     ShieldCheck,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    History
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ThemeToggle from './ThemeToggle';
@@ -42,6 +43,7 @@ export default function Layout({ children, noScroll = false }: LayoutProps) {
     const menuItems = [
         { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
         { label: 'POS Terminal', icon: Store, path: '/pos' },
+        { label: 'Sales History', icon: History, path: '/sales-history' },
         { label: 'Branches', icon: Globe, path: '/manager/branches' },
         { label: 'Products', icon: Package, path: '/products' },
         { label: 'Inventory', icon: ShoppingBag, path: '/manager/purchase-orders' },
@@ -60,7 +62,7 @@ export default function Layout({ children, noScroll = false }: LayoutProps) {
     const filteredMenu = menuItems.filter(item => {
         if (!user) return false;
         const role = user.role;
-        if (role === 'salesperson') return ['Dashboard', 'POS Terminal', 'Products'].includes(item.label);
+        if (role === 'salesperson') return ['Dashboard', 'POS Terminal', 'Sales History', 'Products'].includes(item.label);
         if (role === 'head_of_sales') return !['Settings', 'Branches'].includes(item.label);
         if (role === 'manager') return item.label !== 'Branches';
         return true;

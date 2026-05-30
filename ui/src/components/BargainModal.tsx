@@ -6,7 +6,6 @@ interface BargainModalProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: (nextPrice: number) => void;
-    currentPrice: number;
     catalogPrice: number;
     productName: string;
     formatPrice: (price: number) => string;
@@ -18,7 +17,6 @@ export default function BargainModal({
     isOpen,
     onClose,
     onConfirm,
-    currentPrice,
     catalogPrice,
     productName,
     formatPrice,
@@ -28,15 +26,18 @@ export default function BargainModal({
     const { currentRate, targetCurrency } = useCurrency();
     const [price, setPrice] = useState('');
 
-    const convertedCurrentPrice = useMemo(() => {
-        return (currentPrice * currentRate).toFixed(2);
-    }, [currentPrice, currentRate]);
+    // Always convert from the CATALOG price (base currency) to the target display currency.
+    // `currentPrice` may already be a negotiated/bargained value, so we use catalogPrice
+    // as the authoritative base for conversion.
+    const convertedCatalogPrice = useMemo(() => {
+        return (catalogPrice * currentRate).toFixed(2);
+    }, [catalogPrice, currentRate]);
 
     useEffect(() => {
         if (isOpen) {
-            setPrice(convertedCurrentPrice);
+            setPrice(convertedCatalogPrice);
         }
-    }, [isOpen, convertedCurrentPrice]);
+    }, [isOpen, convertedCatalogPrice]);
 
     if (!isOpen) return null;
 

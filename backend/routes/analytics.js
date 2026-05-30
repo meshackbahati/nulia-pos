@@ -318,7 +318,7 @@ router.get('/top-products', authenticate, async (req, res) => {
                 product: {
                     name: p.product.name,
                     sku: p.product.sku,
-                    price: parseFloat(p.product.price)
+                    price: parseFloat(p.product.basePrice)
                 },
                 quantitySold: parseFloat(p.get('totalQty')),
                 revenue: parseFloat(p.get('totalRevenue'))
@@ -452,7 +452,17 @@ router.get('/trends', authenticate, async (req, res) => {
             where.branchId = req.user.branchId;
         }
 
-        const interval = period === 'today' ? 'hour' : 'day';
+        // Choose grouping interval based on period
+        let interval;
+        if (period === 'today') {
+            interval = 'hour';
+        } else if (period === 'year') {
+            interval = 'month';
+        } else if (period === 'month') {
+            interval = 'week';
+        } else {
+            interval = 'day';
+        }
 
         const trends = await models.Sale.findAll({
             where,
@@ -479,11 +489,22 @@ router.get('/trends', authenticate, async (req, res) => {
 
         res.json({
             success: true,
-            revenueTrend: trends.map(t => ({
-                day: new Date(t.time).toLocaleDateString('en-US', { weekday: 'short' }), // Format for formatting
-                revenue: parseFloat(t.revenue),
-                sales: parseInt(t.count)
-            })),
+            revenueTrend: trends.map(t => {
+                const date = new Date(t.time);
+                let label;
+                if (period === 'year') {
+                    label = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+                } else if (period === 'month') {
+                    label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                } else {
+                    label = date.toLocaleDateString('en-US', { weekday: 'short' });
+                }
+                return {
+                    day: label,
+                    revenue: parseFloat(t.revenue),
+                    sales: parseInt(t.count)
+                };
+            }),
             paymentMethods: paymentMethods.map(p => ({
                 name: p.paymentMethod,
                 value: parseFloat(p.value)

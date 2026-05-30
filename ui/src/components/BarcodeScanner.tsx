@@ -62,7 +62,26 @@ export default function BarcodeScanner({ onScan, onClose, autoStartNative = fals
             }
 
             const { barcodes } = await NativeScanner.scan({
-                formats: [BarcodeFormat.Ean13, BarcodeFormat.Ean8, BarcodeFormat.Code128, BarcodeFormat.QrCode],
+                formats: [
+                    // 1D Product Barcodes (Retail)
+                    BarcodeFormat.Ean13,      // EAN-13: International standard (13 digits)
+                    BarcodeFormat.Ean8,       // EAN-8: Shortened EAN for small products
+                    BarcodeFormat.UpcA,       // UPC-A: North American standard (12 digits)
+                    BarcodeFormat.UpcE,       // UPC-E: Compressed UPC (6 digits)
+                    
+                    // 1D Industrial/Logistics Barcodes
+                    BarcodeFormat.Code128,    // Code 128: High-density alphanumeric
+                    BarcodeFormat.Code39,     // Code 39: Military/automotive standard
+                    BarcodeFormat.Code93,     // Code 93: Improved Code 39
+                    BarcodeFormat.Codabar,    // Codabar: Libraries/blood banks
+                    BarcodeFormat.Itf,        // ITF (Interleaved 2 of 5): Shipping cartons
+                    
+                    // 2D Barcodes
+                    BarcodeFormat.QrCode,     // QR Code: 2D matrix code
+                    BarcodeFormat.DataMatrix, // DataMatrix: Small 2D code
+                    BarcodeFormat.Pdf417,     // PDF417: Stacked linear (driver licenses)
+                    BarcodeFormat.Aztec,      // Aztec: 2D code (transport tickets)
+                ],
             });
 
             if (barcodes.length > 0) {
