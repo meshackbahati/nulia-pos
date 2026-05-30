@@ -8,10 +8,18 @@ export const useCurrency = (customBranch?: any) => {
     
     const [targetCurrency, setTargetCurrency] = useState(branch?.currency || 'KES');
     const [exchangeRates, setExchangeRates] = useState<any[]>([]);
+    const [baseCurrency, setBaseCurrency] = useState('KES');
 
     useEffect(() => {
         fetchRates();
     }, []);
+    
+    useEffect(() => {
+        // Update base currency from settings when available
+        if (branch?.currency) {
+            setBaseCurrency(branch.currency);
+        }
+    }, [branch]);
 
     const fetchRates = async () => {
         try {
@@ -25,15 +33,13 @@ export const useCurrency = (customBranch?: any) => {
     const branchSettings = useMemo(() => {
         if (branch) {
             const code = branch.currency || 'KES';
-            const sym = branch.symbol || branch.currencySymbol;
+            const sym = branch.symbol || branch.currencySymbol || code;
             return {
-                baseCurrency: code,
-                baseSymbol: sym || code,
+                baseSymbol: sym,
             };
         }
 
         return {
-            baseCurrency: 'KES',
             baseSymbol: 'KSh',
         };
     }, [branch]);
@@ -50,21 +56,28 @@ export const useCurrency = (customBranch?: any) => {
     };
 
     const currentRate = useMemo(() => {
-        return getRate(branchSettings.baseCurrency, targetCurrency);
-    }, [branchSettings.baseCurrency, targetCurrency, exchangeRates]);
+        return getRate(baseCurrency, targetCurrency);
+    }, [baseCurrency, targetCurrency, exchangeRates]);
+
+    const getCurrencySymbol = (currencyCode: string) => {
+        // First check branch settings for symbol
+        if (branch && (branch.symbol || branch.currencySymbol)) {
+            if (branch.currency === currencyCode) {
+                return branch.symbol || branch.currencySymbol;
+            }
+        }
+        // Fallback to currency code itself
+        return currencyCode;
+    };
 
     const formatPrice = (amount: number | undefined | null, forceCurrency?: string) => {
         const currencyToUse = forceCurrency || targetCurrency;
-        const rate = forceCurrency ? getRate(branchSettings.baseCurrency, forceCurrency) : currentRate;
+        const rate = forceCurrency ? getRate(baseCurrency, forceCurrency) : currentRate;
         
         const convertedAmount = (amount || 0) * rate;
         
         // Find symbol for currencyToUse
-        let symbol = currencyToUse;
-        if (currencyToUse === 'KES') symbol = 'KSh';
-        else if (currencyToUse === 'USD') symbol = '$';
-        else if (currencyToUse === 'UGX') symbol = 'USh';
-        else if (currencyToUse === 'TZS') symbol = 'TSh';
+        let symbol = getCurrencySymbol(currencyToUse);
 
         const separator = symbol.length > 1 ? ' ' : '';
         
@@ -79,12 +92,14 @@ export const useCurrency = (customBranch?: any) => {
     };
 
     return {
-        ...branchSettings,
+        baseCurrency,
+        baseSymbol: branchSettings.baseSymbol,
         targetCurrency,
         setTargetCurrency,
         formatPrice,
         convertPrice,
         currentRate,
-        exchangeRates
+        exchangeRates,
+        getCurrencySymbol
     };
 };

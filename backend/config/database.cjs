@@ -1,7 +1,7 @@
-require('dotenv').config();
+require('dotenv').config({ override: true });
 const path = require('path');
 
-const databaseUrl = process.env.NETLIFY_***REMOVED*** || process.env.***REMOVED***;
+const databaseUrl = process.env.***REMOVED***;
 
 module.exports = {
     development: {

@@ -26,15 +26,14 @@ export default function BargainModal({
     const { currentRate, targetCurrency } = useCurrency();
     const [price, setPrice] = useState('');
 
-    // Always convert from the CATALOG price (base currency) to the target display currency.
-    // `currentPrice` may already be a negotiated/bargained value, so we use catalogPrice
-    // as the authoritative base for conversion.
+    // Convert catalog price (base currency) to display currency for the user to see and bargain with
     const convertedCatalogPrice = useMemo(() => {
         return (catalogPrice * currentRate).toFixed(2);
     }, [catalogPrice, currentRate]);
 
     useEffect(() => {
         if (isOpen) {
+            // Pre-fill with the converted catalog price in display currency
             setPrice(convertedCatalogPrice);
         }
     }, [isOpen, convertedCatalogPrice]);
@@ -45,7 +44,7 @@ export default function BargainModal({
         e.preventDefault();
         const parsed = parseFloat(price);
         if (!isNaN(parsed) && parsed >= 0) {
-            // Convert back to base currency before confirming
+            // Convert the display currency price back to base currency for storage
             const basePrice = parsed / currentRate;
             onConfirm(basePrice);
             onClose();
