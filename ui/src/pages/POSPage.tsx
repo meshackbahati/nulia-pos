@@ -212,7 +212,7 @@ function CartContent({ cart, setCart, updateQuantity, resetPrice, formatPrice, s
 export default function POSPage() {
     const [branchData, setBranchData] = useState<any>(null);
     const { user } = useAuth();
-    const { targetCurrency, setTargetCurrency, formatPrice, currentRate } = useCurrency(branchData);
+    const { targetCurrency, setTargetCurrency, formatPrice, currentRate, getCurrencySymbol, getRate, baseCurrency } = useCurrency(branchData);
     const [products, setProducts] = useState<Product[]>([]);
     const [cart, setCart] = useState<CartItem[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -895,6 +895,11 @@ export default function POSPage() {
                     formatPrice={formatPrice}
                     measurementType={bargainItem.measurementType}
                     baseUnit={bargainItem.baseUnit}
+                    currentCurrency={targetCurrency}
+                    currentRate={currentRate}
+                    getCurrencySymbol={getCurrencySymbol}
+                    getRate={getRate}
+                    baseCurrency={baseCurrency}
                 />
             )}
 

@@ -11,6 +11,11 @@ interface BargainModalProps {
     formatPrice: (price: number) => string;
     measurementType?: 'discrete' | 'measurable';
     baseUnit?: string;
+    currentCurrency?: string;
+    currentRate?: number;
+    getCurrencySymbol?: (currencyCode: string) => string;
+    getRate?: (from: string, to: string) => number;
+    baseCurrency?: string;
 }
 
 export default function BargainModal({
@@ -21,10 +26,22 @@ export default function BargainModal({
     productName,
     formatPrice,
     measurementType,
-    baseUnit
+    baseUnit,
+    currentCurrency,
+    currentRate: propRate,
+    getCurrencySymbol: propGetSymbol,
+    getRate: propGetRate,
+    baseCurrency: propBaseCurrency
 }: BargainModalProps) {
-    const { currentRate, targetCurrency, getCurrencySymbol } = useCurrency();
     const [price, setPrice] = useState('');
+
+    // Use props if provided (from POS terminal), fallback to hook
+    const hookCurrency = useCurrency();
+    const targetCurrency = currentCurrency || hookCurrency.targetCurrency;
+    const currentRate = propRate ?? hookCurrency.currentRate;
+    const getCurrencySymbol = propGetSymbol || hookCurrency.getCurrencySymbol;
+    const getRate = propGetRate || hookCurrency.getRate;
+    const baseCurrency = propBaseCurrency || hookCurrency.baseCurrency;
 
     // Convert catalog price (base currency) to display currency for the user to see and bargain with
     const convertedCatalogPrice = useMemo(() => {
@@ -49,6 +66,14 @@ export default function BargainModal({
             onConfirm(basePrice);
             onClose();
         }
+    };
+
+    const handleQuickCurrencySwitch = (newCurrency: string) => {
+        // Convert current price to new currency
+        const currentBasePrice = parseFloat(price) / currentRate;
+        const newRate = getRate(baseCurrency, newCurrency);
+        const newPrice = (currentBasePrice * newRate).toFixed(2);
+        setPrice(newPrice);
     };
 
     return (
@@ -76,7 +101,13 @@ export default function BargainModal({
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Negotiated Price {measurementType === 'measurable' ? `per ${baseUnit}` : ''}</label>
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Negotiated Price {measurementType === 'measurable' ? `per ${baseUnit}` : ''}</label>
+                                    <div className="flex items-center gap-1 mr-1">
+                                        <span className="text-[8px] font-bold text-muted-foreground uppercase">Display:</span>
+                                        <span className="px-2 py-0.5 bg-primary/10 text-primary text-[8px] font-black rounded uppercase">{targetCurrency}</span>
+                                    </div>
+                                </div>
                                 <div className="relative">
                                     <input
                                         autoFocus
