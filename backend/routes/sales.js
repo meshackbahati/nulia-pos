@@ -110,7 +110,7 @@ router.post('/create', authenticate, async (req, res) => {
     const transaction = await sequelize.transaction();
     const io = req.app.get('io');
     try {
-        const { items, payments, customerPhone, customerEmail, notes } = req.body;
+        const { items, payments, customerPhone, customerEmail, notes, transactionCurrency, transactionExchangeRate } = req.body;
         const { userId, branchId } = req.user;
 
         if (!items || items.length === 0) {
@@ -259,6 +259,8 @@ router.post('/create', authenticate, async (req, res) => {
             taxAmount,
             discountAmount,
             totalAmount: finalTotal,
+            transactionCurrency: transactionCurrency || branch.currency,
+            transactionExchangeRate: transactionExchangeRate || 1.0,
             paymentMethod: payments[0].method === 'mpesa' ? 'mpesa' : payments[0].method,
             paymentStatus: 'completed', // Assuming split payments are only sent when fully paid
             customerPhone,

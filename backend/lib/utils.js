@@ -1,5 +1,7 @@
-export function formatCurrency(amount, currency = 'KES', symbol = '$') {
-    return `${symbol}${amount.toFixed(2)}`;
+export function formatCurrency(amount, currency = 'KES', symbol) {
+    const displaySymbol = symbol || currency;
+    const separator = displaySymbol.length > 1 ? ' ' : '';
+    return `${displaySymbol}${separator}${amount.toFixed(2)}`;
 }
 
 export function formatPhoneNumber(phone) {

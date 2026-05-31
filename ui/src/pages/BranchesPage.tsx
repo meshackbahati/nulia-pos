@@ -373,6 +373,8 @@ export default function BranchesPage() {
                                                 >
                                                     <option value="KES">KES</option>
                                                     <option value="USD">USD</option>
+                                                    <option value="UGX">UGX</option>
+                                                    <option value="TZS">TZS</option>
                                                     <option value="EUR">EUR</option>
                                                     <option value="GBP">GBP</option>
                                                 </select>
@@ -449,6 +451,8 @@ export default function BranchesPage() {
                                             <option value="">-- None --</option>
                                             <option value="KES">KES</option>
                                             <option value="USD">USD</option>
+                                            <option value="UGX">UGX</option>
+                                            <option value="TZS">TZS</option>
                                         </select>
                                     </div>
                                     {formData.secondaryCurrency && (
