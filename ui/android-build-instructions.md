@@ -47,4 +47,3 @@ uber-apk-signer -a ui/android/app/build/outputs/apk/release/app-release-unsigned
 ## Recommendation: Use GitHub Actions
 If you don't want to set up the Android SDK locally, the best way is to use **GitHub Actions**. I can provide a `.github/workflows/android-build.yml` file that will automatically build the APK every time you push code.
 
-**Would you like me to create the GitHub Action workflow for you?**
