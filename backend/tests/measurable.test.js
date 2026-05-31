@@ -1,5 +1,5 @@
-/* global jest, describe, beforeEach, test, expect */
-const { Decimal } = require('decimal.js');
+import { Decimal } from 'decimal.js';
+import { jest } from '@jest/globals';
 
 // Mock models to test business logic without live DB
 const mockInventory = {

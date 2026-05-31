@@ -23,7 +23,7 @@ export default function BargainModal({
     measurementType,
     baseUnit
 }: BargainModalProps) {
-    const { currentRate, targetCurrency } = useCurrency();
+    const { currentRate, targetCurrency, getCurrencySymbol } = useCurrency();
     const [price, setPrice] = useState('');
 
     // Convert catalog price (base currency) to display currency for the user to see and bargain with
@@ -88,7 +88,7 @@ export default function BargainModal({
                                         placeholder="0.00"
                                     />
                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-black">
-                                        {targetCurrency}
+                                        {getCurrencySymbol(targetCurrency)}
                                     </div>
                                 </div>
                             </div>

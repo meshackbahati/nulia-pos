@@ -75,6 +75,14 @@ class Sale extends Model {
                         min: 0,
                     },
                 },
+                transactionCurrency: {
+                    type: DataTypes.STRING(3),
+                    allowNull: true,
+                },
+                transactionExchangeRate: {
+                    type: DataTypes.DECIMAL(18, 6),
+                    allowNull: true,
+                },
                 paymentMethod: {
                     type: DataTypes.ENUM('cash', 'mpesa', 'card'),
                     allowNull: false,

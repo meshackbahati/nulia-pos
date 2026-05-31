@@ -212,7 +212,7 @@ function CartContent({ cart, setCart, updateQuantity, resetPrice, formatPrice, s
 export default function POSPage() {
     const [branchData, setBranchData] = useState<any>(null);
     const { user } = useAuth();
-    const { targetCurrency, setTargetCurrency, formatPrice } = useCurrency(branchData);
+    const { targetCurrency, setTargetCurrency, formatPrice, currentRate } = useCurrency(branchData);
     const [products, setProducts] = useState<Product[]>([]);
     const [cart, setCart] = useState<CartItem[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -429,6 +429,7 @@ export default function POSPage() {
     const total = subtotal;
 
     const onPaymentComplete = async (payments: any[]) => {
+        const rateToSave = currentRate;
         const saleData = {
             items: cart.map(item => ({
                 productId: item.product_id,
@@ -441,6 +442,8 @@ export default function POSPage() {
             })),
             payments,
             totalAmount: total,
+            transactionCurrency: targetCurrency,
+            transactionExchangeRate: rateToSave,
             branchId: user?.branchId,
             offlineId: crypto.randomUUID()
         };
@@ -632,10 +635,16 @@ export default function POSPage() {
                             onChange={handleCurrencyChange}
                             className="bg-transparent border-none text-[9px] font-black uppercase tracking-tighter p-0 outline-none focus:ring-0 transition-all cursor-pointer"
                         >
-                            <option value="KES">KES</option>
-                            <option value="USD">USD</option>
-                            <option value="UGX">UGX</option>
-                            <option value="TZS">TZS</option>
+                            {[
+                                branchData?.currency || 'KES',
+                                ...(branchData?.secondaryCurrency ? [branchData.secondaryCurrency] : []),
+                                'USD', 'KES', 'UGX', 'TZS'
+                            ].reduce((acc: string[], curr) => {
+                                if (!acc.includes(curr)) acc.push(curr);
+                                return acc;
+                            }, []).map(code => (
+                                <option key={code} value={code}>{code}</option>
+                            ))}
                         </select>
                     </div>
 
@@ -828,7 +837,7 @@ export default function POSPage() {
                 <PaymentSuccessModal
                     isOpen={showSuccessModal}
                     amount={formatPrice(currentSale.totalAmount).split(' ')[1] || formatPrice(currentSale.totalAmount).replace(/[A-Za-z$]/g, '').trim()}
-                    currency={formatPrice(currentSale.totalAmount).replace(/[0., ]/g, '') || 'KES'}
+                    currency={currentSale.transactionCurrency || targetCurrency}
                     receiptId={currentSale.receiptId}
                     servedBy={`${currentSale.user?.firstName || user?.firstName} ${currentSale.user?.lastName || user?.lastName}`}
                     onGenerateReceipt={() => {

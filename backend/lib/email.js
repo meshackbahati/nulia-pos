@@ -96,6 +96,13 @@ class EmailService {
   }
 
   generateReceiptHTML(data) {
+    const currency = data.transactionCurrency || (data.branchName.includes('KES') ? 'KES' : 'USD');
+    const symbol = data.transactionCurrencySymbol || currency;
+    const format = (amt) => {
+        const separator = symbol.length > 1 ? ' ' : '';
+        return `${symbol}${separator}${amt.toFixed(2)}`;
+    };
+
     return `
       <!DOCTYPE html>
       <html>
@@ -135,17 +142,17 @@ class EmailService {
               <tr>
                 <td>${item.name}</td>
                 <td>${item.quantity}</td>
-                <td>${data.branchName.includes('KES') ? 'KES' : '$'} ${item.price.toFixed(2)}</td>
-                <td>${data.branchName.includes('KES') ? 'KES' : '$'} ${item.total.toFixed(2)}</td>
+                <td>${format(item.price)}</td>
+                <td>${format(item.total)}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
         
         <div class="totals">
-          <p>Subtotal: ${data.branchName.includes('KES') ? 'KES' : '$'} ${data.subtotal.toFixed(2)}</p>
-          <p>Tax: ${data.branchName.includes('KES') ? 'KES' : '$'} ${data.tax.toFixed(2)}</p>
-          <p class="total-row">Total: ${data.branchName.includes('KES') ? 'KES' : '$'} ${data.total.toFixed(2)}</p>
+          <p>Subtotal: ${format(data.subtotal)}</p>
+          <p>Tax: ${format(data.tax)}</p>
+          <p class="total-row">Total: ${format(data.total)}</p>
           <p>Payment Method: ${data.paymentMethod.toUpperCase()}</p>
         </div>
         
@@ -245,7 +252,7 @@ class EmailService {
             <div>Total Sales</div>
           </div>
           <div class="stat-box">
-            <div class="stat-number">$${data.totalRevenue.toFixed(2)}</div>
+            <div class="stat-number">${data.totalRevenue.toFixed(2)}</div>
             <div>Total Revenue</div>
           </div>
         </div>
@@ -264,7 +271,7 @@ class EmailService {
               <tr>
                 <td>${product.name}</td>
                 <td>${product.quantity}</td>
-                <td>$${product.revenue.toFixed(2)}</td>
+                <td>${product.revenue.toFixed(2)}</td>
               </tr>
             `).join('')}
           </tbody>

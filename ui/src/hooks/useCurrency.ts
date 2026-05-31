@@ -100,6 +100,7 @@ export const useCurrency = (customBranch?: any) => {
         convertPrice,
         currentRate,
         exchangeRates,
-        getCurrencySymbol
+        getCurrencySymbol,
+        getRate
     };
 };

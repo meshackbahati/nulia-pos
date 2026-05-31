@@ -32,6 +32,8 @@ interface ReceiptModalProps {
         tax?: number;
         total?: number;
         totalAmount?: number;
+        transactionCurrency?: string;
+        transactionExchangeRate?: number;
         paymentMethod?: string;
         createdAt?: string;
         user?: {
@@ -45,7 +47,22 @@ interface ReceiptModalProps {
 }
 
 export default function ReceiptModal({ sale, companyName, onClose, autoPrint = false }: ReceiptModalProps) {
-    const { formatPrice } = useCurrency();
+    const { formatPrice: defaultFormatPrice, getRate, baseCurrency, getCurrencySymbol } = useCurrency();
+
+    const formatPrice = (amount: number) => {
+        if (sale.transactionCurrency) {
+            const symbol = getCurrencySymbol(sale.transactionCurrency);
+            const rate = sale.transactionExchangeRate || getRate(baseCurrency, sale.transactionCurrency);
+            const convertedAmount = amount * rate;
+            const separator = symbol.length > 1 ? ' ' : '';
+            return `${symbol}${separator}${convertedAmount.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            })}`;
+        }
+        return defaultFormatPrice(amount);
+    };
+
     const [customerEmail, setCustomerEmail] = useState('');
     const [sending, setSending] = useState(false);
     const isMobile = Capacitor.isNativePlatform();

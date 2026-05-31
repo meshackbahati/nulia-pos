@@ -126,6 +126,7 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
         }
         setProcessing(true);
         try {
+            // Include transaction currency context if needed by POSPage
             await onComplete(entries);
         } catch (error) {
             console.error('Finalize payment error:', error);
@@ -258,10 +259,23 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
                                 onChange={(e) => setCurrentCurrency(e.target.value)}
                                 className="w-full h-11 bg-background border border-border rounded-xl px-3 text-sm font-bold focus:ring-2 focus:ring-primary outline-none"
                             >
-                                <option value="KES">KES (Kenya Shilling)</option>
-                                <option value="USD">USD (US Dollar)</option>
-                                <option value="UGX">UGX (Uganda Shilling)</option>
-                                <option value="TZS">TZS (Tanzania Shilling)</option>
+                                {[
+                                    { code: branchConfig?.currency || 'KES', label: 'Branch Base' },
+                                    ...(branchConfig?.secondaryCurrency ? [{ code: branchConfig.secondaryCurrency, label: 'Branch Secondary' }] : []),
+                                    { code: 'KES', label: 'Kenya Shilling' },
+                                    { code: 'USD', label: 'US Dollar' },
+                                    { code: 'UGX', label: 'Uganda Shilling' },
+                                    { code: 'TZS', label: 'Tanzania Shilling' }
+                                ].reduce((acc: any[], current) => {
+                                    if (!acc.find(item => item.code === current.code)) {
+                                        acc.push(current);
+                                    }
+                                    return acc;
+                                }, []).map(c => (
+                                    <option key={c.code} value={c.code}>
+                                        {c.code} ({c.label})
+                                    </option>
+                                ))}
                             </select>
                         </div>
 

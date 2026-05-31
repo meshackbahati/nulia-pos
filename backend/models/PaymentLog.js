@@ -35,7 +35,7 @@ class PaymentLog extends Model {
                 },
                 currency: {
                     type: DataTypes.STRING(3),
-                    defaultValue: 'KES',
+                    allowNull: false,
                 },
                 customerPhone: {
                     type: DataTypes.STRING,
