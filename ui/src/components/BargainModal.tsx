@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Check } from 'lucide-react';
+import { X, Check, ArrowLeftRight } from 'lucide-react';
 import { useCurrency } from '../hooks/useCurrency';
+import { useAuth } from '../contexts/AuthContext';
 
 interface BargainModalProps {
     isOpen: boolean;
@@ -12,8 +13,6 @@ interface BargainModalProps {
     measurementType?: 'discrete' | 'measurable';
     baseUnit?: string;
     currentCurrency?: string;
-    currentRate?: number;
-    getCurrencySymbol?: (currencyCode: string) => string;
     getRate?: (from: string, to: string) => number;
     baseCurrency?: string;
 }
@@ -28,32 +27,48 @@ export default function BargainModal({
     measurementType,
     baseUnit,
     currentCurrency,
-    currentRate: propRate,
-    getCurrencySymbol: propGetSymbol,
     getRate: propGetRate,
     baseCurrency: propBaseCurrency
 }: BargainModalProps) {
-    const [price, setPrice] = useState('');
+    const { user } = useAuth();
+    const hookCurrency = useCurrency();
 
     // Use props if provided (from POS terminal), fallback to hook
-    const hookCurrency = useCurrency();
     const targetCurrency = currentCurrency || hookCurrency.targetCurrency;
-    const currentRate = propRate ?? hookCurrency.currentRate;
-    const getCurrencySymbol = propGetSymbol || hookCurrency.getCurrencySymbol;
     const getRate = propGetRate || hookCurrency.getRate;
     const baseCurrency = propBaseCurrency || hookCurrency.baseCurrency;
 
-    // Convert catalog price (base currency) to display currency for the user to see and bargain with
+    const [price, setPrice] = useState('');
+    const [displayCurrency, setDisplayCurrency] = useState(targetCurrency);
+
+    // Get available currencies from branch data
+    const availableCurrencies = useMemo(() => {
+        const branch = (user as any)?.branch;
+        const currencies = new Set<string>();
+        if (branch?.currency) currencies.add(branch.currency);
+        if (branch?.secondaryCurrency) currencies.add(branch.secondaryCurrency);
+        // Add common regional currencies
+        ['KES', 'UGX', 'TZS', 'USD'].forEach(c => currencies.add(c));
+        return Array.from(currencies);
+    }, [user]);
+
+    // Convert catalog price (base currency) to display currency
     const convertedCatalogPrice = useMemo(() => {
-        return (catalogPrice * currentRate).toFixed(2);
-    }, [catalogPrice, currentRate]);
+        const rate = getRate(baseCurrency, displayCurrency);
+        return (catalogPrice * rate).toFixed(2);
+    }, [catalogPrice, displayCurrency, baseCurrency, getRate]);
 
     useEffect(() => {
         if (isOpen) {
-            // Pre-fill with the converted catalog price in display currency
+            setDisplayCurrency(targetCurrency);
             setPrice(convertedCatalogPrice);
         }
-    }, [isOpen, convertedCatalogPrice]);
+    }, [isOpen, convertedCatalogPrice, targetCurrency]);
+
+    // Sync display currency when target changes
+    useEffect(() => {
+        setDisplayCurrency(targetCurrency);
+    }, [targetCurrency]);
 
     if (!isOpen) return null;
 
@@ -61,18 +76,21 @@ export default function BargainModal({
         e.preventDefault();
         const parsed = parseFloat(price);
         if (!isNaN(parsed) && parsed >= 0) {
-            // Convert the display currency price back to base currency for storage
-            const basePrice = parsed / currentRate;
+            // Convert display currency price back to base currency for storage
+            const rate = getRate(baseCurrency, displayCurrency);
+            const basePrice = parsed / rate;
             onConfirm(basePrice);
             onClose();
         }
     };
 
-    const handleQuickCurrencySwitch = (newCurrency: string) => {
+    const handleCurrencySwitch = (newCurrency: string) => {
+        if (newCurrency === displayCurrency) return;
         // Convert current price to new currency
-        const currentBasePrice = parseFloat(price) / currentRate;
+        const currentBasePrice = parseFloat(price) / getRate(baseCurrency, displayCurrency);
         const newRate = getRate(baseCurrency, newCurrency);
         const newPrice = (currentBasePrice * newRate).toFixed(2);
+        setDisplayCurrency(newCurrency);
         setPrice(newPrice);
     };
 
@@ -103,10 +121,6 @@ export default function BargainModal({
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                     <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Negotiated Price {measurementType === 'measurable' ? `per ${baseUnit}` : ''}</label>
-                                    <div className="flex items-center gap-1 mr-1">
-                                        <span className="text-[8px] font-bold text-muted-foreground uppercase">Display:</span>
-                                        <span className="px-2 py-0.5 bg-primary/10 text-primary text-[8px] font-black rounded uppercase">{targetCurrency}</span>
-                                    </div>
                                 </div>
                                 <div className="relative">
                                     <input
@@ -115,12 +129,24 @@ export default function BargainModal({
                                         step="0.01"
                                         value={price}
                                         onChange={(e) => setPrice(e.target.value)}
-                                        className="w-full h-16 bg-background border-2 border-primary/20 rounded-2xl px-6 text-2xl font-black text-foreground focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"
+                                        className="w-full h-16 bg-background border-2 border-primary/20 rounded-2xl px-6 pr-24 text-2xl font-black text-foreground focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"
                                         placeholder="0.00"
                                     />
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-black">
-                                        {getCurrencySymbol(targetCurrency)}
+                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                        <select
+                                            value={displayCurrency}
+                                            onChange={(e) => handleCurrencySwitch(e.target.value)}
+                                            className="h-10 bg-secondary/50 border border-border/50 rounded-xl px-2 text-xs font-black uppercase tracking-tighter focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer hover:bg-secondary transition-colors"
+                                        >
+                                            {availableCurrencies.map(code => (
+                                                <option key={code} value={code}>{code}</option>
+                                            ))}
+                                        </select>
                                     </div>
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <ArrowLeftRight className="w-3 h-3 text-muted-foreground" />
+                                    <span className="text-[8px] font-bold text-muted-foreground uppercase">Switch currency converts price automatically</span>
                                 </div>
                             </div>
                         </div>
