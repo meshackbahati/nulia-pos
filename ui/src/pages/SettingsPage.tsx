@@ -40,7 +40,7 @@ export default function SettingsPage() {
         },
         currency: {
             base: defaultCurrency || 'KES',
-            symbol: 'KSh',
+            symbol: 'KES',
             defaultRate: '1',
         },
         paystack: {

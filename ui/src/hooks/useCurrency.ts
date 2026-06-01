@@ -40,7 +40,7 @@ export const useCurrency = (customBranch?: any) => {
         }
 
         return {
-            baseSymbol: 'KSh',
+            baseSymbol: 'KES',
         };
     }, [branch]);
 
@@ -66,8 +66,14 @@ export const useCurrency = (customBranch?: any) => {
                 return branch.symbol || branch.currencySymbol;
             }
         }
-        // Fallback to currency code itself
-        return currencyCode;
+        // Hardcoded fallbacks for known currencies
+        const knownSymbols: Record<string, string> = {
+            KES: 'KES',
+            USD: '$',
+            UGX: 'UGX',
+            TZS: 'TZS',
+        };
+        return knownSymbols[currencyCode] || currencyCode;
     };
 
     const formatPrice = (amount: number | undefined | null, forceCurrency?: string) => {

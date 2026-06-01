@@ -47,13 +47,15 @@ interface ReceiptModalProps {
 }
 
 export default function ReceiptModal({ sale, companyName, onClose, autoPrint = false }: ReceiptModalProps) {
-    const { formatPrice: defaultFormatPrice, getRate, baseCurrency, getCurrencySymbol } = useCurrency();
+    const { formatPrice: defaultFormatPrice, getCurrencySymbol } = useCurrency();
 
     const formatPrice = (amount: number) => {
+        // All stored amounts are in base currency. Convert to the checkout
+        // currency using the exchange rate captured at the time of sale.
         if (sale.transactionCurrency) {
             const symbol = getCurrencySymbol(sale.transactionCurrency);
-            const rate = sale.transactionExchangeRate || getRate(baseCurrency, sale.transactionCurrency);
-            const convertedAmount = amount * rate;
+            const rate = Number(sale.transactionExchangeRate || 1);
+            const convertedAmount = (amount || 0) * rate;
             const separator = symbol.length > 1 ? ' ' : '';
             return `${symbol}${separator}${convertedAmount.toLocaleString(undefined, {
                 minimumFractionDigits: 2,

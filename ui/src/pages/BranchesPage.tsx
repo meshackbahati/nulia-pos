@@ -38,7 +38,7 @@ export default function BranchesPage() {
         phone: '',
         email: '',
         currency: 'KES',
-        currencySymbol: 'KSh',
+        currencySymbol: 'KES',
         secondaryCurrency: '',
         exchangeRate: 1,
         taxRate: 0,
@@ -73,7 +73,7 @@ export default function BranchesPage() {
                 phone: branch.phone,
                 email: branch.email,
                 currency: branch.currency,
-                currencySymbol: branch.currencySymbol || 'KSh',
+                currencySymbol: branch.currencySymbol || 'KES',
                 secondaryCurrency: branch.secondaryCurrency || '',
                 exchangeRate: branch.exchangeRate || 1,
                 taxRate: branch.taxRate || 0,
@@ -89,7 +89,7 @@ export default function BranchesPage() {
                 phone: '',
                 email: '',
                 currency: defaultCurrency || 'KES',
-                currencySymbol: 'KSh',
+                currencySymbol: 'KES',
                 secondaryCurrency: '',
                 exchangeRate: 1,
                 taxRate: 0,
@@ -384,7 +384,7 @@ export default function BranchesPage() {
                                                 <input
                                                     type="text"
                                                     required
-                                                    placeholder="KSh"
+                                                    placeholder="KES"
                                                     className="w-full h-11 rounded-lg border border-input bg-background px-3 py-2 text-xs font-black focus:outline-none focus:ring-2 focus:ring-primary/20"
                                                     value={formData.currencySymbol}
                                                     onChange={(e) => setFormData({ ...formData, currencySymbol: e.target.value })}
