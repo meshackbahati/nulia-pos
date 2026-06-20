@@ -193,6 +193,7 @@ export default function ProductsPage() {
 
                     <div className="flex items-center gap-4">
                         <ThemeToggle />
+                        {user?.role !== 'salesperson' && (
                         <div className="flex gap-2">
                             <div className="flex items-center gap-2">
                                 <Building className="w-4 h-4 text-muted-foreground" />
@@ -222,6 +223,7 @@ export default function ProductsPage() {
                                 <span className="hidden md:inline uppercase text-xs font-bold">Register Item</span>
                             </button>
                         </div>
+                        )}
                         <input
                             type="file"
                             ref={fileInputRef}
@@ -325,15 +327,19 @@ export default function ProductsPage() {
                                                 {product.stockQuantity} {product.baseUnit}
                                             </p>
                                         </div>
+                                        {user?.role !== 'salesperson' && (
                                         <button onClick={() => setRestockingProduct(product)} className="text-emerald-500 hover:text-emerald-600 transition-colors">
                                             <PlusCircle className="w-5 h-5" />
                                         </button>
+                                        )}
                                     </div>
 
+                                    {user?.role !== 'salesperson' && (
                                     <div className="flex gap-2">
                                         <button onClick={() => setEditingProduct(product)} className="flex-1 h-8 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md text-[10px] font-bold uppercase transition-colors">Edit</button>
                                         <button onClick={() => handleDelete(product)} className="flex-1 h-8 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-md text-[10px] font-bold uppercase transition-colors">Delete</button>
                                     </div>
+                                    )}
                                 </div>
                             </div>
                         ))}

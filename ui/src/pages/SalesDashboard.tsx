@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCurrency } from '../hooks/useCurrency';
 import api from '../lib/api-client';
 import { useSocket } from '../hooks/useSocket';
-import { DollarSign, TrendingUp, Trophy, Package, LayoutDashboard, LogOut } from 'lucide-react';
+import { DollarSign, TrendingUp, Trophy, Package, LayoutDashboard, LogOut, History } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 import { useNavigate } from 'react-router-dom';
 
@@ -221,21 +221,29 @@ export default function SalesDashboard() {
                         <div className="rounded-xl border border-border/50 bg-card p-6 shadow-sm">
                             <h3 className="font-bold text-foreground mb-4">Quick Actions</h3>
                             <div className="space-y-3">
-                                <button
-                                    onClick={() => (window.location.href = '/pos')}
-                                    className="w-full h-12 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                                >
-                                    <DollarSign className="w-4 h-4" />
-                                    Launch POS Terminal
-                                </button>
+                            <button
+                                onClick={() => navigate('/pos')}
+                                className="w-full h-12 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                            >
+                                <DollarSign className="w-4 h-4" />
+                                Launch POS Terminal
+                            </button>
 
-                                <button
-                                    onClick={() => (window.location.href = '/inventory')}
-                                    className="w-full h-12 rounded-lg bg-card border border-input text-foreground hover:bg-accent hover:text-accent-foreground font-medium transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <Package className="w-4 h-4 text-primary" />
-                                    Manage Inventory
-                                </button>
+                            <button
+                                onClick={() => navigate('/products')}
+                                className="w-full h-12 rounded-lg bg-card border border-input text-foreground hover:bg-accent hover:text-accent-foreground font-medium transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Package className="w-4 h-4 text-primary" />
+                                View Stock
+                            </button>
+
+                            <button
+                                onClick={() => navigate('/sales-history')}
+                                className="w-full h-12 rounded-lg bg-card border border-input text-foreground hover:bg-accent hover:text-accent-foreground font-medium transition-colors flex items-center justify-center gap-2"
+                            >
+                                <History className="w-4 h-4 text-primary" />
+                                Sales History
+                            </button>
                             </div>
                         </div>
 

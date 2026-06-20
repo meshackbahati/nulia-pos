@@ -66,6 +66,11 @@ export default function Layout({ children, noScroll = false }: LayoutProps) {
         if (role === 'head_of_sales') return !['Settings', 'Branches'].includes(item.label);
         if (role === 'manager') return item.label !== 'Branches';
         return true;
+    }).map(item => {
+        if (user?.role === 'salesperson' && item.label === 'Dashboard') {
+            return { ...item, path: '/sales-dashboard' };
+        }
+        return item;
     });
 
     return (

@@ -45,7 +45,6 @@ function RootRedirect({ needsSetup }: { needsSetup: boolean }) {
 function App() {
   const [loading, setLoading] = useState(true);
   const [needsSetup, setNeedsSetup] = useState(false);
-  const [connectionError, setConnectionError] = useState(false);
 
   async function checkSetup() {
     // Check if user is already logged in (local session)
@@ -74,16 +73,14 @@ function App() {
     } catch (error) {
       console.error('Error checking setup:', error);
       
+      // Always let the app load — login page should be accessible even when backend is down.
+      // The user will see connection errors when they try to authenticate.
       if (hasToken) {
         toast('Offline mode. Data will sync when back online.', { 
           icon: '⚠️', 
           duration: 6000,
           id: 'sync-status' 
         });
-        setConnectionError(false);
-      } else {
-        setConnectionError(true);
-        toast.error('Cannot reach server.', { duration: 5000 });
       }
     } finally {
       setLoading(false);
@@ -101,31 +98,6 @@ function App() {
           <div className="loading-spinner mx-auto mb-4 border-primary"></div>
           <p className="text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest text-[10px]">Initializing RetailPro Core...</p>
         </div>
-      </div>
-    );
-  }
-
-  if (connectionError) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
-        <div className="text-center p-8 glass-card max-w-md mx-4">
-          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h1 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">Connection Error</h1>
-          <p className="text-slate-600 dark:text-slate-400 mb-6">
-            Unable to connect to the central server.
-          </p>
-          <button 
-            onClick={checkSetup}
-            className="w-full py-3 px-4 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors font-black uppercase text-xs tracking-widest"
-          >
-            Retry Connection
-          </button>
-        </div>
-        <Toaster position="top-right" />
       </div>
     );
   }
@@ -152,7 +124,7 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="/products" element={
-                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales', 'salesperson']}>
                   <Layout><ProductsPage /></Layout>
                 </ProtectedRoute>
               } />

@@ -233,11 +233,17 @@ export default function POSPage() {
 
     const [tillBalance, setTillBalance] = useState(0);
 
-    useSocket({
+    const { defaultPrinter, bluetoothPrinter, networkPrinter, isElectron } = useHardware();
+
+    const { isConnected } = useSocket({
         'inventory-update': () => {
             console.log('🔄 Inventory update received via Socket');
             fetchProducts();
             fetchDashboardStats();
+        },
+        'product-update': () => {
+            console.log('🔄 Product update received via Socket');
+            fetchProducts();
         },
         'new-sale': (data) => {
             console.log('💰 New sale recorded:', data);
@@ -245,7 +251,16 @@ export default function POSPage() {
         }
     });
 
-    const { defaultPrinter, bluetoothPrinter, networkPrinter, isElectron } = useHardware();
+    // Polling fallback when socket is disconnected
+    useEffect(() => {
+        if (isConnected) return;
+        const interval = setInterval(() => {
+            console.log('⏰ Polling fallback: refreshing products');
+            fetchProducts();
+            fetchDashboardStats();
+        }, 30000);
+        return () => clearInterval(interval);
+    }, [isConnected]);
 
     useEffect(() => {
         fetchProducts();
@@ -268,6 +283,7 @@ export default function POSPage() {
         const handleOnline = () => {
             setIsOnline(true);
             syncOfflineSales();
+            fetchProducts();
         };
         const handleOffline = () => setIsOnline(false);
 
@@ -312,7 +328,7 @@ export default function POSPage() {
 
     const fetchProducts = async () => {
         try {
-            setLoading(true);
+            if (products.length === 0) setLoading(true);
             const response = await api.listProducts();
             const mappedProducts = (response.data.products || []).map((p: any) => ({
                 id: p.id,
@@ -339,11 +355,16 @@ export default function POSPage() {
             // Sync to IndexedDB
             await db.products.bulkPut(mappedProducts as any);
         } catch (error) {
-            console.error('Error fetching products, falling back to local DB:', error);
-            const localProducts = await db.products.toArray();
-            if (localProducts.length > 0) {
-                setProducts(localProducts as any);
-                toast('Using offline product catalog', { icon: '📡' });
+            console.error('Error fetching products:', error);
+            // Only fall back to local DB on initial load, not during live refresh
+            if (products.length === 0) {
+                const localProducts = await db.products.toArray();
+                if (localProducts.length > 0) {
+                    setProducts(localProducts as any);
+                    toast('Using offline product catalog', { icon: '📡' });
+                }
+            } else if (!isConnected) {
+                toast('Could not refresh — showing cached stock levels', { icon: '⏰', duration: 3000 });
             }
         } finally {
             setLoading(false);
@@ -621,9 +642,15 @@ export default function POSPage() {
             <div className="flex-none bg-card/40 backdrop-blur-md border-b border-border/50 px-4 lg:px-8 py-2 flex items-center justify-between z-30">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-destructive'}`} />
+                        <div className={`w-2 h-2 rounded-full ${isOnline ? (isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500') : 'bg-destructive'}`} />
                         <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{branchData?.name || 'Loading...'}</span>
                     </div>
+                    {isOnline && !isConnected && (
+                        <div className="hidden sm:flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 rounded border border-amber-500/20">
+                            <RefreshCw className="w-3 h-3 text-amber-500" />
+                            <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Stale</span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-3">

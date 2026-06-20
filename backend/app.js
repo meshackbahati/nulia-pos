@@ -26,6 +26,15 @@ dotenv.config();
 
 const app = express();
 
+// CORS - allow all origins explicitly with the cors package (defense in depth)
+app.use(cors({
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Branch-ID', 'Cache-Control', 'X-Requested-With', 'Accept', 'Idempotency-Key'],
+    maxAge: 86400
+}));
+
 // 1. ULTRA-LOOSE CORS & TRAFFIC LOGGER (DEBUG)
 app.use((req, res, next) => {
     // ALWAYS set CORS headers for every request
