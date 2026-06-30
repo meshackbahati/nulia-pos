@@ -3,6 +3,13 @@ import models from '../models/index.js';
 
 class EmailService {
   async getTransporter() {
+    if (process.env.ENABLE_EMAILING === 'false') {
+      return {
+        transporter: null,
+        senderEmail: null,
+        senderName: null
+      };
+    }
     try {
       const apiKeySetting = await models.Setting.findOne({ where: { category: 'brevo', key: 'apiKey' } });
       const senderEmailSetting = await models.Setting.findOne({ where: { category: 'brevo', key: 'senderEmail' } });
@@ -43,8 +50,17 @@ class EmailService {
   }
 
   async sendEmail(template) {
+    if (process.env.ENABLE_EMAILING === 'false') {
+      console.log('[EmailService] Emailing is disabled via ENABLE_EMAILING env var.');
+      return false;
+    }
     try {
       const { transporter, senderEmail, senderName } = await this.getTransporter();
+
+      if (!transporter) {
+        console.error('[EmailService] Transporter not available (possibly disabled).');
+        return false;
+      }
 
       const mailOptions = {
         from: {
@@ -85,6 +101,16 @@ class EmailService {
     });
   }
 
+  async sendOutOfStockAlert(managerEmail, branchName, items) {
+    const html = this.generateOutOfStockAlertHTML(branchName, items);
+
+    return this.sendEmail({
+      to: managerEmail,
+      subject: `OUT OF STOCK Alert - ${branchName}`,
+      html,
+    });
+  }
+
   async sendDailyReport(managerEmail, branchName, reportData) {
     const html = this.generateDailyReportHTML(branchName, reportData);
 
@@ -92,6 +118,31 @@ class EmailService {
       to: managerEmail,
       subject: `Daily Report - ${branchName} - ${reportData.date}`,
       html,
+    });
+  }
+
+  async sendSupportEmail(to, subject, html) {
+    return this.sendEmail({
+      to,
+      subject,
+      html,
+    });
+  }
+
+  async sendHostingInvoice(recipientEmail, amount, invoiceData, attachmentPath) {
+    const html = this.generateHostingInvoiceHTML({
+      amount,
+      ...invoiceData
+    });
+
+    return this.sendEmail({
+      to: recipientEmail,
+      subject: `RetailPro Hosting Invoice - ${invoiceData.month}`,
+      html,
+      attachments: attachmentPath ? [{
+        filename: `Hosting_Invoice_${invoiceData.month.replace(/\s+/g, '_')}.pdf`,
+        path: attachmentPath
+      }] : []
     });
   }
 
@@ -221,6 +272,60 @@ class EmailService {
     `;
   }
 
+  generateOutOfStockAlertHTML(branchName, items) {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>OUT OF STOCK Alert - ${branchName}</title>
+        <style>
+          body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .alert { background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+          .items-table { width: 100%; border-collapse: collapse; }
+          .items-table th, .items-table td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+          .items-table th { background-color: #f8d7da; }
+          .out-of-stock { color: #721c24; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="alert">
+          <h2>🚨 OUT OF STOCK Alert</h2>
+          <p><strong>Branch:</strong> ${branchName}</p>
+          <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+        </div>
+        
+        <p>The following items are completely OUT OF STOCK:</p>
+        
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Current Stock</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map(item => `
+              <tr>
+                <td>${item.name}</td>
+                <td class="out-of-stock">0</td>
+                <td class="out-of-stock">OUT OF STOCK</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <p><strong>Action Required:</strong> Immediate restocking is required to avoid lost sales.</p>
+        
+        <div style="margin-top: 30px; text-align: center; color: #666;">
+          <p>Powered by RetailPro POS</p>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
   generateDailyReportHTML(branchName, data) {
     return `
       <!DOCTYPE html>
@@ -279,6 +384,50 @@ class EmailService {
         
         <div style="margin-top: 30px; text-align: center; color: #666;">
           <p>Powered by RetailPro POS</p>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  generateHostingInvoiceHTML(data) {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Hosting Invoice</title>
+        <style>
+          body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
+          .invoice-details { margin-bottom: 30px; }
+          .amount-box { background-color: #f8f9fa; border: 1px solid #e5e7eb; padding: 20px; text-align: center; margin-bottom: 30px; border-radius: 8px; }
+          .amount { font-size: 24px; font-weight: bold; color: #3b82f6; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>RetailPro Hosting</h1>
+          <p>Monthly Platform Hosting Invoice</p>
+        </div>
+
+        <div class="invoice-details">
+          <p><strong>Invoice Period:</strong> ${data.month}</p>
+          <p><strong>Recipient:</strong> ${data.recipientName || 'Valued Customer'}</p>
+        </div>
+
+        <div class="amount-box">
+          <p>Total Amount Due:</p>
+          <div class="amount">$${data.amount.toFixed(2)}</div>
+        </div>
+
+        <p>Please find the detailed invoice attached as a PDF.</p>
+        <p>Payment should be made via the usual platform channels.</p>
+
+        <div class="footer">
+          <p>Thank you for choosing RetailPro!</p>
+          <p>If you have any questions, please contact support.</p>
         </div>
       </body>
       </html>
