@@ -24,7 +24,6 @@ interface ReceiptModalProps {
             baseUnit?: string;
         }>;
         payments?: Array<{
-            amount: number;
             paidAmount: number;
             paidCurrency: string;
             method: string;
@@ -197,9 +196,11 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
             doc.text('PAYMENT DETAILS:', margin, y);
             y += 3;
             doc.setFont('helvetica', 'normal');
+            const transSym = sale.transactionCurrency ? getCurrencySymbol(sale.transactionCurrency) : '';
+            const paSep = transSym.length > 1 ? ' ' : '';
             sale.payments.forEach(p => {
                 doc.text(`${p.method.toUpperCase()}:`, margin, y);
-                doc.text(formatPrice(p.amount), rightAlign, y, { align: 'right' });
+                doc.text(`${transSym}${paSep}${p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, rightAlign, y, { align: 'right' });
                 y += 3;
             });
         }
@@ -273,10 +274,12 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
             `;
         }).join('');
 
+        const payTransSym = sale.transactionCurrency ? getCurrencySymbol(sale.transactionCurrency) : '';
+        const paySep = payTransSym.length > 1 ? ' ' : '';
         const paymentsHtml = (sale.payments || []).map(p => `
             <div style="display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px;">
                 <span style="text-transform: uppercase;">${p.method}</span>
-                <span style="font-weight: bold;">${formatPrice(p.amount)}</span>
+                <span style="font-weight: bold;">${payTransSym}${paySep}${p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
         `).join('');
 
@@ -472,12 +475,16 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
                         {sale.payments && sale.payments.length > 0 && (
                             <div className="mt-4 pt-4 border-t border-dashed border-black/10 dark:border-white/10 space-y-1">
                                 <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Payment Breakdown</p>
-                                {sale.payments.map((p, idx) => (
-                                    <div key={idx} className="flex justify-between text-[9px]">
-                                        <span className="uppercase">{p.method}</span>
-                                        <span className="font-bold">{formatPrice(p.amount)}</span>
-                                    </div>
-                                ))}
+                                {sale.payments.map((p, idx) => {
+                                    const transSymbol = sale.transactionCurrency ? getCurrencySymbol(sale.transactionCurrency) : '';
+                                    const sep = transSymbol.length > 1 ? ' ' : '';
+                                    return (
+                                        <div key={idx} className="flex justify-between text-[9px]">
+                                            <span className="uppercase">{p.method}</span>
+                                            <span className="font-bold">{transSymbol}{sep}{p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
 
