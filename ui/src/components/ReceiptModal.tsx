@@ -24,6 +24,7 @@ interface ReceiptModalProps {
             baseUnit?: string;
         }>;
         payments?: Array<{
+            amount: number;
             paidAmount: number;
             paidCurrency: string;
             method: string;
@@ -198,7 +199,7 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
             doc.setFont('helvetica', 'normal');
             sale.payments.forEach(p => {
                 doc.text(`${p.method.toUpperCase()}:`, margin, y);
-                doc.text(`${p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${p.paidCurrency}`, rightAlign, y, { align: 'right' });
+                doc.text(formatPrice(p.amount), rightAlign, y, { align: 'right' });
                 y += 3;
             });
         }
@@ -275,7 +276,7 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
         const paymentsHtml = (sale.payments || []).map(p => `
             <div style="display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px;">
                 <span style="text-transform: uppercase;">${p.method}</span>
-                <span style="font-weight: bold;">${p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${p.paidCurrency}</span>
+                <span style="font-weight: bold;">${formatPrice(p.amount)}</span>
             </div>
         `).join('');
 
@@ -474,7 +475,7 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
                                 {sale.payments.map((p, idx) => (
                                     <div key={idx} className="flex justify-between text-[9px]">
                                         <span className="uppercase">{p.method}</span>
-                                        <span className="font-bold">{p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {p.paidCurrency}</span>
+                                        <span className="font-bold">{formatPrice(p.amount)}</span>
                                     </div>
                                 ))}
                             </div>

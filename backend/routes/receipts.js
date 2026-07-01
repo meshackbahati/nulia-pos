@@ -24,6 +24,8 @@ router.post('/email', authenticate, async (req, res) => {
         const getSymbol = (code) => ({ KES: 'KSh', UGX: 'UGX', TZS: 'TZS', USD: '$', EUR: '€', GBP: '£' })[code] || code;
         const currencySymbol = getSymbol(transCurrency);
         const separator = currencySymbol.length > 1 ? ' ' : '';
+        const rate = Number(sale.transactionExchangeRate || 1);
+        const convert = (v) => (parseFloat(v) || 0) * rate;
         const formatFn = (amt) => `${currencySymbol}${separator}${amt.toFixed(2)}`;
 
         const emailData = {
@@ -35,12 +37,12 @@ router.post('/email', authenticate, async (req, res) => {
             items: sale.items.map(item => ({
                 name: item.product.name,
                 quantity: item.quantity,
-                price: parseFloat(item.unitPrice),
-                total: parseFloat(item.totalPrice)
+                price: convert(item.unitPrice),
+                total: convert(item.totalPrice)
             })),
-            subtotal: parseFloat(sale.subtotal),
-            tax: parseFloat(sale.taxAmount || 0),
-            total: parseFloat(sale.totalAmount),
+            subtotal: convert(sale.subtotal),
+            tax: convert(sale.taxAmount || 0),
+            total: convert(sale.totalAmount),
             paymentMethod: sale.paymentMethod,
             date: sale.createdAt.toLocaleDateString(),
             formatFn,
