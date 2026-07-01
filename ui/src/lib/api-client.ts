@@ -138,10 +138,6 @@ export const api = {
     getBranchLeaderboard: (params: any) => apiClient.get('/analytics/branch-leaderboard', { params }),
     getSalesTrends: (params: any) => apiClient.get('/analytics/trends', { params }),
 
-    // Printing
-    printNetwork: (ip: string, port: number, data: string) =>
-        apiClient.post('/print/network', { ip, port, data }),
-
     // Generic
     get: (url: string, params?: any) => apiClient.get(url, { params }),
     post: (url: string, data?: any) => apiClient.post(url, data),

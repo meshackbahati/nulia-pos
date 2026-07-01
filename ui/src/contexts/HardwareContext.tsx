@@ -3,8 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { BleClient } from '@capacitor-community/bluetooth-le';
 import EscPosEncoder from 'esc-pos-encoder';
 import toast from 'react-hot-toast';
-import api from '../lib/api-client';
-import { printViaTcp, testTcpConnection } from '../plugins/tcp-printer';
+import { printViaTcp } from '../plugins/tcp-printer';
 
 interface PrinterDevice {
     name: string;
@@ -307,13 +306,7 @@ export function HardwareProvider({ children }: { children: React.ReactNode }) {
         if (isMobile) {
             return await printViaTcp({ ip, data, port });
         }
-        try {
-            const response = await api.printNetwork(ip, port, data);
-            return { success: response.data.success };
-        } catch (err: any) {
-            const msg = err.response?.data?.error || err.message || 'Network print failed';
-            return { success: false, error: msg };
-        }
+        return { success: false, error: 'Network printing requires the mobile app or Electron. Use a configured USB/BLE printer instead.' };
     };
 
     const printViaBluetooth = async (printer: PrinterDevice, data: string, receiptData: ReceiptData): Promise<{ success: boolean; error?: string }> => {
