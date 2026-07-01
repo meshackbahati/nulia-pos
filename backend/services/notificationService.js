@@ -48,51 +48,115 @@ class NotificationService {
   }
 
   /**
-   * Scans inventory and sends alerts for low stock and out of stock items.
+   * Send real-time notification that a new product was added.
    */
-  async scanAndNotifyInventory(branchId) {
-    const branch = await models.Branch.findByPk(branchId);
-    if (!branch) return;
-
-    const recipients = await this.getBranchRecipients(branchId);
-    if (recipients.length === 0) return;
-
-    // Fetch all inventory for this branch
-    const inventoryItems = await models.Inventory.findAll({
-      where: { branchId },
-      include: [{ model: models.Product, as: 'product' }]
-    });
-
-    const lowStockItems = [];
-    const outOfStockItems = [];
-
-    for (const item of inventoryItems) {
-      const available = Number(item.quantity) - Number(item.reservedQuantity || 0);
-      
-      if (available <= 0) {
-        outOfStockItems.push({
-          name: item.product.name,
-          currentStock: 0
-        });
-      } else if (available <= item.minStockLevel) {
-        lowStockItems.push({
-          name: item.product.name,
-          currentStock: available,
-          minLevel: item.minStockLevel
-        });
-      }
+  async notifyNewProduct(branchId, productName) {
+    try {
+      const branch = await models.Branch.findByPk(branchId);
+      if (!branch) return;
+      const recipients = await this.getBranchRecipients(branchId);
+      if (recipients.length === 0) return;
+      await emailService.sendNewProductAlert(recipients.join(','), branch.name, productName);
+    } catch (error) {
+      console.error('[Notification] notifyNewProduct error:', error.message);
     }
+  }
 
-    // Send alerts
-    if (outOfStockItems.length > 0) {
-      for (const email of recipients) {
-        await emailService.sendOutOfStockAlert(email, branch.name, outOfStockItems);
-      }
+  /**
+   * Send real-time notification that a product was removed/deactivated.
+   */
+  async notifyProductRemoved(branchId, productName) {
+    try {
+      const branch = await models.Branch.findByPk(branchId);
+      if (!branch) return;
+      const recipients = await this.getBranchRecipients(branchId);
+      if (recipients.length === 0) return;
+      await emailService.sendProductRemovedAlert(recipients.join(','), branch.name, productName);
+    } catch (error) {
+      console.error('[Notification] notifyProductRemoved error:', error.message);
     }
+  }
 
-    if (lowStockItems.length > 0) {
-      for (const email of recipients) {
-        await emailService.sendLowStockAlert(email, branch.name, lowStockItems);
+  /**
+   * Send real-time stock alert (out of stock or low stock).
+   */
+  async notifyStockAlert(branchId, productName, type, available, minLevel) {
+    try {
+      const branch = await models.Branch.findByPk(branchId);
+      if (!branch) return;
+      const recipients = await this.getBranchRecipients(branchId);
+      if (recipients.length === 0) return;
+      await emailService.sendStockAlert(recipients.join(','), branch.name, productName, type, available, minLevel);
+    } catch (error) {
+      console.error('[Notification] notifyStockAlert error:', error.message);
+    }
+  }
+
+  /**
+   * Sends weekly summary report to all branches.
+   * Includes low stock / out of stock items and weekly sales totals.
+   */
+  async sendWeeklySummary() {
+    const branches = await models.Branch.findAll({ where: { isActive: true } });
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const weekLabel = `${weekAgo.toLocaleDateString()} - ${now.toLocaleDateString()}`;
+
+    for (const branch of branches) {
+      try {
+        const recipients = await this.getBranchRecipients(branch.id);
+        if (recipients.length === 0) continue;
+
+        // Fetch inventory
+        const inventoryItems = await models.Inventory.findAll({
+          where: { branchId: branch.id },
+          include: [{ model: models.Product, as: 'product' }]
+        });
+
+        const outOfStockItems = [];
+        const lowStockItems = [];
+
+        for (const item of inventoryItems) {
+          const available = Number(item.quantity) - Number(item.reservedQuantity || 0);
+          if (available <= 0) {
+            outOfStockItems.push({ name: item.product.name, currentStock: 0 });
+          } else if (available <= item.minStockLevel) {
+            lowStockItems.push({
+              name: item.product.name,
+              currentStock: available,
+              minLevel: item.minStockLevel
+            });
+          }
+        }
+
+        // Fetch weekly sales
+        const sales = await models.Sale.findAll({
+          where: {
+            branchId: branch.id,
+            createdAt: { [Op.gte]: weekAgo },
+            status: 'completed'
+          }
+        });
+
+        const saleCount = sales.length;
+        let totalSales = 0;
+        for (const sale of sales) {
+          totalSales += Number(sale.totalAmount || 0);
+        }
+        const currencySymbol = branch.currency === 'KES' ? 'KES ' : '$';
+
+        const reportData = {
+          weekLabel,
+          outOfStockItems,
+          lowStockItems,
+          saleCount,
+          totalSales: `${currencySymbol}${totalSales.toFixed(2)}`,
+        };
+
+        await emailService.sendWeeklySummary(recipients.join(','), branch.name, reportData);
+        console.log(`[Notification] Weekly summary sent to ${branch.name}`);
+      } catch (error) {
+        console.error(`[Notification] Error sending weekly summary for ${branch.name}:`, error.message);
       }
     }
   }

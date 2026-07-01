@@ -11,30 +11,29 @@ class Scheduler {
   async init() {
     console.log('[Scheduler] Initializing cron jobs...');
 
-    // 1. Daily Inventory Check (e.g., at 08:00 AM every day)
-    cron.schedule('0 8 * * *', async () => {
-      console.log('[Scheduler] Running daily inventory scan...');
+    // 1. Weekly Summary Report (Monday at 08:00 AM)
+    cron.schedule('0 8 * * 1', async () => {
+      console.log('[Scheduler] Running weekly summary generation...');
       try {
-        const branches = await models.Branch.findAll({ where: { isActive: true } });
-        for (const branch of branches) {
-          await notificationService.scanAndNotifyInventory(branch.id);
-        }
-        console.log('[Scheduler] Daily inventory scan completed.');
+        await notificationService.sendWeeklySummary();
+        console.log('[Scheduler] Weekly summary generation completed.');
       } catch (error) {
-        console.error('[Scheduler] Error during daily inventory scan:', error);
+        console.error('[Scheduler] Error during weekly summary generation:', error);
       }
     });
 
-    // 2. Monthly Hosting Invoice (e.g., at 00:00 AM on the 1st of every month)
-    cron.schedule('0 0 1 * *', async () => {
-      console.log('[Scheduler] Running monthly hosting invoice generation...');
-      try {
-        await this.runMonthlyHostingInvoicing();
-        console.log('[Scheduler] Monthly hosting invoicing completed.');
-      } catch (error) {
-        console.error('[Scheduler] Error during monthly hosting invoicing:', error);
-      }
-    });
+    // 2. Monthly Hosting Invoice (1st and 3rd of every month at 00:00 AM)
+    for (const day of [1, 3]) {
+      cron.schedule(`0 0 ${day} * *`, async () => {
+        console.log(`[Scheduler] Running hosting invoice generation (day ${day})...`);
+        try {
+          await this.runMonthlyHostingInvoicing();
+          console.log(`[Scheduler] Hosting invoice generation completed (day ${day}).`);
+        } catch (error) {
+          console.error(`[Scheduler] Error during hosting invoice generation (day ${day}):`, error);
+        }
+      });
+    }
 
     console.log('[Scheduler] All cron jobs scheduled.');
   }
@@ -43,8 +42,6 @@ class Scheduler {
    * Logic for monthly hosting invoicing.
    */
   async runMonthlyHostingInvoicing() {
-    // Configuration from Env
-    const hostingFee = parseFloat(process.env.HOSTING_FEE_AMOUNT || '12.55');
     const invoiceRecipient = process.env.HOSTING_INVOICE_RECIPIENT;
 
     if (!invoiceRecipient) {
@@ -52,27 +49,37 @@ class Scheduler {
       return;
     }
 
+    const services = [
+      { name: 'Database Server (PostgreSQL)', amount: parseFloat(process.env.HOSTING_FEE_DB || '3.00') },
+      { name: 'Backend API Server', amount: parseFloat(process.env.HOSTING_FEE_BACKEND || '3.00') },
+      { name: 'WebSocket Server', amount: parseFloat(process.env.HOSTING_FEE_SOCKETS || '2.00') },
+      { name: 'File Storage (Cloudinary/CDN)', amount: parseFloat(process.env.HOSTING_FEE_STORAGE || '1.50') },
+      { name: 'Email Delivery (Brevo)', amount: parseFloat(process.env.HOSTING_FEE_EMAIL || '1.00') },
+      { name: 'SSL Certificate & Domain Renewal', amount: parseFloat(process.env.HOSTING_FEE_SSL || '2.05') },
+    ];
+
+    const hostingFee = parseFloat(process.env.HOSTING_FEE_AMOUNT) || services.reduce((sum, s) => sum + s.amount, 0);
+
     const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
-    
-    // In a real system, we might want to iterate through all branches or customers.
-    // For this implementation, we'll send one master invoice to the configured recipient.
+
     const invoiceData = {
       month: currentMonth,
-      recipientName: 'BorderShop Platform Administrator'
+      recipientName: 'BorderShop Platform Administrator',
+      services,
     };
 
     let pdfPath = null;
     try {
       pdfPath = await invoiceService.generateHostingInvoicePDF({
         ...invoiceData,
-        amount: hostingFee
+        amount: hostingFee,
       });
 
       await emailService.sendHostingInvoice(
         invoiceRecipient,
         hostingFee,
         invoiceData,
-        pdfPath
+        pdfPath,
       );
       
       console.log(`[Scheduler] Hosting invoice sent to ${invoiceRecipient} for ${currentMonth}`);

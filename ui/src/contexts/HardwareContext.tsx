@@ -305,11 +305,10 @@ export function HardwareProvider({ children }: { children: React.ReactNode }) {
             }
 
             if (bluetoothPrinter) {
-                return await printViaBluetooth(bluetoothPrinter, escPosBase64, receiptData);
+                return await printViaBluetooth(bluetoothPrinter, escPosBase64);
             }
 
             if (defaultPrinter) {
-                const html = receiptToHtml(receiptData);
                 if ((navigator as any).usb) {
                     return await printViaUsb(defaultPrinter, escPosBase64);
                 }
@@ -330,11 +329,11 @@ export function HardwareProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: 'Network printing requires the mobile app or Electron. Use a configured USB/BLE printer instead.' };
     };
 
-    const printViaBluetooth = async (printer: PrinterDevice, data: string, receiptData: ReceiptData): Promise<{ success: boolean; error?: string }> => {
+    const printViaBluetooth = async (printer: PrinterDevice, data: string): Promise<{ success: boolean; error?: string }> => {
         try {
             if (isMobile) {
                 const bytes = base64ToBytes(data);
-                const result = await BleClient.write(
+                await BleClient.write(
                     printer.address!,
                     '000018f0-0000-1000-8000-00805f9b34fb',
                     '00002af1-0000-1000-8000-00805f9b34fb',
@@ -400,7 +399,7 @@ export function HardwareProvider({ children }: { children: React.ReactNode }) {
             result = await printViaNetwork(address, port || 9100, escPosBase64);
         } else if (type === 'bluetooth') {
             if (bluetoothPrinter) {
-                result = await printViaBluetooth(bluetoothPrinter, escPosBase64, testData);
+                result = await printViaBluetooth(bluetoothPrinter, escPosBase64);
             } else {
                 result = { success: false, error: 'No bluetooth printer configured' };
             }
@@ -484,25 +483,6 @@ export function useHardware() {
         throw new Error('useHardware must be used within a HardwareProvider');
     }
     return context;
-}
-
-function receiptToHtml(data: ReceiptData): string {
-    const itemsHtml = data.items.map(item =>
-        `<div style="display:flex;justify-content:space-between;font-size:11px"><span>${item.quantity}x ${item.name}</span><span>${item.total.toFixed(2)}</span></div>`
-    ).join('');
-
-    return `
-        <div style="font-family:monospace;padding:20px;max-width:300px">
-            <div style="text-align:center"><h2>${data.companyName}</h2></div>
-            <div style="text-align:center">OFFICIAL RECEIPT</div>
-            <div style="text-align:center;font-size:10px">Receipt: ${data.receiptId}<br/>${data.date}</div>
-            <hr/>
-            ${itemsHtml}
-            <hr/>
-            <div style="text-align:right">Subtotal: ${data.subtotal.toFixed(2)}<br/>Tax: ${data.tax.toFixed(2)}<br/><strong>Total: ${data.total.toFixed(2)}</strong></div>
-            <div style="text-align:center;margin-top:10px">Thank you for visiting!<br/>${data.companyName}</div>
-        </div>
-    `;
 }
 
 function base64ToBytes(base64: string): Uint8Array {

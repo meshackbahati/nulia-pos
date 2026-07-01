@@ -7,6 +7,7 @@ import { Decimal } from 'decimal.js';
 import multer from 'multer';
 import cloudinary from '../lib/cloudinary.js';
 import { parse } from 'csv-parse/sync';
+import notificationService from '../services/notificationService.js';
 
 const router = express.Router();
 const upload = multer({
@@ -411,6 +412,8 @@ router.post('/create', authenticate, authorize('head_of_sales'), async (req, res
             io.to(`branch-${targetBranchId}`).emit('inventory-update', { branchId: targetBranchId });
         }
 
+        notificationService.notifyNewProduct(targetBranchId, product.name);
+
         res.json({ success: true, product });
     } catch (error) {
         await t.rollback();
@@ -466,7 +469,12 @@ router.delete('/delete/:id', authenticate, authorize('head_of_sales'), async (re
         const product = await models.Product.findByPk(id);
         if (!product) return res.status(404).json({ error: 'Product not found' });
 
+        const branchId = req.user.branchId || req.body.branchId;
+        const productName = product.name;
+
         await product.update({ isActive: false });
+
+        notificationService.notifyProductRemoved(branchId, productName);
 
         // Emit real-time update
         const io = req.app.get('io');

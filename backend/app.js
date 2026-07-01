@@ -20,6 +20,7 @@ import poRoutes from './routes/purchase-orders.js';
 import receiptRoutes from './routes/receipts.js';
 import paystackRoutes from './routes/paystack.js';
 import exchangeRateRoutes from './routes/exchange-rates.js';
+import dunRoutes from './routes/dun.js';
 import { idempotency } from './lib/idempotency.js';
 
 dotenv.config();
@@ -88,6 +89,7 @@ app.use('/api/purchase-orders', poRoutes);
 app.use('/api/receipts', receiptRoutes);
 app.use('/api/paystack', paystackRoutes);
 app.use('/api/exchange-rates', exchangeRateRoutes);
+app.use('/api', dunRoutes);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {

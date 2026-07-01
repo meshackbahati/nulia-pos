@@ -4,6 +4,7 @@ import { authenticate, authorize } from '../lib/auth.js';
 import { createAuditLog, AUDIT_ACTIONS, AUDIT_RESOURCES } from '../lib/audit.js';
 import { Op } from 'sequelize';
 import { Decimal } from 'decimal.js';
+import notificationService from '../services/notificationService.js';
 
 const router = express.Router();
 
@@ -290,6 +291,24 @@ router.post('/create', authenticate, async (req, res) => {
                 },
                 transaction,
             });
+
+            const updatedInventory = await models.Inventory.findOne({
+                where: {
+                    branchId,
+                    productId: item.productId,
+                    ...(item.variantId && { variantId: item.variantId }),
+                },
+                transaction,
+            });
+
+            if (updatedInventory) {
+                const available = Number(updatedInventory.quantity) - Number(updatedInventory.reservedQuantity || 0);
+                const type = available <= 0 ? 'out_of_stock' : (available <= updatedInventory.minStockLevel ? 'low_stock' : null);
+                if (type) {
+                    const minLevel = type === 'low_stock' ? updatedInventory.minStockLevel : undefined;
+                    notificationService.notifyStockAlert(branchId, item.name, type, available, minLevel);
+                }
+            }
         }
 
         // 5. Create payment records
