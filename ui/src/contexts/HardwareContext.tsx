@@ -4,6 +4,7 @@ import { BleClient } from '@capacitor-community/bluetooth-le';
 import EscPosEncoder from 'esc-pos-encoder';
 import toast from 'react-hot-toast';
 import api from '../lib/api-client';
+import { printViaTcp, testTcpConnection } from '../plugins/tcp-printer';
 
 interface PrinterDevice {
     name: string;
@@ -303,6 +304,9 @@ export function HardwareProvider({ children }: { children: React.ReactNode }) {
     };
 
     const printViaNetwork = async (ip: string, port: number, data: string): Promise<{ success: boolean; error?: string }> => {
+        if (isMobile) {
+            return await printViaTcp({ ip, data, port });
+        }
         try {
             const response = await api.printNetwork(ip, port, data);
             return { success: response.data.success };
