@@ -117,9 +117,7 @@ router.post('/create', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'No items in cart' });
         }
 
-        if (!payments || payments.length === 0) {
-            return res.status(400).json({ error: 'Payment details required' });
-        }
+        if (!payments) payments = [];
 
         if (!branchId) {
             return res.status(400).json({ error: 'User not assigned to a branch' });
@@ -261,7 +259,7 @@ router.post('/create', authenticate, async (req, res) => {
             totalAmount: finalTotal,
             transactionCurrency: transactionCurrency || branch.currency,
             transactionExchangeRate: transactionExchangeRate || 1.0,
-            paymentMethod: payments[0].method === 'mpesa' ? 'mpesa' : payments[0].method,
+            paymentMethod: payments.length > 0 ? (payments[0].method === 'mpesa' ? 'mpesa' : payments[0].method) : 'cash',
             paymentStatus: 'completed', // Assuming split payments are only sent when fully paid
             customerPhone,
             customerEmail,

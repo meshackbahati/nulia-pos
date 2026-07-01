@@ -81,7 +81,7 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
 
     const handleAddPayment = async () => {
         const amt = parseFloat(inputAmount);
-        if (isNaN(amt) || amt <= 0) {
+        if (isNaN(amt) || amt < 0) {
             showAlert('Invalid Amount', 'Please enter a valid amount.', 'warning');
             return;
         }
@@ -120,7 +120,7 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
     };
 
     const finalize = async () => {
-        if (totalPaidBase < finalTotalBase - 0.01) { // Small epsilon for float
+        if (finalTotalBase > 0 && totalPaidBase < finalTotalBase - 0.01) { // Small epsilon for float
             showAlert('Incomplete Payment', `Remaining balance: ${formatPrice(remainingBase)}`, 'warning');
             return;
         }
@@ -315,7 +315,7 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
 
                         <button
                             onClick={handleAddPayment}
-                            disabled={!inputAmount || processing}
+                            disabled={inputAmount === '' || processing}
                             className="w-full h-12 bg-foreground text-background rounded-xl font-bold uppercase text-xs hover:opacity-90 transition-all flex items-center justify-center gap-2"
                         >
                             <Plus className="w-4 h-4" /> Add Payment
@@ -325,7 +325,7 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
                     <div className="pt-6 border-t border-border">
                         <button
                             onClick={finalize}
-                            disabled={totalPaidBase < finalTotalBase - 0.01 || processing}
+                            disabled={(finalTotalBase > 0 && totalPaidBase < finalTotalBase - 0.01) || processing}
                             className="w-full h-14 bg-primary text-primary-foreground rounded-xl font-black uppercase text-sm shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
                         >
                             {processing ? 'EXECUTING...' : 'COMPLETE SALE'}

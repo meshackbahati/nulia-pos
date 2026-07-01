@@ -3,6 +3,27 @@
  */
 export async function sendEmail(options) {
     try {
+        const payload = {
+            sender: {
+                name: options.senderName,
+                email: options.senderEmail,
+            },
+            to: [
+                {
+                    email: options.to,
+                },
+            ],
+            subject: options.subject,
+            htmlContent: options.htmlContent,
+        };
+
+        if (options.attachments && options.attachments.length > 0) {
+            payload.attachment = options.attachments.map(a => ({
+                content: a.content.toString('base64'),
+                name: a.filename,
+            }));
+        }
+
         const response = await fetch('https://api.brevo.com/v3/smtp/email', {
             method: 'POST',
             headers: {
@@ -10,20 +31,13 @@ export async function sendEmail(options) {
                 'Content-Type': 'application/json',
                 'api-key': options.apiKey,
             },
-            body: JSON.stringify({
-                sender: {
-                    name: options.senderName,
-                    email: options.senderEmail,
-                },
-                to: [
-                    {
-                        email: options.to,
-                    },
-                ],
-                subject: options.subject,
-                htmlContent: options.htmlContent,
-            }),
+            body: JSON.stringify(payload),
         });
+
+        if (!response.ok) {
+            const errBody = await response.text();
+            console.error('[Brevo] API error:', response.status, errBody);
+        }
 
         return response.ok;
     } catch (error) {

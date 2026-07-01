@@ -1,14 +1,11 @@
-import nodemailer from 'nodemailer';
+import fs from 'fs';
 import models from '../models/index.js';
+import { sendEmail as brevoSendEmail } from './brevo.js';
 
 class EmailService {
-  async getTransporter() {
+  async getApiConfig() {
     if (process.env.ENABLE_EMAILING === 'false') {
-      return {
-        transporter: null,
-        senderEmail: null,
-        senderName: null
-      };
+      return { apiKey: null, senderEmail: null, senderName: null };
     }
     try {
       const apiKeySetting = await models.Setting.findOne({ where: { category: 'brevo', key: 'apiKey' } });
@@ -33,36 +30,11 @@ class EmailService {
         senderName = process.env.BREVO_SENDER_NAME || 'BorderShop POS';
       }
 
-      if (!apiKey || !senderEmail) {
-        console.warn('[EmailService] Missing email credentials (API Key or Sender Email).');
-      }
-
-      return {
-        transporter: nodemailer.createTransport({
-          host: 'smtp-relay.brevo.com',
-          port: 587,
-          secure: false,
-          auth: {
-            user: senderEmail,
-            pass: apiKey,
-          },
-        }),
-        senderEmail,
-        senderName
-      };
+      return { apiKey, senderEmail, senderName };
     } catch (error) {
-      console.error('Failed to initialize email transporter:', error);
-      // Fallback to env
+      console.error('[EmailService] Error reading config:', error);
       return {
-        transporter: nodemailer.createTransport({
-          host: 'smtp-relay.brevo.com',
-          port: 587,
-          secure: false,
-          auth: {
-            user: process.env.BREVO_SENDER_EMAIL,
-            pass: process.env.***REMOVED***,
-          },
-        }),
+        apiKey: process.env.***REMOVED***,
         senderEmail: process.env.BREVO_SENDER_EMAIL,
         senderName: process.env.BREVO_SENDER_NAME || 'BorderShop POS'
       };
@@ -75,34 +47,37 @@ class EmailService {
       return false;
     }
     try {
-      const { transporter, senderEmail, senderName } = await this.getTransporter();
+      const { apiKey, senderEmail, senderName } = await this.getApiConfig();
 
-      if (!transporter) {
-        console.error('[EmailService] Transporter not available (possibly disabled).');
+      if (!apiKey || !senderEmail) {
+        console.error('[EmailService] Missing API key or sender email.');
         return false;
       }
 
-      const mailOptions = {
-        from: {
-          name: senderName,
-          address: senderEmail,
-        },
+      let attachments;
+      if (template.attachments && template.attachments.length > 0) {
+        attachments = await Promise.all(template.attachments.map(async (a) => {
+          if (a.path) {
+            const content = await fs.promises.readFile(a.path);
+            return { filename: a.filename, content };
+          }
+          return a;
+        }));
+      }
+
+      return await brevoSendEmail({
+        apiKey,
+        senderName,
+        senderEmail,
         to: template.to,
         subject: template.subject,
-        html: template.html,
-        attachments: template.attachments,
-      };
-
-      await transporter.sendMail(mailOptions);
-      return true;
+        htmlContent: template.html,
+        attachments,
+      });
     } catch (error) {
       console.error('[EmailService] Error sending email:', {
         to: template.to,
         subject: template.subject,
-        code: error.code,
-        response: error.response,
-        responseCode: error.responseCode,
-        command: error.command,
         message: error.message
       });
       return false;
