@@ -13,9 +13,29 @@ class EmailService {
     try {
       const apiKeySetting = await models.Setting.findOne({ where: { category: 'brevo', key: 'apiKey' } });
       const senderEmailSetting = await models.Setting.findOne({ where: { category: 'brevo', key: 'senderEmail' } });
+      const senderNameSetting = await models.Setting.findOne({ where: { category: 'brevo', key: 'senderName' } });
 
-      const apiKey = apiKeySetting ? apiKeySetting.getDecryptedValue() : process.env.***REMOVED***;
-      const senderEmail = senderEmailSetting ? senderEmailSetting.value : process.env.BREVO_SENDER_EMAIL;
+      let apiKey = apiKeySetting ? apiKeySetting.getDecryptedValue() : null;
+      if (!apiKey || apiKey === '[DECRYPTION_ERROR]') {
+        apiKey = process.env.***REMOVED***;
+        console.log('[EmailService] Using ***REMOVED*** from environment.');
+      } else {
+        console.log('[EmailService] Using ***REMOVED*** from database.');
+      }
+
+      let senderEmail = senderEmailSetting ? senderEmailSetting.value : null;
+      if (!senderEmail) {
+        senderEmail = process.env.BREVO_SENDER_EMAIL;
+      }
+
+      let senderName = senderNameSetting ? senderNameSetting.value : null;
+      if (!senderName) {
+        senderName = process.env.BREVO_SENDER_NAME || 'BorderShop POS';
+      }
+
+      if (!apiKey || !senderEmail) {
+        console.warn('[EmailService] Missing email credentials (API Key or Sender Email).');
+      }
 
       return {
         transporter: nodemailer.createTransport({
@@ -28,10 +48,10 @@ class EmailService {
           },
         }),
         senderEmail,
-        senderName: (await models.Setting.findOne({ where: { category: 'brevo', key: 'senderName' } }))?.value || process.env.BREVO_SENDER_NAME || 'BorderShop POS'
+        senderName
       };
     } catch (error) {
-      console.error('Failed to initialize email transporter from DB:', error);
+      console.error('Failed to initialize email transporter:', error);
       // Fallback to env
       return {
         transporter: nodemailer.createTransport({
@@ -76,7 +96,15 @@ class EmailService {
       await transporter.sendMail(mailOptions);
       return true;
     } catch (error) {
-      console.error('Failed to send email:', error);
+      console.error('[EmailService] Error sending email:', {
+        to: template.to,
+        subject: template.subject,
+        code: error.code,
+        response: error.response,
+        responseCode: error.responseCode,
+        command: error.command,
+        message: error.message
+      });
       return false;
     }
   }
