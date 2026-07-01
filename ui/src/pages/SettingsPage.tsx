@@ -324,8 +324,10 @@ export default function SettingsPage() {
                                         <div className="flex items-center gap-3">
                                             <PrinterIcon className="w-5 h-5 text-primary" />
                                             <div>
-                                                <p className="text-xs font-black uppercase">{defaultPrinter || bluetoothPrinter?.name || networkPrinter?.name || 'No Printer Configured'}</p>
-                                                <p className="text-[8px] font-bold text-muted-foreground uppercase">Target Device</p>
+                                                <p className="text-xs font-black uppercase">{networkPrinter?.name || bluetoothPrinter?.name || defaultPrinter || 'No Printer Configured'}</p>
+                                                <p className="text-[8px] font-bold text-muted-foreground uppercase">
+                                                    {networkPrinter ? 'Network (TCP)' : bluetoothPrinter ? 'Bluetooth (BLE)' : defaultPrinter ? 'USB / System' : 'Target Device'}
+                                                </p>
                                             </div>
                                         </div>
                                         <button 

@@ -1,13 +1,28 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { BleClient } from '@capacitor-community/bluetooth-le';
+import EscPosEncoder from 'esc-pos-encoder';
 import toast from 'react-hot-toast';
+import api from '../lib/api-client';
 
 interface PrinterDevice {
     name: string;
-    address?: string; // MAC or IP
+    address?: string;
+    port?: number;
     type: 'usb' | 'bluetooth' | 'network';
     displayName?: string;
+}
+
+interface ReceiptData {
+    companyName: string;
+    receiptId: string;
+    items: Array<{ name: string; quantity: number; price: number; total: number }>;
+    subtotal: number;
+    tax: number;
+    total: number;
+    paymentMethod: string;
+    date: string;
+    cashierName?: string;
 }
 
 interface HardwareContextType {
@@ -27,9 +42,92 @@ interface HardwareContextType {
     requestWebUsbPrinter: () => Promise<PrinterDevice | null>;
     requestWebBluetoothPrinter: () => Promise<PrinterDevice | null>;
     printToWebDevice: (html: string) => Promise<{ success: boolean; error?: string }>;
+    printReceipt: (receiptData: ReceiptData) => Promise<{ success: boolean; error?: string }>;
+    testPrinter: (type: 'network' | 'bluetooth' | 'usb', address?: string, port?: number) => Promise<boolean>;
+    generateEscPosData: (receiptData: ReceiptData) => Promise<string>;
 }
 
 const HardwareContext = createContext<HardwareContextType | undefined>(undefined);
+
+function generateEscPosBytes(receiptData: ReceiptData, paperSize: '58mm' | '80mm'): Uint8Array {
+    const encoder = new EscPosEncoder();
+
+    encoder.initialize();
+    encoder.align('center');
+
+    const style = paperSize === '58mm' ? { font: 'A', width: 1, height: 1 } : { font: 'A', width: 1, height: 1 };
+
+    encoder.style({ ...style, bold: true });
+    encoder.text(receiptData.companyName);
+    encoder.newline();
+
+    encoder.style({ ...style, bold: false });
+    encoder.text('OFFICIAL TRANSACTION RECORD');
+    encoder.newline();
+    encoder.newline();
+
+    encoder.align('left');
+    encoder.style({ ...style, bold: true });
+    if (receiptData.cashierName) {
+        encoder.text(`Cashier: ${receiptData.cashierName}`);
+        encoder.newline();
+    }
+    encoder.text(`Receipt: ${receiptData.receiptId}`);
+    encoder.newline();
+    encoder.text(`Date: ${receiptData.date}`);
+    encoder.newline();
+    encoder.text(`Method: ${receiptData.paymentMethod.toUpperCase()}`);
+    encoder.newline();
+    encoder.newline();
+
+    encoder.align('left');
+    encoder.style({ ...style, bold: true });
+    encoder.text('--------------------------------');
+    encoder.newline();
+    encoder.text('DESCRIPTION');
+    encoder.text('        TOTAL');
+    encoder.newline();
+    encoder.text('--------------------------------');
+    encoder.newline();
+    encoder.style({ ...style, bold: false });
+
+    for (const item of receiptData.items) {
+        const name = item.name.length > 22 ? item.name.substring(0, 19) + '...' : item.name;
+        const line = `${item.quantity}x ${name}`;
+        const priceStr = `${item.total.toFixed(2)}`;
+        const padding = Math.max(1, 32 - line.length - priceStr.length);
+        encoder.text(line + ' '.repeat(padding) + priceStr);
+        encoder.newline();
+    }
+
+    encoder.newline();
+    encoder.text('--------------------------------');
+    encoder.newline();
+
+    encoder.align('right');
+    encoder.text(`SUBTOTAL: ${receiptData.subtotal.toFixed(2)}`);
+    encoder.newline();
+    encoder.text(`TAX: ${receiptData.tax.toFixed(2)}`);
+    encoder.newline();
+
+    encoder.style({ ...style, bold: true });
+    encoder.text(`TOTAL: ${receiptData.total.toFixed(2)}`);
+    encoder.newline();
+    encoder.style({ ...style, bold: false });
+
+    encoder.newline();
+    encoder.align('center');
+    encoder.text('Thank you for visiting!');
+    encoder.newline();
+    encoder.text(receiptData.companyName);
+    encoder.newline();
+    encoder.newline();
+    encoder.newline();
+
+    encoder.cut('partial');
+
+    return encoder.encode();
+}
 
 export function HardwareProvider({ children }: { children: React.ReactNode }) {
     const isElectron = !!(window as any).electronAPI;
@@ -84,13 +182,19 @@ export function HardwareProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('handheldMode', String(enabled));
     };
 
+    const generateEscPosData = useCallback(async (receiptData: ReceiptData): Promise<string> => {
+        const bytes = generateEscPosBytes(receiptData, paperSize);
+        const binary = String.fromCharCode(...new Uint8Array(bytes));
+        return btoa(binary);
+    }, [paperSize]);
+
     const discoverPrinters = async (): Promise<PrinterDevice[]> => {
         if (isElectron) {
             try {
                 const list = await (window as any).electronAPI.getPrinters();
                 return list.map((p: any) => ({
                     name: p.name,
-                    type: 'usb',
+                    type: 'usb' as const,
                     displayName: p.name
                 }));
             } catch (err) {
@@ -98,41 +202,33 @@ export function HardwareProvider({ children }: { children: React.ReactNode }) {
                 return [];
             }
         }
-        
-        if (isMobile) {
-            try {
-                const devices: PrinterDevice[] = [];
-                
-                // Scan for Bluetooth Thermal Printers
-                await BleClient.requestLEScan(
-                    {
-                        // Some common printer service UUIDs if known, else scan all
-                        // services: ['000018f0-0000-1000-8000-00805f9b34fb'] 
-                    },
-                    (result) => {
-                        if (result.device.name?.toLowerCase().includes('printer') || 
-                            result.device.name?.toLowerCase().includes('pos')) {
-                            devices.push({
-                                name: result.device.name,
-                                address: result.device.deviceId,
-                                type: 'bluetooth',
-                                displayName: result.device.name
-                            });
-                        }
-                    }
-                );
 
-                // Stop scan after 5 seconds
+        if (isMobile) {
+            const devices: PrinterDevice[] = [];
+
+            try {
+                await BleClient.requestLEScan({}, (result) => {
+                    const name = result.device.name || '';
+                    const lower = name.toLowerCase();
+                    if (lower.includes('printer') || lower.includes('pos') || lower.includes('thermal') || lower.includes('xprinter') || lower.includes('receipt') || lower.includes('star') || lower.includes('epson') || lower.includes('bixolon') || lower.includes('zjiang')) {
+                        devices.push({
+                            name,
+                            address: result.device.deviceId,
+                            type: 'bluetooth',
+                            displayName: name
+                        });
+                    }
+                });
+
                 await new Promise(resolve => setTimeout(resolve, 5000));
                 await BleClient.stopLEScan();
-                
-                return Array.from(new Map(devices.map(d => [d.address, d])).values());
             } catch (err) {
-                console.error('Mobile printer discovery failed:', err);
-                toast.error('Bluetooth Scan failed');
-                return [];
+                console.warn('BLE scan failed:', err);
             }
+
+            return Array.from(new Map(devices.map(d => [d.address, d])).values());
         }
+
         return [];
     };
 
@@ -164,7 +260,7 @@ export function HardwareProvider({ children }: { children: React.ReactNode }) {
         try {
             const device = await (navigator as any).bluetooth.requestDevice({
                 acceptAllDevices: true,
-                optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] // Common printer service
+                optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
             });
             const p: PrinterDevice = {
                 name: device.name || 'BT Printer',
@@ -179,47 +275,160 @@ export function HardwareProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const printToWebDevice = async (html: string): Promise<{ success: boolean; error?: string }> => {
-        // This is a complex task as it requires converting HTML to ESC/POS.
-        // For now, we'll implement a basic "Text-only" or "Image" driver.
-        // Most web-to-thermal solutions use a hidden canvas to generate a bitmap.
-        
+    const printReceipt = async (receiptData: ReceiptData): Promise<{ success: boolean; error?: string }> => {
         try {
-            if (bluetoothPrinter && (navigator as any).bluetooth) {
-                // Web Bluetooth logic
+            const escPosBase64 = await generateEscPosData(receiptData);
+
+            if (networkPrinter) {
+                return await printViaNetwork(networkPrinter.address!, networkPrinter.port || 9100, escPosBase64);
+            }
+
+            if (bluetoothPrinter) {
+                return await printViaBluetooth(bluetoothPrinter, escPosBase64, receiptData);
+            }
+
+            if (defaultPrinter) {
+                const html = receiptToHtml(receiptData);
+                if ((navigator as any).usb) {
+                    return await printViaUsb(defaultPrinter, escPosBase64);
+                }
+                return { success: false, error: 'No USB printer available' };
+            }
+
+            return { success: false, error: 'No printer configured. Go to Settings > Printer Setup.' };
+        } catch (err: any) {
+            console.error('Print failed:', err);
+            return { success: false, error: err.message };
+        }
+    };
+
+    const printViaNetwork = async (ip: string, port: number, data: string): Promise<{ success: boolean; error?: string }> => {
+        try {
+            const response = await api.printNetwork(ip, port, data);
+            return { success: response.data.success };
+        } catch (err: any) {
+            const msg = err.response?.data?.error || err.message || 'Network print failed';
+            return { success: false, error: msg };
+        }
+    };
+
+    const printViaBluetooth = async (printer: PrinterDevice, data: string, receiptData: ReceiptData): Promise<{ success: boolean; error?: string }> => {
+        try {
+            if (isMobile) {
+                const bytes = base64ToBytes(data);
+                const result = await BleClient.write(
+                    printer.address!,
+                    '000018f0-0000-1000-8000-00805f9b34fb',
+                    '00002af1-0000-1000-8000-00805f9b34fb',
+                    new DataView(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength))
+                );
+                return { success: true };
+            }
+
+            if ((navigator as any).bluetooth) {
                 const devices = await (navigator as any).bluetooth.getDevices();
-                const device = devices.find((d: any) => d.id === bluetoothPrinter.address);
+                const device = devices.find((d: any) => d.id === printer.address);
                 if (!device) throw new Error('Bluetooth device not found');
-                
+
                 if (!device.gatt.connected) await device.gatt.connect();
                 const service = await device.gatt.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
                 const characteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
-                
-                // For now, just send a "Print started" placeholder or try to convert.
-                // In a real production app, we'd use a library like 'esc-pos-encoder'.
-                const encoder = new TextEncoder();
-                await characteristic.writeValue(encoder.encode('\x1b\x40\x1b\x61\x01RECEIPT\n\n' + html.replace(/<[^>]*>/g, '') + '\n\n\n\n'));
+
+                await characteristic.writeValue(base64ToBytes(data));
+                return { success: true };
+            }
+
+            return { success: false, error: 'Bluetooth not available' };
+        } catch (err: any) {
+            return { success: false, error: err.message };
+        }
+    };
+
+    const printViaUsb = async (printerName: string, data: string): Promise<{ success: boolean; error?: string }> => {
+        try {
+            const devices = await (navigator as any).usb.getDevices();
+            const device = devices.find((d: any) => d.productName === printerName);
+            if (!device) throw new Error('USB device not found');
+
+            await device.open();
+            await device.selectConfiguration(1);
+            await device.claimInterface(0);
+
+            await device.transferOut(1, base64ToBytes(data));
+            return { success: true };
+        } catch (err: any) {
+            return { success: false, error: err.message };
+        }
+    };
+
+    const testPrinter = async (type: 'network' | 'bluetooth' | 'usb', address?: string, port?: number): Promise<boolean> => {
+        const testData: ReceiptData = {
+            companyName: 'TEST PRINT',
+            receiptId: 'TEST-001',
+            items: [{ name: 'Test Print', quantity: 1, price: 0, total: 0 }],
+            subtotal: 0,
+            tax: 0,
+            total: 0,
+            paymentMethod: 'test',
+            date: new Date().toLocaleString(),
+            cashierName: 'System Test'
+        };
+
+        const escPosBase64 = await generateEscPosData(testData);
+
+        let result: { success: boolean; error?: string };
+
+        if (type === 'network' && address) {
+            result = await printViaNetwork(address, port || 9100, escPosBase64);
+        } else if (type === 'bluetooth') {
+            if (bluetoothPrinter) {
+                result = await printViaBluetooth(bluetoothPrinter, escPosBase64, testData);
+            } else {
+                result = { success: false, error: 'No bluetooth printer configured' };
+            }
+        } else if (type === 'usb') {
+            if (defaultPrinter) {
+                result = await printViaUsb(defaultPrinter, escPosBase64);
+            } else {
+                result = { success: false, error: 'No USB printer configured' };
+            }
+        } else {
+            result = { success: false, error: 'Invalid printer type' };
+        }
+
+        return result.success;
+    };
+
+    const printToWebDevice = async (html: string): Promise<{ success: boolean; error?: string }> => {
+        try {
+            if (bluetoothPrinter && (navigator as any).bluetooth) {
+                const devices = await (navigator as any).bluetooth.getDevices();
+                const device = devices.find((d: any) => d.id === bluetoothPrinter.address);
+                if (!device) throw new Error('Bluetooth device not found');
+
+                if (!device.gatt.connected) await device.gatt.connect();
+                const service = await device.gatt.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
+                const characteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
+
+                await characteristic.writeValue(new TextEncoder().encode('\x1b\x40\x1b\x61\x01RECEIPT\n\n' + html.replace(/<[^>]*>/g, '') + '\n\n\n\n'));
                 return { success: true };
             }
 
             if (defaultPrinter && (navigator as any).usb && !isElectron) {
-                // WebUSB logic
                 const devices = await (navigator as any).usb.getDevices();
                 const device = devices.find((d: any) => d.productName === defaultPrinter);
                 if (!device) throw new Error('USB device not found');
-                
+
                 await device.open();
                 await device.selectConfiguration(1);
                 await device.claimInterface(0);
-                
-                const encoder = new TextEncoder();
-                await device.transferOut(1, encoder.encode('\x1b\x40\x1b\x61\x01RECEIPT\n\n' + html.replace(/<[^>]*>/g, '') + '\n\n\n\n'));
+
+                await device.transferOut(1, new TextEncoder().encode('\x1b\x40\x1b\x61\x01RECEIPT\n\n' + html.replace(/<[^>]*>/g, '') + '\n\n\n\n'));
                 return { success: true };
             }
 
             return { success: false, error: 'No web-paired printer available' };
         } catch (err: any) {
-            console.error('Web Printing failed:', err);
             return { success: false, error: err.message };
         }
     };
@@ -241,7 +450,10 @@ export function HardwareProvider({ children }: { children: React.ReactNode }) {
             discoverPrinters,
             requestWebUsbPrinter,
             requestWebBluetoothPrinter,
-            printToWebDevice
+            printToWebDevice,
+            printReceipt,
+            testPrinter,
+            generateEscPosData
         }}>
             {children}
         </HardwareContext.Provider>
@@ -254,4 +466,32 @@ export function useHardware() {
         throw new Error('useHardware must be used within a HardwareProvider');
     }
     return context;
+}
+
+function receiptToHtml(data: ReceiptData): string {
+    const itemsHtml = data.items.map(item =>
+        `<div style="display:flex;justify-content:space-between;font-size:11px"><span>${item.quantity}x ${item.name}</span><span>${item.total.toFixed(2)}</span></div>`
+    ).join('');
+
+    return `
+        <div style="font-family:monospace;padding:20px;max-width:300px">
+            <div style="text-align:center"><h2>${data.companyName}</h2></div>
+            <div style="text-align:center">OFFICIAL RECEIPT</div>
+            <div style="text-align:center;font-size:10px">Receipt: ${data.receiptId}<br/>${data.date}</div>
+            <hr/>
+            ${itemsHtml}
+            <hr/>
+            <div style="text-align:right">Subtotal: ${data.subtotal.toFixed(2)}<br/>Tax: ${data.tax.toFixed(2)}<br/><strong>Total: ${data.total.toFixed(2)}</strong></div>
+            <div style="text-align:center;margin-top:10px">Thank you for visiting!<br/>${data.companyName}</div>
+        </div>
+    `;
+}
+
+function base64ToBytes(base64: string): Uint8Array {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
 }

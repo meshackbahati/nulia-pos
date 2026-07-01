@@ -71,6 +71,7 @@
     "clsx": "^2.1.1",
     "decimal.js": "^10.6.0",
     "dexie": "^4.4.2",
+    "esc-pos-encoder": "^3.0.0",
     "jspdf": "^4.1.0",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.563.0",

@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { Printer, RefreshCw, Check, X, Wifi, Bluetooth, Cable, Globe } from 'lucide-react';
+import { Printer, RefreshCw, Check, X, Wifi, Bluetooth, Cable, Globe, TestTube } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useHardware } from '../contexts/HardwareContext';
 
 interface Device {
     name: string;
     address?: string;
+    port?: number;
     type: 'usb' | 'bluetooth' | 'network';
+    displayName?: string;
 }
 
 interface PrinterSetupModalProps {
@@ -16,8 +18,8 @@ interface PrinterSetupModalProps {
 }
 
 export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModalProps) {
-    const { 
-        defaultPrinter, 
+    const {
+        defaultPrinter,
         setDefaultPrinter,
         bluetoothPrinter,
         setBluetoothPrinter,
@@ -26,18 +28,24 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
         paperSize,
         setPaperSize,
         isElectron,
+        isMobile,
         discoverPrinters,
         requestWebUsbPrinter,
-        requestWebBluetoothPrinter
+        requestWebBluetoothPrinter,
+        testPrinter
     } = useHardware();
 
     const [printers, setPrinters] = useState<Device[]>([]);
     const [loading, setLoading] = useState(false);
+    const [testing, setTesting] = useState(false);
     const [manualIp, setManualIp] = useState(networkPrinter?.address || '');
-    const [activeTab, setActiveTab] = useState<'system' | 'bluetooth' | 'network' | 'usb'>(isElectron ? 'system' : 'usb');
+    const [manualPort, setManualPort] = useState(String(networkPrinter?.port || 9100));
+    const [activeTab, setActiveTab] = useState<'system' | 'bluetooth' | 'network' | 'usb'>(isElectron ? 'system' : (Capacitor.isNativePlatform() ? 'bluetooth' : 'usb'));
 
     useEffect(() => {
         if (isOpen) {
+            setManualIp(networkPrinter?.address || '');
+            setManualPort(String(networkPrinter?.port || 9100));
             handleDiscover();
         }
     }, [isOpen, activeTab]);
@@ -47,12 +55,13 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
         try {
             if (activeTab === 'system') {
                 const list = await discoverPrinters();
-                setPrinters(list as any);
+                setPrinters(list);
             } else if (activeTab === 'bluetooth') {
-                const list = await discoverPrinters(); // Now uses BleClient internally
-                setPrinters(list as any);
+                const list = await discoverPrinters();
+                setPrinters(list);
             } else if (activeTab === 'network') {
-                // Network discovery is usually manual IP for thermal printers
+                setPrinters([]);
+            } else {
                 setPrinters([]);
             }
         } catch (err) {
@@ -63,13 +72,84 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
     };
 
     const handleSaveNetwork = () => {
-        if (!manualIp) return;
+        if (!manualIp) {
+            toast.error('Please enter a printer IP address');
+            return;
+        }
+        const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+        if (!ipPattern.test(manualIp)) {
+            toast.error('Invalid IP address format');
+            return;
+        }
+        const port = parseInt(manualPort) || 9100;
         setNetworkPrinter({
-            name: `Network Printer (${manualIp})`,
+            name: `XPrinter (${manualIp}:${port})`,
             address: manualIp,
-            type: 'network'
+            port: port,
+            type: 'network',
+            displayName: `XPrinter @ ${manualIp}:${port}`
         });
-        toast.success('Network printer configured');
+        toast.success(`Network printer configured: ${manualIp}:${port}`);
+    };
+
+    const handleTestNetwork = async () => {
+        if (!networkPrinter?.address) {
+            toast.error('Configure a network printer first');
+            return;
+        }
+        setTesting(true);
+        try {
+            const ok = await testPrinter('network', networkPrinter.address, networkPrinter.port || 9100);
+            if (ok) {
+                toast.success('Test print sent successfully!');
+            } else {
+                toast.error('Test print failed. Check IP, port, and printer status.');
+            }
+        } catch {
+            toast.error('Test print failed');
+        } finally {
+            setTesting(false);
+        }
+    };
+
+    const handleTestBluetooth = async () => {
+        if (!bluetoothPrinter) {
+            toast.error('Configure a Bluetooth printer first');
+            return;
+        }
+        setTesting(true);
+        try {
+            const ok = await testPrinter('bluetooth');
+            if (ok) {
+                toast.success('Test print sent successfully!');
+            } else {
+                toast.error('Test print failed. Check printer connection.');
+            }
+        } catch {
+            toast.error('Test print failed');
+        } finally {
+            setTesting(false);
+        }
+    };
+
+    const handleTestUsb = async () => {
+        if (!defaultPrinter) {
+            toast.error('Configure a USB printer first');
+            return;
+        }
+        setTesting(true);
+        try {
+            const ok = await testPrinter('usb');
+            if (ok) {
+                toast.success('Test print sent successfully!');
+            } else {
+                toast.error('Test print failed. Check printer connection.');
+            }
+        } catch {
+            toast.error('Test print failed');
+        } finally {
+            setTesting(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -86,7 +166,7 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
                         </div>
                         <div>
                             <h2 className="text-lg font-black uppercase tracking-widest text-foreground">Printer Setup</h2>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Hardware Configuration</p>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Network / BLE / USB</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-3 hover:bg-secondary/50 rounded-2xl transition-all"><X className="w-5 h-5" /></button>
@@ -103,12 +183,12 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
                                 <Cable className="w-3 h-3 mx-auto mb-1" /> System
                             </button>
                         )}
-                        {!isElectron && !Capacitor.isNativePlatform() && (
+                        {!isElectron && !isMobile && (
                             <button
                                 onClick={() => setActiveTab('usb')}
                                 className={`flex-1 py-2 text-[8px] font-black uppercase rounded-lg transition-all ${activeTab === 'usb' ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground'}`}
                             >
-                                <Cable className="w-3 h-3 mx-auto mb-1" /> USB (Web)
+                                <Cable className="w-3 h-3 mx-auto mb-1" /> USB
                             </button>
                         )}
                         <button
@@ -130,7 +210,7 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
                         {activeTab === 'network' ? (
                             <div className="space-y-4 animate-in slide-in-from-right-4">
                                 <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest ml-1">Manual IP Assignment (XPrinter)</label>
+                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest ml-1">Printer IP Address (XPrinter / Thermal)</label>
                                     <div className="flex gap-2">
                                         <input
                                             type="text"
@@ -139,13 +219,33 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
                                             placeholder="192.168.1.100"
                                             className="glass-input flex-1 h-12 px-4 text-xs font-bold font-mono tracking-widest focus:ring-primary outline-none"
                                         />
-                                        <button
-                                            onClick={handleSaveNetwork}
-                                            className="w-12 h-12 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/20"
-                                        >
-                                            <Check className="w-5 h-5" />
-                                        </button>
                                     </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest ml-1">Port (Default: 9100)</label>
+                                    <input
+                                        type="number"
+                                        value={manualPort}
+                                        onChange={(e) => setManualPort(e.target.value)}
+                                        placeholder="9100"
+                                        className="glass-input w-full h-12 px-4 text-xs font-bold font-mono focus:ring-primary outline-none"
+                                    />
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleSaveNetwork}
+                                        disabled={!manualIp}
+                                        className="flex-1 h-12 bg-primary text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                                    >
+                                        <Check className="w-4 h-4 inline mr-2" /> Save Printer
+                                    </button>
+                                    <button
+                                        onClick={handleTestNetwork}
+                                        disabled={!networkPrinter || testing}
+                                        className="h-12 px-4 bg-secondary text-foreground rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-primary/20 transition-all disabled:opacity-50 flex items-center gap-2"
+                                    >
+                                        <TestTube className="w-4 h-4" /> {testing ? '...' : 'Test'}
+                                    </button>
                                 </div>
                                 {networkPrinter && (
                                     <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between">
@@ -153,7 +253,7 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
                                             <Wifi className="w-5 h-5 text-primary" />
                                             <div className="text-left">
                                                 <p className="text-[10px] font-black uppercase">{networkPrinter.name}</p>
-                                                <p className="text-[8px] font-bold text-muted-foreground">{networkPrinter.address}</p>
+                                                <p className="text-[8px] font-bold text-muted-foreground">{networkPrinter.address}:{networkPrinter.port || 9100}</p>
                                             </div>
                                         </div>
                                         <Check className="w-5 h-5 text-primary" />
@@ -176,7 +276,7 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
                                     <Cable className="w-6 h-6" />
                                     <span className="text-[10px] font-black uppercase">Pair New USB Printer</span>
                                 </button>
-                                {defaultPrinter && !isElectron && (
+                                {defaultPrinter && (
                                     <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <Cable className="w-5 h-5 text-primary" />
@@ -185,14 +285,101 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
                                                 <p className="text-[8px] font-bold text-muted-foreground">{defaultPrinter}</p>
                                             </div>
                                         </div>
-                                        <Check className="w-5 h-5 text-primary" />
+                                        <button
+                                            onClick={handleTestUsb}
+                                            disabled={testing}
+                                            className="px-3 py-2 bg-primary text-white rounded-lg text-[8px] font-black uppercase hover:scale-105 transition-all disabled:opacity-50 flex items-center gap-1"
+                                        >
+                                            <TestTube className="w-3 h-3" /> Test
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        ) : activeTab === 'bluetooth' ? (
+                            <div className="space-y-4 animate-in fade-in">
+                                <div className="flex items-center justify-between px-1">
+                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Discovered Bluetooth Printers</label>
+                                    <button
+                                        onClick={handleDiscover}
+                                        disabled={loading}
+                                        className="p-1 hover:bg-primary/10 rounded-lg text-primary transition-all disabled:opacity-50"
+                                    >
+                                        <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+                                    </button>
+                                </div>
+
+                                {printers.length === 0 && !isMobile ? (
+                                    <div className="p-8 rounded-2xl border-2 border-dashed border-border text-center opacity-50">
+                                        <Bluetooth className="w-8 h-8 mx-auto mb-2" />
+                                        <p className="text-[10px] font-bold text-muted-foreground uppercase">No Devices found</p>
+                                        <p className="text-[8px] mt-1 italic">Web Bluetooth requires HTTPS</p>
+                                        <button
+                                            onClick={async () => {
+                                                const p = await requestWebBluetoothPrinter();
+                                                if (p) {
+                                                    setPrinters([p]);
+                                                    setBluetoothPrinter(p);
+                                                    toast.success(`Bluetooth Printer Linked: ${p.name}`);
+                                                }
+                                            }}
+                                            className="mt-4 px-4 py-2 bg-primary text-white rounded-lg text-[8px] font-black uppercase shadow-lg shadow-primary/20"
+                                        >
+                                            Pair Bluetooth Device
+                                        </button>
+                                    </div>
+                                ) : printers.length === 0 ? (
+                                    <div className="p-8 rounded-2xl border-2 border-dashed border-border text-center">
+                                        <Bluetooth className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Scanning for printers...</p>
+                                        <p className="text-[8px] mt-1 italic">Ensure printer is on and discoverable</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                                        {printers.map((p) => (
+                                            <button
+                                                key={p.address || p.name}
+                                                onClick={() => {
+                                                    setBluetoothPrinter(p);
+                                                    toast.success(`Bluetooth Printer Selected: ${p.name}`);
+                                                }}
+                                                className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${bluetoothPrinter?.name === p.name ? 'bg-primary/10 border-primary text-primary shadow-lg shadow-primary/10' : 'bg-background border-border text-foreground hover:border-primary/50'}`}
+                                            >
+                                                <div className="flex items-center gap-3 text-left">
+                                                    <Bluetooth className="w-4 h-4" />
+                                                    <div className="text-left">
+                                                        <p className="text-[10px] font-black uppercase truncate max-w-[180px]">{p.name}</p>
+                                                        {p.address && <p className="text-[8px] font-bold opacity-60">{p.address}</p>}
+                                                    </div>
+                                                </div>
+                                                {bluetoothPrinter?.name === p.name && <Check className="w-4 h-4" />}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {bluetoothPrinter && (
+                                    <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <Bluetooth className="w-5 h-5 text-primary" />
+                                            <div className="text-left">
+                                                <p className="text-[10px] font-black uppercase">Active: {bluetoothPrinter.name}</p>
+                                                <p className="text-[8px] font-bold text-muted-foreground">{bluetoothPrinter.address}</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={handleTestBluetooth}
+                                            disabled={testing}
+                                            className="px-3 py-2 bg-primary text-white rounded-lg text-[8px] font-black uppercase hover:scale-105 transition-all disabled:opacity-50 flex items-center gap-1"
+                                        >
+                                            <TestTube className="w-3 h-3" /> Test
+                                        </button>
                                     </div>
                                 )}
                             </div>
                         ) : (
-                            <div className="space-y-2 animate-in fade-in">
+                            <div className="space-y-4 animate-in fade-in">
                                 <div className="flex items-center justify-between px-1">
-                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Discovered Devices</label>
+                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">System Printers</label>
                                     <button
                                         onClick={handleDiscover}
                                         disabled={loading}
@@ -204,44 +391,22 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
 
                                 {printers.length === 0 ? (
                                     <div className="p-8 rounded-2xl border-2 border-dashed border-border text-center opacity-50">
-                                        <Printer className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                                        <p className="text-[10px] font-bold text-muted-foreground uppercase">No Devices found</p>
-                                        <p className="text-[8px] mt-1 italic">Ensure printer is on and discoverable</p>
-                                        {activeTab === 'bluetooth' && !isElectron && !Capacitor.isNativePlatform() && (
-                                            <button
-                                                onClick={async () => {
-                                                    const p = await requestWebBluetoothPrinter();
-                                                    if (p) {
-                                                        setPrinters([p]);
-                                                        setBluetoothPrinter(p as any);
-                                                        toast.success(`Bluetooth Printer Linked: ${p.name}`);
-                                                    }
-                                                }}
-                                                className="mt-4 px-4 py-2 bg-primary text-white rounded-lg text-[8px] font-black uppercase shadow-lg shadow-primary/20"
-                                            >
-                                                Pair Bluetooth Device
-                                            </button>
-                                        )}
+                                        <Printer className="w-8 h-8 mx-auto mb-2" />
+                                        <p className="text-[10px] font-bold text-muted-foreground uppercase">No System Printers Found</p>
                                     </div>
                                 ) : (
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 max-h-48 overflow-y-auto">
                                         {printers.map((p) => (
                                             <button
                                                 key={p.name}
-                                                onClick={() => {
-                                                    if (activeTab === 'system') setDefaultPrinter(p.name);
-                                                    else setBluetoothPrinter(p as any);
-                                                }}
-                                                className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${((activeTab === 'system' && defaultPrinter === p.name) || (activeTab === 'bluetooth' && bluetoothPrinter?.name === p.name)) ? 'bg-primary/10 border-primary text-primary shadow-lg shadow-primary/10' : 'bg-background border-border text-foreground hover:border-primary/50'}`}
+                                                onClick={() => setDefaultPrinter(p.name)}
+                                                className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${defaultPrinter === p.name ? 'bg-primary/10 border-primary text-primary' : 'bg-background border-border text-foreground hover:border-primary/50'}`}
                                             >
                                                 <div className="flex items-center gap-3 text-left">
-                                                    {activeTab === 'bluetooth' ? <Bluetooth className="w-4 h-4" /> : <Printer className="w-4 h-4" />}
-                                                    <div className="text-left">
-                                                        <p className="text-[10px] font-black uppercase truncate max-w-[180px]">{p.name}</p>
-                                                        {p.address && <p className="text-[8px] font-bold opacity-60">{p.address}</p>}
-                                                    </div>
+                                                    <Printer className="w-4 h-4" />
+                                                    <p className="text-[10px] font-black uppercase">{p.name}</p>
                                                 </div>
-                                                {((activeTab === 'system' && defaultPrinter === p.name) || (activeTab === 'bluetooth' && bluetoothPrinter?.name === p.name)) && <Check className="w-4 h-4" />}
+                                                {defaultPrinter === p.name && <Check className="w-4 h-4" />}
                                             </button>
                                         ))}
                                     </div>

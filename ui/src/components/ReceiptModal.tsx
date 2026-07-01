@@ -72,10 +72,12 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
     const { 
         defaultPrinter, 
         bluetoothPrinter,
+        networkPrinter,
         paperSize, 
         isElectron: isHardwareElectron, 
         isMobile: isHardwareMobile,
-        printToWebDevice
+        printToWebDevice,
+        printReceipt
     } = useHardware();
 
 
@@ -347,9 +349,36 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
                 window.print();
             }
         } else if (isHardwareMobile) {
-            handleShare();
+            const receiptData = {
+                companyName,
+                receiptId: sale?.receiptId || 'N/A',
+                items: (sale?.items || []).map(item => ({
+                    name: item.productName || item.name || '',
+                    quantity: item.quantity,
+                    price: item.unitPrice || item.price || 0,
+                    total: (item.unitPrice || item.price || 0) * item.quantity
+                })),
+                subtotal: sale?.subtotal || 0,
+                tax: sale?.tax || 0,
+                total: sale?.total || sale?.totalAmount || 0,
+                paymentMethod: sale?.paymentMethod || 'cash',
+                date: sale?.createdAt ? new Date(sale.createdAt).toLocaleString() : new Date().toLocaleString(),
+                cashierName: sale?.user ? `${sale.user.firstName} ${sale.user.lastName}` : undefined
+            };
+
+            if (networkPrinter || bluetoothPrinter || defaultPrinter) {
+                toast.loading('Printing receipt...', { id: 'print-toast' });
+                const result = await printReceipt(receiptData);
+                if (result.success) {
+                    toast.success('Printed successfully!', { id: 'print-toast' });
+                } else {
+                    toast.error(result.error || 'Print failed, using share', { id: 'print-toast' });
+                    handleShare();
+                }
+            } else {
+                handleShare();
+            }
         } else {
-            // Check if we have a web-paired printer
             if (defaultPrinter || bluetoothPrinter) {
                 toast.loading('Sending to web printer...', { id: 'web-print' });
                 const result = await printToWebDevice(getReceiptHTML());
