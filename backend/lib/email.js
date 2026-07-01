@@ -84,13 +84,17 @@ class EmailService {
     }
   }
 
-  async sendReceiptEmail(data) {
+  async sendReceiptEmail(data, attachmentPath) {
     const html = this.generateReceiptHTML(data);
 
     return this.sendEmail({
       to: data.customerEmail,
       subject: `Receipt #${data.receiptId} - ${data.branchName}`,
       html,
+      attachments: attachmentPath ? [{
+        filename: `Receipt_${data.receiptId.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`,
+        path: attachmentPath,
+      }] : [],
     });
   }
 
@@ -146,6 +150,61 @@ class EmailService {
         filename: `Hosting_Invoice_${invoiceData.month.replace(/\s+/g, '_')}.pdf`,
         path: attachmentPath
       }] : []
+    });
+  }
+
+  async sendUserWelcomeEmail(email, password, userData) {
+    const roleLabels = {
+      admin: 'Administrator',
+      manager: 'Manager',
+      head_of_sales: 'Head of Sales',
+      salesperson: 'Sales Person',
+    };
+    const roleLabel = roleLabels[userData.role] || userData.role;
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Welcome to RetailPro</title>
+        <style>
+          body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { text-align: center; border-bottom: 2px solid #3b82f6; padding-bottom: 20px; margin-bottom: 20px; }
+          .details { background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+          .label { color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+          .value { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Welcome to RetailPro</h1>
+          <p>Your account has been created</p>
+        </div>
+        <p>Hi ${userData.firstName || 'User'},</p>
+        <p>An account has been created for you on the RetailPro POS system. Here are your login details:</p>
+        <div class="details">
+          <div class="label">Role</div>
+          <div class="value">${roleLabel}</div>
+          <div class="label">Branch</div>
+          <div class="value">${userData.branchName || 'N/A'}</div>
+          <div class="label">Email</div>
+          <div class="value">${email}</div>
+          <div class="label">Password</div>
+          <div class="value">${password}</div>
+        </div>
+        <p>Please log in and change your password at your earliest convenience.</p>
+        <div class="footer">
+          <p>RetailPro POS — Automated Account Notification</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: `Welcome to RetailPro — ${roleLabel} at ${userData.branchName || 'N/A'}`,
+      html,
     });
   }
 
@@ -271,7 +330,7 @@ class EmailService {
   }
 
   generateReceiptHTML(data) {
-    const currency = data.transactionCurrency || (data.branchName.includes('KES') ? 'KES' : 'USD');
+    const currency = data.transactionCurrency || 'USD';
     const symbol = data.transactionCurrencySymbol || currency;
     const format = (amt) => {
         const separator = symbol.length > 1 ? ' ' : '';

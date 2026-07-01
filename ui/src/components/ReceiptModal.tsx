@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Decimal } from 'decimal.js';
-import { X, Download, Printer, Mail, FileText, Share2 } from 'lucide-react';
+import { X, Download, Printer, Mail, FileText, Share2, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
@@ -388,13 +388,15 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
             toast.error('Cannot email receipt - sale ID not found');
             return;
         }
+        const toastId = 'email-receipt';
+        toast.loading('Sending receipt email...', { id: toastId });
         setSending(true);
         try {
             await api.emailReceipt(sale.id, customerEmail);
-            toast.success(`Receipt emailed to ${customerEmail}`);
+            toast.success(`Receipt emailed to ${customerEmail}`, { id: toastId });
             setCustomerEmail('');
         } catch (error) {
-            toast.error('Failed to send email');
+            toast.error('Failed to send email', { id: toastId });
         } finally {
             setSending(false);
         }
@@ -504,7 +506,7 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
                             disabled={sending || !customerEmail}
                             className="bg-primary text-primary-foreground w-12 h-12 rounded-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center shadow-lg shadow-primary/20"
                         >
-                            <Mail className="w-5 h-5" />
+                            {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mail className="w-5 h-5" />}
                         </button>
                     </div>
                 </div>

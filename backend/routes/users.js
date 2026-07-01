@@ -1,6 +1,7 @@
 import express from 'express';
 import models from '../models/index.js';
 import { authenticate, authorize } from '../lib/auth.js';
+import emailService from '../lib/email.js';
 
 const router = express.Router();
 
@@ -49,6 +50,8 @@ router.get('/list', authenticate, async (req, res) => {
 // Create user
 router.post('/create', authenticate, authorize('head_of_sales'), async (req, res) => {
     try {
+        const userPlainPassword = req.body.password;
+
         const userData = {
             ...req.body,
             createdBy: req.user.userId
@@ -82,6 +85,14 @@ router.post('/create', authenticate, authorize('head_of_sales'), async (req, res
         }
 
         const user = await models.User.create(userData);
+
+        // Send welcome email with login details
+        const branch = await models.Branch.findByPk(user.branchId);
+        emailService.sendUserWelcomeEmail(user.email, userPlainPassword, {
+            firstName: user.firstName,
+            role: user.role,
+            branchName: branch ? branch.name : 'N/A',
+        });
 
         // Remove password from response
         const userObj = user.toJSON();

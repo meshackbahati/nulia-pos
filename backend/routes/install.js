@@ -1,5 +1,6 @@
 import express from 'express';
 import models, { sequelize } from '../models/index.js';
+import emailService from '../lib/email.js';
 
 const router = express.Router();
 
@@ -53,6 +54,8 @@ router.post('/setup', async (req, res) => {
             email: branch.email || admin.email
         }, { transaction: t });
 
+        const adminPassword = admin.password;
+
         // Create admin user
         const newAdmin = await models.User.create({
             ...admin,
@@ -62,6 +65,13 @@ router.post('/setup', async (req, res) => {
         }, { transaction: t });
 
         await t.commit();
+
+        // Send welcome email to the new admin
+        emailService.sendUserWelcomeEmail(newAdmin.email, adminPassword, {
+            firstName: newAdmin.firstName,
+            role: 'admin',
+            branchName: newBranch.name,
+        });
 
         res.json({
             success: true,
