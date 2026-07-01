@@ -336,17 +336,53 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
 
     const handlePrint = async () => {
         if (isHardwareElectron && (window as any).electronAPI) {
-            toast.loading('Sending to printer...', { id: 'print-toast' });
-            try {
-                const result = await (window as any).electronAPI.printReceiptHTML(getReceiptHTML(), {
-                    printerName: defaultPrinter || undefined,
-                    paperSize: paperSize
-                });
-                if (result.success) toast.success('Printing...', { id: 'print-toast' });
-                else throw new Error(result.error);
-            } catch (err: any) {
-                toast.error('Printer link failed, using system print', { id: 'print-toast' });
-                window.print();
+            if (bluetoothPrinter) {
+                const receiptData = {
+                    companyName,
+                    receiptId: sale?.receiptId || 'N/A',
+                    items: (sale?.items || []).map(item => ({
+                        name: item.productName || item.name || '',
+                        quantity: item.quantity,
+                        price: item.unitPrice || item.price || 0,
+                        total: (item.unitPrice || item.price || 0) * item.quantity
+                    })),
+                    subtotal: sale?.subtotal || 0,
+                    tax: sale?.tax || 0,
+                    total: sale?.total || sale?.totalAmount || 0,
+                    paymentMethod: sale?.paymentMethod || 'cash',
+                    date: sale?.createdAt ? new Date(sale.createdAt).toLocaleString() : new Date().toLocaleString(),
+                    cashierName: sale?.user ? `${sale.user.firstName} ${sale.user.lastName}` : undefined
+                };
+                toast.loading('Sending to BLE printer...', { id: 'print-toast' });
+                const result = await printReceipt(receiptData);
+                if (result.success) {
+                    toast.success('Printed successfully!', { id: 'print-toast' });
+                } else {
+                    toast.error(result.error || 'BLE print failed, trying system print', { id: 'print-toast' });
+                    try {
+                        const r = await (window as any).electronAPI.printReceiptHTML(getReceiptHTML(), {
+                            printerName: defaultPrinter || undefined,
+                            paperSize
+                        });
+                        if (r.success) toast.success('Printed via system!', { id: 'print-toast' });
+                        else throw new Error(r.error);
+                    } catch {
+                        window.print();
+                    }
+                }
+            } else {
+                toast.loading('Sending to printer...', { id: 'print-toast' });
+                try {
+                    const result = await (window as any).electronAPI.printReceiptHTML(getReceiptHTML(), {
+                        printerName: defaultPrinter || undefined,
+                        paperSize: paperSize
+                    });
+                    if (result.success) toast.success('Printing...', { id: 'print-toast' });
+                    else throw new Error(result.error);
+                } catch (err: any) {
+                    toast.error('Printer link failed, using system print', { id: 'print-toast' });
+                    window.print();
+                }
             }
         } else if (isHardwareMobile) {
             const receiptData = {

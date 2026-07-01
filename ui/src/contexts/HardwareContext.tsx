@@ -188,29 +188,52 @@ export function HardwareProvider({ children }: { children: React.ReactNode }) {
         return btoa(binary);
     }, [paperSize]);
 
+    const isPrinterName = (name: string) => {
+        const lower = name.toLowerCase();
+        return lower.includes('printer') || lower.includes('pos') || lower.includes('thermal') || lower.includes('xprinter') || lower.includes('receipt') || lower.includes('star') || lower.includes('epson') || lower.includes('bixolon') || lower.includes('zjiang');
+    };
+
     const discoverPrinters = async (): Promise<PrinterDevice[]> => {
+        const devices: PrinterDevice[] = [];
+
         if (isElectron) {
             try {
                 const list = await (window as any).electronAPI.getPrinters();
-                return list.map((p: any) => ({
+                list.map((p: any) => devices.push({
                     name: p.name,
                     type: 'usb' as const,
                     displayName: p.name
                 }));
             } catch (err) {
-                console.error('Electron printer discovery failed:', err);
-                return [];
+                console.error('Electron system printer discovery failed:', err);
+            }
+        }
+
+        if (isElectron || !isMobile) {
+            try {
+                if ((navigator as any).bluetooth && typeof (navigator as any).bluetooth.getDevices === 'function') {
+                    const paired = await (navigator as any).bluetooth.getDevices();
+                    for (const d of paired) {
+                        if (isPrinterName(d.name || '')) {
+                            devices.push({
+                                name: d.name || 'BLE Printer',
+                                address: d.id,
+                                type: 'bluetooth',
+                                displayName: d.name
+                            });
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('Web Bluetooth getDevices failed:', err);
             }
         }
 
         if (isMobile) {
-            const devices: PrinterDevice[] = [];
-
             try {
                 await BleClient.requestLEScan({}, (result) => {
                     const name = result.device.name || '';
-                    const lower = name.toLowerCase();
-                    if (lower.includes('printer') || lower.includes('pos') || lower.includes('thermal') || lower.includes('xprinter') || lower.includes('receipt') || lower.includes('star') || lower.includes('epson') || lower.includes('bixolon') || lower.includes('zjiang')) {
+                    if (isPrinterName(name) && !devices.find(d => d.address === result.device.deviceId)) {
                         devices.push({
                             name,
                             address: result.device.deviceId,
@@ -225,11 +248,9 @@ export function HardwareProvider({ children }: { children: React.ReactNode }) {
             } catch (err) {
                 console.warn('BLE scan failed:', err);
             }
-
-            return Array.from(new Map(devices.map(d => [d.address, d])).values());
         }
 
-        return [];
+        return Array.from(new Map(devices.map(d => [d.address || d.name, d])).values());
     };
 
     const requestWebUsbPrinter = async (): Promise<PrinterDevice | null> => {
