@@ -50,14 +50,20 @@ export async function sendEmail(options) {
  * Generate HTML receipt template
  */
 export function generateReceiptHTML(data) {
+    const currency = data.transactionCurrency || 'USD';
+    const symbols = { KES: 'KSh', UGX: 'UGX', TZS: 'TZS', USD: '$', EUR: '€', GBP: '£' };
+    const symbol = symbols[currency] || currency;
+    const separator = symbol.length > 1 ? ' ' : '';
+    const fmt = (amt) => `${symbol}${separator}${amt.toFixed(2)}`;
+
     const itemsHTML = data.items
         .map(
             (item) => `
         <tr>
             <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${item.name}</td>
             <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${item.price.toFixed(2)}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: bold;">$${(item.price * item.quantity).toFixed(2)}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${fmt(item.price)}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: bold;">${fmt(item.price * item.quantity)}</td>
         </tr>
     `
         )
@@ -101,15 +107,15 @@ export function generateReceiptHTML(data) {
         <div style="border-top: 2px solid #e5e7eb; padding-top: 15px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                 <span>Subtotal:</span>
-                <span>$${data.subtotal.toFixed(2)}</span>
+                <span>${fmt(data.subtotal)}</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                 <span>Tax:</span>
-                <span>$${data.tax.toFixed(2)}</span>
+                <span>${fmt(data.tax)}</span>
             </div>
             <div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 2px solid #e5e7eb; font-size: 18px; font-weight: bold;">
                 <span>Total:</span>
-                <span style="color: #3b82f6;">$${data.total.toFixed(2)}</span>
+                <span style="color: #3b82f6;">${fmt(data.total)}</span>
             </div>
             <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
                 <div style="display: flex; justify-content: space-between;">

@@ -21,7 +21,8 @@ router.post('/email', authenticate, async (req, res) => {
         if (!sale) return res.status(404).json({ error: 'Sale not found' });
 
         const transCurrency = sale.transactionCurrency || sale.branch.currency || 'USD';
-        const currencySymbol = sale.branch.currencySymbol || transCurrency;
+        const getSymbol = (code) => ({ KES: 'KSh', UGX: 'UGX', TZS: 'TZS', USD: '$', EUR: '€', GBP: '£' })[code] || code;
+        const currencySymbol = getSymbol(transCurrency);
         const separator = currencySymbol.length > 1 ? ' ' : '';
         const formatFn = (amt) => `${currencySymbol}${separator}${amt.toFixed(2)}`;
 
