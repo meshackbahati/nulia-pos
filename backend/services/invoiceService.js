@@ -1,7 +1,12 @@
 import pdfkit from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
+
+const TMP_DIR = path.join(process.cwd(), 'tmp');
+
+if (!fs.existsSync(TMP_DIR)) {
+  fs.mkdirSync(TMP_DIR, { recursive: true });
+}
 
 class InvoiceService {
   /**
@@ -9,8 +14,7 @@ class InvoiceService {
    */
   async generateHostingInvoicePDF(invoiceData) {
     const fileName = `Hosting_Invoice_${invoiceData.month.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
-    const tempDir = os.tmpdir();
-    const filePath = path.join(tempDir, fileName);
+    const filePath = path.join(TMP_DIR, fileName);
 
     return new Promise((resolve, reject) => {
       const doc = new pdfkit({
@@ -105,8 +109,7 @@ class InvoiceService {
    */
   async generateReceiptPDF(saleData) {
     const fileName = `Receipt_${saleData.receiptId.replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}.pdf`;
-    const tempDir = os.tmpdir();
-    const filePath = path.join(tempDir, fileName);
+    const filePath = path.join(TMP_DIR, fileName);
 
     return new Promise((resolve, reject) => {
       const doc = new pdfkit({ size: 'A4', margin: 50 });

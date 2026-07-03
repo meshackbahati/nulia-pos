@@ -38,6 +38,9 @@ Thumbs.db
 .idea/
 *.sublime-*
 
+# Ignore temporary generated files
+tmp/
+
 # Ignore test coverage
 coverage/
 .nyc_output/

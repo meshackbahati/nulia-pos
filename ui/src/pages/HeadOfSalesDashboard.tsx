@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import CurrencyBreakdownWidget from '../components/CurrencyBreakdownWidget';
 
 interface TeamStats {
     totalSales: number;
@@ -140,6 +141,9 @@ export default function HeadOfSalesDashboard() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Currency Performance */}
+            <CurrencyBreakdownWidget />
 
             {/* Sales Leaderboard */}
             <Card>

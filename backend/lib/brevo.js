@@ -8,11 +8,7 @@ export async function sendEmail(options) {
                 name: options.senderName,
                 email: options.senderEmail,
             },
-            to: [
-                {
-                    email: options.to,
-                },
-            ],
+            to: (Array.isArray(options.to) ? options.to : String(options.to).split(',').map(e => e.trim())).map(email => ({ email })),
             subject: options.subject,
             htmlContent: options.htmlContent,
         };

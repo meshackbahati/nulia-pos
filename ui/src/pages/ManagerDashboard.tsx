@@ -16,6 +16,7 @@ import {
   Scan,
   Truck
 } from 'lucide-react';
+import CurrencyBreakdownWidget from '../components/CurrencyBreakdownWidget';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useCurrency } from '../hooks/useCurrency';
@@ -209,6 +210,28 @@ export function ManagerDashboard() {
             </p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Currency Performance */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <CurrencyBreakdownWidget />
+        </div>
+        <div className="lg:col-span-1">
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-primary" />
+                Base Currency
+              </CardTitle>
+              <CardDescription>Sales stored in KES</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center h-32">
+              <p className="text-3xl font-bold text-primary">KES</p>
+              <p className="text-xs text-muted-foreground mt-1">All amounts stored in Kenyan Shillings</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Quick Actions */}

@@ -137,6 +137,7 @@ export const api = {
     getSalesLeaderboard: (params: any) => apiClient.get('/analytics/leaderboard', { params }),
     getBranchLeaderboard: (params: any) => apiClient.get('/analytics/branch-leaderboard', { params }),
     getSalesTrends: (params: any) => apiClient.get('/analytics/trends', { params }),
+    getCurrencyBreakdown: (params?: any) => apiClient.get('/analytics/currency-breakdown', { params }),
 
     // Generic
     get: (url: string, params?: any) => apiClient.get(url, { params }),

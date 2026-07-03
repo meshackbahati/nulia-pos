@@ -516,4 +516,78 @@ router.get('/trends', authenticate, async (req, res) => {
     }
 });
 
+// Currency breakdown — totals per transaction currency for comparison
+router.get('/currency-breakdown', authenticate, async (req, res) => {
+    try {
+        let branchId;
+        if (req.user.role === 'admin') {
+            branchId = req.query.scope === 'all' ? null : req.user.branchId;
+        } else {
+            branchId = req.user.branchId;
+        }
+
+        const dateRange = req.query.period ? getDateRange(req.query.period) : null;
+
+        const where = dateRange ? { createdAt: dateRange } : {};
+        if (branchId) where.branchId = branchId;
+
+        // Get branch default currency for null transactionCurrency
+        const branch = branchId ? await models.Branch.findByPk(branchId, { attributes: ['currency'] }) : null;
+        const defaultCurrency = branch?.currency || 'KES';
+
+        // Per-currency breakdown
+        const currencies = await models.Sale.findAll({
+            attributes: [
+                'transactionCurrency',
+                [sequelize.fn('COUNT', sequelize.col('id')), 'saleCount'],
+                [sequelize.fn('SUM', sequelize.col('totalAmount')), 'baseTotal'],
+                [sequelize.fn('SUM', sequelize.literal('"Sale"."totalAmount" * COALESCE("Sale"."transactionExchangeRate", 1)')), 'displayTotal'],
+            ],
+            where,
+            group: ['transactionCurrency'],
+            raw: true,
+        });
+
+        // Grand total in base currency
+        const grandTotal = await models.Sale.findOne({
+            attributes: [
+                [sequelize.fn('COUNT', sequelize.col('id')), 'totalSales'],
+                [sequelize.fn('SUM', sequelize.col('totalAmount')), 'totalBaseRevenue'],
+            ],
+            where,
+        });
+
+        const totalSales = Number(grandTotal?.dataValues?.totalSales || 0);
+        const totalBaseRevenue = Number(grandTotal?.dataValues?.totalBaseRevenue || 0);
+
+        const getSymbol = (code) => ({ KES: 'KSh', UGX: 'UGX', TZS: 'TZS', USD: '$', EUR: '€', GBP: '£' })[code] || code;
+
+        const formatted = (currencies || []).map(c => {
+            const baseTotal = Number(c.baseTotal) || 0;
+            const displayTotal = Number(c.displayTotal) || 0;
+            return {
+                currency: c.transactionCurrency || defaultCurrency,
+                symbol: getSymbol(c.transactionCurrency || defaultCurrency),
+                saleCount: Number(c.saleCount) || 0,
+                baseTotal,
+                displayTotal,
+                percentageOfTotal: totalBaseRevenue > 0 ? ((baseTotal / totalBaseRevenue) * 100).toFixed(1) : 0,
+            };
+        });
+
+        // Sort by baseTotal descending
+        formatted.sort((a, b) => b.baseTotal - a.baseTotal);
+
+        res.json({
+            currencies: formatted,
+            totalSales,
+            totalBaseRevenue,
+            totalSymbol: getSymbol('KES'),
+        });
+    } catch (error) {
+        console.error('Currency breakdown error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;
