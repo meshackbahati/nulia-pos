@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Warehouse, Plus, MapPin } from 'lucide-react';
+import { Warehouse, Plus, MapPin, Trash2 } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
+import CustomModal from '../components/CustomModal';
 
 export default function WarehousesPage() {
     const [warehouses, setWarehouses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreate, setShowCreate] = useState(false);
     const [showZone, setShowZone] = useState<{ wh: any } | null>(null);
+    const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
     const [form, setForm] = useState({ name: '', location: '' });
     const [zoneForm, setZoneForm] = useState({ name: '', code: '' });
 
@@ -40,6 +42,15 @@ export default function WarehousesPage() {
             setZoneForm({ name: '', code: '' });
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+    }
+
+    async function deleteWarehouse(id: string) {
+        try {
+            await api.delete(`/warehouses/${id}`);
+            toast.success('Warehouse deleted');
+            setConfirmDelete(null);
+            load();
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Delete failed'); }
     }
 
     return (
@@ -77,6 +88,9 @@ export default function WarehousesPage() {
                                         {w.location && <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />{w.location}</p>}
                                     </div>
                                 </div>
+                                <button onClick={() => setConfirmDelete(w.id)} className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all" title="Delete">
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
                             </div>
 
                             <div className="flex items-center justify-between mb-2">
@@ -117,6 +131,19 @@ export default function WarehousesPage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Delete Confirmation */}
+            {confirmDelete && (
+                <CustomModal
+                    isOpen={true}
+                    onClose={() => setConfirmDelete(null)}
+                    type="confirm"
+                    title="Delete Warehouse?"
+                    message="This will permanently remove this warehouse and all its zones. Inventory assigned to it will not be deleted."
+                    onConfirm={() => deleteWarehouse(confirmDelete)}
+                    onCancel={() => setConfirmDelete(null)}
+                />
             )}
 
             {/* Add Zone Modal */}

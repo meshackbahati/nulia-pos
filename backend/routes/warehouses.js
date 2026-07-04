@@ -109,6 +109,24 @@ router.delete('/zones/:id', authenticate, authorize('admin'), async (req, res) =
 
 /**
  * @openapi
+ * /api/warehouses/{id}:
+ *   delete:
+ *     tags: [Warehouses]
+ *     summary: Delete a warehouse
+ */
+router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const warehouse = await models.Warehouse.findByPk(req.params.id);
+        if (!warehouse) return res.status(404).json({ error: 'Warehouse not found' });
+        await warehouse.destroy();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @openapi
  * /api/warehouses/inventory:
  *   get:
  *     tags: [Warehouses]
