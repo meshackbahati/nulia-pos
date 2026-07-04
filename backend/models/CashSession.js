@@ -57,6 +57,7 @@ class CashSession extends Model {
             },
             {
                 sequelize,
+                timestamps: false,
                 modelName: 'CashSession',
                 tableName: 'cash_sessions',
                 indexes: [

@@ -56,6 +56,7 @@ class ReturnItem extends Model {
             },
             {
                 sequelize,
+                timestamps: false,
                 modelName: 'ReturnItem',
                 tableName: 'return_items',
                 indexes: [

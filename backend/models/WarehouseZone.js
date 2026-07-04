@@ -28,6 +28,7 @@ class WarehouseZone extends Model {
                 sequelize,
                 modelName: 'WarehouseZone',
                 tableName: 'warehouse_zones',
+                timestamps: false,
                 indexes: [{ fields: ['warehouseId'] }],
             }
         );
