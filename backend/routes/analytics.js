@@ -7,6 +7,8 @@ const router = express.Router();
 
 // Helper to get date range
 const getDateRange = (period) => {
+    if (period === 'all') return null;
+
     let startDate = new Date();
     startDate.setHours(0, 0, 0, 0);
 

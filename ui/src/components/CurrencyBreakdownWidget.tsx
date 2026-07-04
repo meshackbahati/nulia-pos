@@ -34,7 +34,7 @@ export default function CurrencyBreakdownWidget() {
             setLoading(true);
             const params: any = { period };
             if (user?.role !== 'admin') params.scope = 'branch';
-            const res = await api.get('/analytics/currency-breakdown', { params });
+            const res = await api.get('/analytics/currency-breakdown', params);
             setData(res.data);
         } catch (err) {
             console.error('Currency breakdown load error:', err);

@@ -71,7 +71,7 @@ export default function CashManagementPage() {
 
     async function getActiveSession(registerId: string) {
         try {
-            const res = await api.get('/cash/session/active', { params: { registerId } });
+            const res = await api.get('/cash/session/active', { registerId });
             return res.data.session;
         } catch { return null; }
     }

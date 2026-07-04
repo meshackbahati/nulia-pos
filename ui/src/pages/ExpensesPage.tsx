@@ -19,7 +19,7 @@ export default function ExpensesPage() {
         setLoading(true);
         try {
             const [expRes, sumRes] = await Promise.all([
-                api.get('/expenses', { params: { category: filter || undefined } }),
+                api.get('/expenses', { category: filter || undefined }),
                 api.get('/expenses/summary'),
             ]);
             setExpenses(expRes.data.expenses || []);

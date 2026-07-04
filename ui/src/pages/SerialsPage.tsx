@@ -20,7 +20,7 @@ export default function SerialsPage() {
             const params: any = {};
             if (statusFilter) params.status = statusFilter;
             if (search) params.search = search;
-            const res = await api.get('/serials', { params });
+            const res = await api.get('/serials', params);
             setSerials(res.data.serialNumbers || []);
         } catch { } finally { setLoading(false); }
     }
@@ -28,7 +28,7 @@ export default function SerialsPage() {
     function searchProduct(q: string) {
         setRegisterForm({ ...registerForm, productSearch: q });
         if (q.length < 2) { setProductResults([]); return; }
-        api.get('/products/search', { params: { q } }).then(res => {
+        api.get('/products/search', { q }).then(res => {
             setProductResults(res.data.products || res.data.results || []);
         }).catch(() => setProductResults([]));
     }

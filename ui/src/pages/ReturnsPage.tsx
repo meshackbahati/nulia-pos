@@ -18,7 +18,7 @@ export default function ReturnsPage() {
     async function load() {
         setLoading(true);
         try {
-            const res = await api.get('/returns', { params: { status: filter || undefined } });
+            const res = await api.get('/returns', { status: filter || undefined });
             setReturns(res.data.returns || []);
         } catch { } finally { setLoading(false); }
     }
@@ -28,7 +28,7 @@ export default function ReturnsPage() {
         setSearching(true);
         setSaleResult(null);
         try {
-            const res = await api.get('/sales/search', { params: { query: saleSearch } });
+            const res = await api.get('/sales/search', { query: saleSearch });
             const sales = res.data.sales || res.data.results || [];
             if (sales.length === 0) { toast.error('No sale found'); return; }
             const sale = sales[0];

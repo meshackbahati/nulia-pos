@@ -32,7 +32,7 @@ export default function WastePage() {
         setForm({ ...form, productSearch: q });
         if (q.length < 2) { setProductResults([]); return; }
         try {
-            const res = await api.get('/products/search', { params: { q } });
+            const res = await api.get('/products/search', { q });
             setProductResults(res.data.products || res.data.results || []);
         } catch { setProductResults([]); }
     }
