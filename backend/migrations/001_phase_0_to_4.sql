@@ -331,7 +331,7 @@ CREATE TABLE IF NOT EXISTS integrations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "branchId" UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
-    provider VARCHAR(50) NOT NULL CHECK (provider IN ('quickbooks','zoho_books','sage','xero','shopify','woocommerce','custom')),
+    provider VARCHAR(50) NOT NULL CHECK (provider IN ('quickbooks','shopify','custom')),
     config JSONB,
     "isActive" BOOLEAN DEFAULT true,
     "lastSyncAt" TIMESTAMPTZ,

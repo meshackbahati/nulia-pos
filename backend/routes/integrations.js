@@ -169,11 +169,7 @@ router.get('/providers', authenticate, async (req, res) => {
     res.json({
         providers: [
             { id: 'quickbooks', name: 'QuickBooks Online', type: 'accounting' },
-            { id: 'zoho_books', name: 'Zoho Books', type: 'accounting' },
-            { id: 'sage', name: 'Sage', type: 'accounting' },
-            { id: 'xero', name: 'Xero', type: 'accounting' },
             { id: 'shopify', name: 'Shopify', type: 'ecommerce' },
-            { id: 'woocommerce', name: 'WooCommerce', type: 'ecommerce' },
             { id: 'custom', name: 'Custom Webhook', type: 'custom' },
         ],
     });
