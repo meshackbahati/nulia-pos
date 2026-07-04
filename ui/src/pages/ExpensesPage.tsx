@@ -3,6 +3,7 @@ import { Plus, ReceiptText, TrendingDown } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import LoadingButton from '../components/LoadingButton';
+import { useLock } from '../lib/useLock';
 
 const CATEGORIES = ['utilities', 'rent', 'salaries', 'supplies', 'maintenance', 'transport', 'marketing', 'other'];
 
@@ -12,7 +13,6 @@ export default function ExpensesPage() {
     const [loading, setLoading] = useState(true);
     const [showCreate, setShowCreate] = useState(false);
     const [filter, setFilter] = useState('');
-    const [submitting, setSubmitting] = useState(false);
     const [form, setForm] = useState({ category: 'other', amount: '', description: '', paidAt: new Date().toISOString().split('T')[0] });
 
     useEffect(() => { load(); }, []);
@@ -29,9 +29,8 @@ export default function ExpensesPage() {
         } catch { } finally { setLoading(false); }
     }
 
-    async function handleCreate() {
+    const [handleCreateExpense, isCreatingExpense] = useLock(async () => {
         if (!form.amount || parseFloat(form.amount) <= 0) { toast.error('Valid amount required'); return; }
-        setSubmitting(true);
         try {
             await api.post('/expenses', {
                 category: form.category,
@@ -44,8 +43,7 @@ export default function ExpensesPage() {
             setForm({ category: 'other', amount: '', description: '', paidAt: new Date().toISOString().split('T')[0] });
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
-        finally { setSubmitting(false); }
-    }
+    });
 
     return (
         <div className="space-y-6">
@@ -153,7 +151,7 @@ export default function ExpensesPage() {
                             </div>
                             <div className="flex gap-3 pt-2">
                                 <LoadingButton onClick={() => setShowCreate(false)} variant="secondary">Cancel</LoadingButton>
-                                <LoadingButton onClick={handleCreate} loading={submitting}>Save</LoadingButton>
+                                <LoadingButton onClick={handleCreateExpense} loading={isCreatingExpense}>Save</LoadingButton>
                             </div>
                         </div>
                     </div>

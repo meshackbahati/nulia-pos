@@ -3,6 +3,7 @@ import { RotateCcw, CheckCircle, XCircle, AlertTriangle, RefreshCw } from 'lucid
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import LoadingButton from '../components/LoadingButton';
+import { useLock } from '../lib/useLock';
 
 export default function ReturnsPage() {
     const [returns, setReturns] = useState<any[]>([]);
@@ -11,8 +12,6 @@ export default function ReturnsPage() {
     const [showCreate, setShowCreate] = useState(false);
     const [saleSearch, setSaleSearch] = useState('');
     const [saleResult, setSaleResult] = useState<any | null>(null);
-    const [searching, setSearching] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
     const [createForm, setCreateForm] = useState({ saleId: '', reason: 'defective', notes: '', items: [] as any[] });
 
     useEffect(() => { load(); }, []);
@@ -25,9 +24,8 @@ export default function ReturnsPage() {
         } catch { } finally { setLoading(false); }
     }
 
-    async function searchSale() {
+    const [handleSearchSale, searching] = useLock(async () => {
         if (!saleSearch) return;
-        setSearching(true);
         setSaleResult(null);
         try {
             const res = await api.get('/sales/search', { query: saleSearch });
@@ -38,10 +36,10 @@ export default function ReturnsPage() {
             setSaleResult(detail.data.sale || detail.data);
         } catch (e: any) {
             toast.error('Sale not found');
-        } finally { setSearching(false); }
-    }
+        }
+    });
 
-    async function handleCreate() {
+    const [handleCreateReturn, isCreatingReturn] = useLock(async () => {
         if (!saleResult) { toast.error('Search and select a sale first'); return; }
         const items = (saleResult.items || []).map((i: any) => ({
             saleItemId: i.id,
@@ -49,7 +47,6 @@ export default function ReturnsPage() {
             refundAmount: i.totalPrice,
             restock: true,
         }));
-        setSubmitting(true);
         try {
             const res = await api.post('/returns', {
                 saleId: saleResult.id,
@@ -65,18 +62,24 @@ export default function ReturnsPage() {
             load();
         } catch (e: any) {
             toast.error(e?.response?.data?.error || 'Failed to create return');
-        } finally {
-            setSubmitting(false);
         }
-    }
+    });
 
-    async function handleApprove(id: string, approved: boolean) {
+    const [handleApproveItem, approving] = useLock(async (id: string) => {
         try {
-            await api.post(`/returns/${id}/approve`, { approved });
-            toast.success(approved ? 'Return approved' : 'Return rejected');
+            await api.post(`/returns/${id}/approve`, { approved: true });
+            toast.success('Return approved');
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
-    }
+    });
+
+    const [handleRejectItem, rejecting] = useLock(async (id: string) => {
+        try {
+            await api.post(`/returns/${id}/approve`, { approved: false });
+            toast.success('Return rejected');
+            load();
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+    });
 
     const statusIcon = (s: string) => {
         if (s === 'approved') return <CheckCircle className="w-4 h-4 text-emerald-500" />;
@@ -140,8 +143,8 @@ export default function ReturnsPage() {
                                 <div className="flex items-center gap-2">
                                     {r.status === 'pending' && (
                                         <>
-                                            <button onClick={() => handleApprove(r.id, true)} className="px-3 py-1.5 bg-emerald-500/20 text-emerald-500 rounded-lg text-[10px] font-black uppercase tracking-wider">Approve</button>
-                                            <button onClick={() => handleApprove(r.id, false)} className="px-3 py-1.5 bg-red-500/20 text-red-500 rounded-lg text-[10px] font-black uppercase tracking-wider">Reject</button>
+                                            <button onClick={() => handleApproveItem(r.id)} disabled={approving} className="px-3 py-1.5 bg-emerald-500/20 text-emerald-500 rounded-lg text-[10px] font-black uppercase tracking-wider disabled:opacity-50">Approve</button>
+                                            <button onClick={() => handleRejectItem(r.id)} disabled={rejecting} className="px-3 py-1.5 bg-red-500/20 text-red-500 rounded-lg text-[10px] font-black uppercase tracking-wider disabled:opacity-50">Reject</button>
                                         </>
                                     )}
                                 </div>
@@ -179,7 +182,7 @@ export default function ReturnsPage() {
                                     <input value={saleSearch} onChange={e => setSaleSearch(e.target.value)}
                                         className="flex-1 px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary"
                                         placeholder="Receipt ID or phone..." />
-                                    <button onClick={searchSale} disabled={searching}
+                                    <button onClick={handleSearchSale} disabled={searching}
                                         className="px-4 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase tracking-wider">
                                         {searching ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Search'}
                                     </button>
@@ -215,7 +218,7 @@ export default function ReturnsPage() {
 
                             <div className="flex gap-3 pt-2">
                                 <LoadingButton onClick={() => setShowCreate(false)} variant="secondary">Cancel</LoadingButton>
-                                <LoadingButton onClick={handleCreate} loading={submitting} disabled={!saleResult}>Process Return</LoadingButton>
+                                <LoadingButton onClick={handleCreateReturn} loading={isCreatingReturn} disabled={!saleResult}>Process Return</LoadingButton>
                             </div>
                         </div>
                     </div>

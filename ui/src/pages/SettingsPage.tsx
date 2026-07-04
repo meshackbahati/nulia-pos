@@ -9,6 +9,7 @@ import { useHardware } from '../contexts/HardwareContext';
 import PrinterSetupModal from '../components/PrinterSetupModal';
 import CustomModal from '../components/CustomModal';
 import { Printer as PrinterIcon } from 'lucide-react';
+import { useLock } from '../lib/useLock';
 
 export default function SettingsPage() {
     const { user } = useAuth();
@@ -77,7 +78,7 @@ export default function SettingsPage() {
         }
     };
 
-    const handleAddRate = async () => {
+    const [handleAddRateSafe, isAddingRate] = useLock(async () => {
         if (!newRate.rate) return;
         try {
             await api.post('/exchange-rates/update', {
@@ -91,7 +92,7 @@ export default function SettingsPage() {
         } catch (error) {
             toast.error('Failed to update rate');
         }
-    };
+    });
 
     const fetchSettings = async () => {
         try {
@@ -129,23 +130,23 @@ export default function SettingsPage() {
         }
     };
 
-    const handleClearSales = async () => {
+    const [handleClearSalesSafe, _isClearingSales] = useLock(async () => {
         try {
             await api.clearSales();
             toast.success('All sales records have been cleared');
         } catch (error) {
             toast.error('Failed to clear sales records');
         }
-    };
+    });
 
-    const handleClearProducts = async () => {
+    const [handleClearProductsSafe, _isClearingProducts] = useLock(async () => {
         try {
             await api.clearProducts();
             toast.success('All products and inventory have been cleared');
         } catch (error) {
             toast.error('Failed to clear product records');
         }
-    };
+    });
 
     if (loading) {
         return (
@@ -280,7 +281,7 @@ export default function SettingsPage() {
                                                 <input type="number" step="0.0001" className="glass-input h-10 w-full px-3 text-xs font-bold" value={newRate.rate} onChange={(e) => setNewRate({ ...newRate, rate: e.target.value })} placeholder="e.g. 30.00" />
                                             </div>
                                         </div>
-                                        <button type="button" onClick={handleAddRate} className="h-10 px-4 bg-primary text-primary-foreground rounded-xl font-bold text-[10px] uppercase">Authorize</button>
+                                        <button type="button" onClick={handleAddRateSafe} disabled={isAddingRate} className="h-10 px-4 bg-primary text-primary-foreground rounded-xl font-bold text-[10px] uppercase disabled:opacity-50">Authorize</button>
                                     </div>
                                     
                                     {newRate.rate && (
@@ -508,7 +509,7 @@ export default function SettingsPage() {
                 message="CRITICAL ACTION: This will permanently delete ALL transaction and payment records. Are you absolutely sure? This cannot be undone."
                 confirmText="Delete All Sales"
                 cancelText="Cancel"
-                onConfirm={handleClearSales}
+                onConfirm={handleClearSalesSafe}
                 onCancel={() => setConfirmClearSales(false)}
                 onClose={() => setConfirmClearSales(false)}
             />
@@ -520,7 +521,7 @@ export default function SettingsPage() {
                 message="CRITICAL ACTION: This will permanently delete ALL products and inventory. This cannot be undone. Proceed?"
                 confirmText="Delete All Products"
                 cancelText="Cancel"
-                onConfirm={handleClearProducts}
+                onConfirm={handleClearProductsSafe}
                 onCancel={() => setConfirmClearProducts(false)}
                 onClose={() => setConfirmClearProducts(false)}
             />
@@ -545,7 +546,7 @@ function TaxRatesSection() {
         } catch { } finally { setLoading(false); }
     }
 
-    async function handleAdd() {
+    const [handleAddTax, isAddingTax] = useLock(async () => {
         if (!form.name || !form.rate) { toast.error('Name and rate required'); return; }
         try {
             await api.post('/tax-rates', { ...form, rate: parseFloat(form.rate) });
@@ -554,15 +555,15 @@ function TaxRatesSection() {
             setForm({ name: '', rate: '', type: 'exclusive', isDefault: false });
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
-    }
+    });
 
-    async function handleDelete(id: string) {
+    const [handleDeleteTax, isDeletingTax] = useLock(async (id: string) => {
         try {
             await api.delete(`/tax-rates/${id}`);
             toast.success('Tax rate deleted');
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
-    }
+    });
 
     return (
         <div>
@@ -582,7 +583,7 @@ function TaxRatesSection() {
                                 <p className="text-[9px] text-muted-foreground">{r.type} {r.isDefault ? '— Default' : ''}</p>
                             </div>
                         </div>
-                        <button onClick={() => handleDelete(r.id)} className="text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg text-[9px]">Delete</button>
+                        <button onClick={() => handleDeleteTax(r.id)} disabled={isDeletingTax} className="text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg text-[9px] disabled:opacity-50">Delete</button>
                     </div>
                 ))}
                 {!loading && rates.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-4">No tax rates. Add one above.</p>}
@@ -608,7 +609,7 @@ function TaxRatesSection() {
                             </label>
                             <div className="flex gap-3 pt-2">
                                 <button onClick={() => setShowAdd(false)} className="flex-1 px-4 py-3 bg-secondary/30 rounded-xl text-xs font-black uppercase">Cancel</button>
-                                <button onClick={handleAdd} className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase">Add</button>
+                                <button onClick={handleAddTax} disabled={isAddingTax} className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase disabled:opacity-50">Add</button>
                             </div>
                         </div>
                     </div>
@@ -640,7 +641,7 @@ function WebhooksSection() {
         } catch { } finally { setLoading(false); }
     }
 
-    async function handleAdd() {
+    const [handleAddWebhook, isAddingWebhook] = useLock(async () => {
         if (!form.name || !form.url || form.events.length === 0) {
             toast.error('Name, URL, and at least one event required');
             return;
@@ -652,22 +653,22 @@ function WebhooksSection() {
             setForm({ name: '', url: '', events: [], secret: '' });
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
-    }
+    });
 
-    async function handleDelete(id: string) {
+    const [handleDeleteWebhook, isDeletingWebhook] = useLock(async (id: string) => {
         try {
             await api.delete(`/webhooks/${id}`);
             toast.success('Webhook deleted');
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
-    }
+    });
 
-    async function handleTest(id: string) {
+    const [handleTestWebhook, isTestingWebhook] = useLock(async (id: string) => {
         try {
             await api.post(`/webhooks/${id}/test`);
             toast.success('Test webhook sent');
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
-    }
+    });
 
     function toggleEvent(event: string) {
         setForm(f => ({
@@ -703,10 +704,10 @@ function WebhooksSection() {
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button onClick={() => handleTest(w.id)} className="p-1.5 bg-secondary/30 rounded-lg hover:bg-secondary/50 text-[9px]">
+                            <button onClick={() => handleTestWebhook(w.id)} disabled={isTestingWebhook} className="p-1.5 bg-secondary/30 rounded-lg hover:bg-secondary/50 text-[9px] disabled:opacity-50">
                                 <RefreshCw className="w-3 h-3" />
                             </button>
-                            <button onClick={() => handleDelete(w.id)} className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 text-[9px]">Delete</button>
+                            <button onClick={() => handleDeleteWebhook(w.id)} disabled={isDeletingWebhook} className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 text-[9px] disabled:opacity-50">Delete</button>
                         </div>
                     </div>
                 ))}
@@ -737,7 +738,7 @@ function WebhooksSection() {
                             </div>
                             <div className="flex gap-3 pt-2">
                                 <button onClick={() => setShowAdd(false)} className="flex-1 px-4 py-3 bg-secondary/30 rounded-xl text-xs font-black uppercase">Cancel</button>
-                                <button onClick={handleAdd} className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase">Create</button>
+                                <button onClick={handleAddWebhook} disabled={isAddingWebhook} className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase disabled:opacity-50">Create</button>
                             </div>
                         </div>
                     </div>

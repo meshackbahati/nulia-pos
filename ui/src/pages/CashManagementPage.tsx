@@ -3,6 +3,7 @@ import { DollarSign, Plus, Play } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import LoadingButton from '../components/LoadingButton';
+import { useLock } from '../lib/useLock';
 
 export default function CashManagementPage() {
     const [registers, setRegisters] = useState<any[]>([]);
@@ -14,7 +15,6 @@ export default function CashManagementPage() {
     const [showOpen, setShowOpen] = useState(false);
     const [showClose, setShowClose] = useState<any>(null);
     const [openForm, setOpenForm] = useState({ registerId: '', openingBalance: '' });
-    const [submitting, setSubmitting] = useState(false);
     const [closeForm, setCloseForm] = useState({ closingBalance: '' });
 
     useEffect(() => { load(); }, []);
@@ -31,9 +31,8 @@ export default function CashManagementPage() {
         } catch { } finally { setLoading(false); }
     }
 
-    async function createRegister() {
+    const [handleCreateRegister, isCreatingRegister] = useLock(async () => {
         if (!registerName) { toast.error('Name required'); return; }
-        setSubmitting(true);
         try {
             await api.post('/cash/register', { name: registerName });
             toast.success('Register created');
@@ -41,12 +40,10 @@ export default function CashManagementPage() {
             setRegisterName('');
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
-        finally { setSubmitting(false); }
-    }
+    });
 
-    async function openSession() {
+    const [handleOpenSession, isOpening] = useLock(async () => {
         if (!openForm.registerId || !openForm.openingBalance) { toast.error('All fields required'); return; }
-        setSubmitting(true);
         try {
             await api.post('/cash/session/open', {
                 registerId: openForm.registerId,
@@ -57,12 +54,10 @@ export default function CashManagementPage() {
             setOpenForm({ registerId: '', openingBalance: '' });
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
-        finally { setSubmitting(false); }
-    }
+    });
 
-    async function closeSession() {
+    const [handleCloseSession, isClosing] = useLock(async () => {
         if (!closeForm.closingBalance) { toast.error('Closing balance required'); return; }
-        setSubmitting(true);
         try {
             const res = await api.post('/cash/session/close', {
                 sessionId: showClose.id,
@@ -74,15 +69,23 @@ export default function CashManagementPage() {
             setCloseForm({ closingBalance: '' });
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
-        finally { setSubmitting(false); }
-    }
+    });
 
-    async function getActiveSession(registerId: string) {
+    const [handleToggleSession, isToggling] = useLock(async (reg: any) => {
         try {
-            const res = await api.get('/cash/session/active', { registerId });
-            return res.data.session;
-        } catch { return null; }
-    }
+            const res = await api.get('/cash/session/active', { registerId: reg.id });
+            const session = res.data.session;
+            if (session) {
+                setShowClose(session);
+            } else {
+                setShowOpen(true);
+                setOpenForm({ ...openForm, registerId: reg.id });
+            }
+        } catch {
+            setShowOpen(true);
+            setOpenForm({ ...openForm, registerId: reg.id });
+        }
+    });
 
     return (
         <div className="space-y-6">
@@ -129,15 +132,7 @@ export default function CashManagementPage() {
                                 </span>
                             </div>
                             <div className="flex gap-2">
-                                <button onClick={async () => {
-                                    const session = await getActiveSession(reg.id);
-                                    if (session) {
-                                        setShowClose(session);
-                                    } else {
-                                        setShowOpen(true);
-                                        setOpenForm({ ...openForm, registerId: reg.id });
-                                    }
-                                }} className="flex-1 px-4 py-2 bg-secondary/30 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-secondary/50 transition-all">
+                                <button onClick={() => handleToggleSession(reg)} disabled={isToggling} className="flex-1 px-4 py-2 bg-secondary/30 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-secondary/50 transition-all disabled:opacity-50">
                                     {reg.activeSession ? 'Close' : 'Open'} Session
                                 </button>
                             </div>
@@ -199,7 +194,7 @@ export default function CashManagementPage() {
                             placeholder="Till 1, Main Register..." />
                         <div className="flex gap-3">
                             <LoadingButton onClick={() => setShowRegister(false)} variant="secondary">Cancel</LoadingButton>
-                            <LoadingButton onClick={createRegister} loading={submitting}>Create Register</LoadingButton>
+                            <LoadingButton onClick={handleCreateRegister} loading={isCreatingRegister}>Create Register</LoadingButton>
                         </div>
                     </div>
                 </div>
@@ -228,7 +223,7 @@ export default function CashManagementPage() {
                             </div>
                             <div className="flex gap-3 pt-2">
                                 <LoadingButton onClick={() => setShowOpen(false)} variant="secondary">Cancel</LoadingButton>
-                                <LoadingButton onClick={openSession} loading={submitting} className="bg-emerald-500 text-white hover:bg-emerald-600">Open Session</LoadingButton>
+                                <LoadingButton onClick={handleOpenSession} loading={isOpening} className="bg-emerald-500 text-white hover:bg-emerald-600">Open Session</LoadingButton>
                             </div>
                         </div>
                     </div>
@@ -248,7 +243,7 @@ export default function CashManagementPage() {
                         </div>
                         <div className="flex gap-3 pt-4">
                             <LoadingButton onClick={() => setShowClose(null)} variant="secondary">Cancel</LoadingButton>
-                            <LoadingButton onClick={closeSession} loading={submitting} variant="danger" className="bg-red-500 text-white hover:bg-red-600">Close Session</LoadingButton>
+                            <LoadingButton onClick={handleCloseSession} loading={isClosing} variant="danger" className="bg-red-500 text-white hover:bg-red-600">Close Session</LoadingButton>
                         </div>
                     </div>
                 </div>

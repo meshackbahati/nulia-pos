@@ -3,6 +3,7 @@ import { Search, UserPlus, Phone, Mail, CreditCard, Calendar, DollarSign } from 
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import LoadingButton from '../components/LoadingButton';
+import { useLock } from '../lib/useLock';
 
 export default function CustomersPage() {
     const [customers, setCustomers] = useState<any[]>([]);
@@ -14,7 +15,6 @@ export default function CustomersPage() {
     const [showDeposit, setShowDeposit] = useState(false);
     const [depositAmount, setDepositAmount] = useState('');
     const [depositType, setDepositType] = useState('deposit');
-    const [submitting, setSubmitting] = useState(false);
     const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', email: '', idNumber: '', creditLimit: '' });
 
     useEffect(() => { load(); }, []);
@@ -27,17 +27,16 @@ export default function CustomersPage() {
         } catch { } finally { setLoading(false); }
     }
 
-    async function selectCustomer(c: any) {
+    const [handleSelectCustomer, _isSelectingCustomer] = useLock(async (c: any) => {
         setSelected(c);
         try {
             const res = await api.get(`/customers/${c.id}`);
             setSales(res.data.sales || []);
         } catch { }
-    }
+    });
 
-    async function handleCreate() {
+    const [handleCreateSafe, isCreating] = useLock(async () => {
         if (!form.firstName) { toast.error('First name is required'); return; }
-        setSubmitting(true);
         try {
             await api.post('/customers', form);
             toast.success('Customer created');
@@ -45,12 +44,10 @@ export default function CustomersPage() {
             setForm({ firstName: '', lastName: '', phone: '', email: '', idNumber: '', creditLimit: '' });
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
-        finally { setSubmitting(false); }
-    }
+    });
 
-    async function handleDeposit() {
+    const [handleDepositSafe, isDepositing] = useLock(async () => {
         if (!depositAmount || !depositType) { toast.error('Amount and type required'); return; }
-        setSubmitting(true);
         try {
             await api.post(`/customers/${selected?.id}/deposit`, {
                 amount: parseFloat(depositAmount), type: depositType,
@@ -58,10 +55,9 @@ export default function CustomersPage() {
             toast.success('Deposit recorded');
             setShowDeposit(false);
             setDepositAmount('');
-            selectCustomer(selected);
+            handleSelectCustomer(selected);
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
-        finally { setSubmitting(false); }
-    }
+    });
 
     const filtered = customers.filter((c: any) =>
         !search || `${c.firstName} ${c.lastName || ''} ${c.phone || ''} ${c.email || ''}`.toLowerCase().includes(search.toLowerCase())
@@ -92,7 +88,7 @@ export default function CustomersPage() {
                     ) : filtered.length === 0 ? (
                         <p className="text-center text-muted-foreground text-sm py-10">No customers found</p>
                     ) : filtered.map((c: any) => (
-                        <div key={c.id} onClick={() => selectCustomer(c)}
+                        <div key={c.id} onClick={() => handleSelectCustomer(c)}
                             className={`glass-card rounded-xl p-4 cursor-pointer transition-all hover:border-primary/30 ${selected?.id === c.id ? 'border-primary/50 bg-primary/5' : ''}`}>
                             <div className="flex items-center justify-between">
                                 <div>
@@ -202,7 +198,7 @@ export default function CustomersPage() {
                             </div>
                             <div className="flex gap-3 pt-2">
                                 <LoadingButton onClick={() => setShowCreate(false)} variant="secondary">Cancel</LoadingButton>
-                                <LoadingButton onClick={handleCreate} loading={submitting}>Create Customer</LoadingButton>
+                                <LoadingButton onClick={handleCreateSafe} loading={isCreating}>Create Customer</LoadingButton>
                             </div>
                         </div>
                     </div>
@@ -233,7 +229,7 @@ export default function CustomersPage() {
                             </div>
                             <div className="flex gap-3 pt-2">
                                 <LoadingButton onClick={() => setShowDeposit(false)} variant="secondary">Cancel</LoadingButton>
-                                <LoadingButton onClick={handleDeposit} loading={submitting}>Add Deposit</LoadingButton>
+                                <LoadingButton onClick={handleDepositSafe} loading={isDepositing}>Add Deposit</LoadingButton>
                             </div>
                         </div>
                     </div>

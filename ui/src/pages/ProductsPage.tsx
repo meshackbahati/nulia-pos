@@ -12,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useModal } from '../contexts/ModalContext';
 import { useSocket } from '../hooks/useSocket';
 import useScanDetection from '../hooks/useScanDetection';
+import { useLock } from '../lib/useLock';
 
 interface Product {
     id: string;
@@ -94,7 +95,7 @@ export default function ProductsPage() {
         }
     };
 
-    const handleCSVImport = async (file: File) => {
+    const [handleCSVImportSafe, _isImporting] = useLock(async (file: File) => {
         const branchId = selectedImportBranch;
         if (!branchId) {
             toast.error('Please select a target hub for import first');
@@ -119,7 +120,7 @@ export default function ProductsPage() {
         } catch (error: any) {
             toast.error(error.response?.data?.error || 'Failed to import products', { id: 'csv-import' });
         }
-    };
+    });
 
     const fetchProducts = async () => {
         try {
@@ -133,22 +134,24 @@ export default function ProductsPage() {
         }
     };
 
-    const handleDelete = async (product: Product) => {
+    const [handleDeleteProduct, _isDeletingProduct] = useLock(async (product: Product) => {
+        try {
+            await api.deleteProduct(product.id);
+            setProducts(products.filter((p) => p.id !== product.id));
+            toast.success('Product deleted successfully');
+        } catch (error) {
+            console.error('Error deleting product:', error);
+            toast.error('Failed to delete product');
+        }
+    });
+
+    const handleDelete = (product: Product) => {
         showConfirm({
             title: 'Delete Product',
             message: `Are you sure you want to delete ${product.name}? This action will mark the product as inactive and it will no longer appear in the POS or inventory lists.`,
             type: 'error',
             confirmText: 'Yes, Delete',
-            onConfirm: async () => {
-                try {
-                    await api.deleteProduct(product.id);
-                    setProducts(products.filter((p) => p.id !== product.id));
-                    toast.success('Product deleted successfully');
-                } catch (error) {
-                    console.error('Error deleting product:', error);
-                    toast.error('Failed to delete product');
-                }
-            }
+            onConfirm: () => handleDeleteProduct(product),
         });
     };
 
@@ -231,7 +234,7 @@ export default function ProductsPage() {
                             ref={fileInputRef}
                             onChange={(e) => {
                                 const file = e.target.files?.[0];
-                                if (file) handleCSVImport(file);
+                                if (file) handleCSVImportSafe(file);
                             }}
                             className="hidden"
                             accept=".csv"

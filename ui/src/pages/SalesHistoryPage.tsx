@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import ReceiptModal from '../components/ReceiptModal';
 import SaleEditModal from '../components/SaleEditModal';
 import CustomModal from '../components/CustomModal';
+import { useLock } from '../lib/useLock';
 
 export default function SalesHistoryPage() {
     const { formatPrice } = useCurrency();
@@ -33,21 +34,17 @@ export default function SalesHistoryPage() {
     // Edit/Delete state
     const [editingSale, setEditingSale] = useState<any>(null);
     const [showEditModal, setShowEditModal] = useState(false);
-    const [deletingId, setDeletingId] = useState<string | null>(null);
     const [confirmDeleteSaleId, setConfirmDeleteSaleId] = useState<string | null>(null);
 
-    const handleDeleteSale = async (saleId: string) => {
-        setDeletingId(saleId);
+    const [handleDeleteSaleSafe, isDeletingSale] = useLock(async (saleId: string) => {
         try {
             await api.deleteSale(saleId);
             toast.success('Sale voided successfully');
             fetchSales();
         } catch (error: any) {
             toast.error(error.response?.data?.error || 'Failed to void sale');
-        } finally {
-            setDeletingId(null);
         }
-    };
+    });
 
     const handleEditSale = (sale: any) => {
         setEditingSale(sale);
@@ -109,7 +106,7 @@ export default function SalesHistoryPage() {
         setCurrentPage(1);
     };
 
-    const viewSaleDetails = async (saleId: string) => {
+    const [handleViewDetails, viewingDetails] = useLock(async (saleId: string) => {
         try {
             const response = await api.getSale(saleId);
             setSelectedSale(response.data.sale);
@@ -118,7 +115,7 @@ export default function SalesHistoryPage() {
             console.error('Error fetching sale:', error);
             toast.error('Failed to load sale details');
         }
-    };
+    });
 
     const handleExportCSV = () => {
         if (sales.length === 0) {
@@ -333,20 +330,22 @@ export default function SalesHistoryPage() {
                                             </td>
                                              <td className="px-6 py-4">
                                                  <div className="flex items-center gap-2">
-                                                     <button
-                                                         onClick={() => viewSaleDetails(sale.id)}
-                                                         className="p-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-all"
-                                                         title="View & Reprint"
-                                                     >
-                                                         <Eye className="w-4 h-4" />
-                                                     </button>
-                                                     <button
-                                                         onClick={() => viewSaleDetails(sale.id)}
-                                                         className="p-2 bg-secondary/30 text-foreground rounded-lg hover:bg-secondary/50 transition-all"
-                                                         title="Print Receipt"
-                                                     >
-                                                         <Printer className="w-4 h-4" />
-                                                     </button>
+                                                      <button
+                                                          onClick={() => handleViewDetails(sale.id)}
+                                                          disabled={viewingDetails}
+                                                          className="p-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-all disabled:opacity-50"
+                                                          title="View & Reprint"
+                                                      >
+                                                          <Eye className="w-4 h-4" />
+                                                      </button>
+                                                      <button
+                                                          onClick={() => handleViewDetails(sale.id)}
+                                                          disabled={viewingDetails}
+                                                          className="p-2 bg-secondary/30 text-foreground rounded-lg hover:bg-secondary/50 transition-all disabled:opacity-50"
+                                                          title="Print Receipt"
+                                                      >
+                                                          <Printer className="w-4 h-4" />
+                                                      </button>
                                                      {canEditSales && (
                                                          <>
                                                              <button
@@ -356,14 +355,14 @@ export default function SalesHistoryPage() {
                                                              >
                                                                  <Edit className="w-4 h-4" />
                                                              </button>
-                                                             <button
-                                                                 onClick={() => setConfirmDeleteSaleId(sale.id)}
-                                                                 disabled={deletingId === sale.id}
-                                                                 className="p-2 bg-destructive/10 text-destructive rounded-lg hover:bg-destructive/20 transition-all disabled:opacity-50"
-                                                                 title="Void Sale"
-                                                             >
-                                                                 <Trash2 className="w-4 h-4" />
-                                                             </button>
+                                                              <button
+                                                                  onClick={() => setConfirmDeleteSaleId(sale.id)}
+                                                                  disabled={isDeletingSale}
+                                                                  className="p-2 bg-destructive/10 text-destructive rounded-lg hover:bg-destructive/20 transition-all disabled:opacity-50"
+                                                                  title="Void Sale"
+                                                              >
+                                                                  <Trash2 className="w-4 h-4" />
+                                                              </button>
                                                          </>
                                                      )}
                                                  </div>
@@ -395,8 +394,9 @@ export default function SalesHistoryPage() {
                                     </div>
                                     <div className="flex gap-2 pt-2 border-t border-border/30">
                                         <button
-                                            onClick={() => viewSaleDetails(sale.id)}
-                                            className="flex-1 flex items-center justify-center gap-2 py-2 bg-primary/10 text-primary rounded-lg text-[10px] font-black uppercase tracking-wider"
+                                            onClick={() => handleViewDetails(sale.id)}
+                                            disabled={viewingDetails}
+                                            className="flex-1 flex items-center justify-center gap-2 py-2 bg-primary/10 text-primary rounded-lg text-[10px] font-black uppercase tracking-wider disabled:opacity-50"
                                         >
                                             <Eye className="w-3.5 h-3.5" /> View & Reprint
                                         </button>
@@ -410,7 +410,7 @@ export default function SalesHistoryPage() {
                                                 </button>
                                                 <button
                                                     onClick={() => setConfirmDeleteSaleId(sale.id)}
-                                                    disabled={deletingId === sale.id}
+                                                    disabled={isDeletingSale}
                                                     className="flex items-center justify-center gap-1 p-2 bg-destructive/10 text-destructive rounded-lg text-[10px] font-black uppercase tracking-wider disabled:opacity-50"
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" />
@@ -484,7 +484,7 @@ export default function SalesHistoryPage() {
                 confirmText="Void Sale"
                 cancelText="Cancel"
                 onConfirm={() => {
-                    if (confirmDeleteSaleId) handleDeleteSale(confirmDeleteSaleId);
+                    if (confirmDeleteSaleId) handleDeleteSaleSafe(confirmDeleteSaleId);
                 }}
                 onCancel={() => setConfirmDeleteSaleId(null)}
                 onClose={() => setConfirmDeleteSaleId(null)}
