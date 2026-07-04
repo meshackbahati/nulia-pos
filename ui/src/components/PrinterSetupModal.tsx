@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { Printer, RefreshCw, Check, X, Wifi, Bluetooth, Cable, Globe, TestTube } from 'lucide-react';
+import { Printer, RefreshCw, Check, X, Wifi, Bluetooth, Cable, Globe, TestTube, Plug } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useHardware } from '../contexts/HardwareContext';
+import { testTcpConnection } from '../plugins/tcp-printer';
 
 interface Device {
     name: string;
@@ -41,6 +42,8 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
     const [manualIp, setManualIp] = useState(networkPrinter?.address || '');
     const [manualPort, setManualPort] = useState(String(networkPrinter?.port || 9100));
     const [activeTab, setActiveTab] = useState<'system' | 'bluetooth' | 'network' | 'usb'>(isElectron ? 'system' : (Capacitor.isNativePlatform() ? 'bluetooth' : 'usb'));
+    const [checkingConnection, setCheckingConnection] = useState(false);
+    const [connectionResult, setConnectionResult] = useState<{ reachable: boolean; error?: string; connectTimeMs?: number } | null>(null);
 
     useEffect(() => {
         if (isOpen) {
@@ -109,6 +112,29 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
             toast.error('Test print failed');
         } finally {
             setTesting(false);
+        }
+    };
+
+    const handleCheckConnection = async () => {
+        if (!networkPrinter?.address) {
+            toast.error('Configure a network printer first');
+            return;
+        }
+        setCheckingConnection(true);
+        setConnectionResult(null);
+        try {
+            const res = await testTcpConnection(networkPrinter.address, networkPrinter.port || 9100);
+            setConnectionResult(res);
+            if (res.reachable) {
+                toast.success(`Printer reachable (${res.connectTimeMs}ms)`);
+            } else {
+                toast.error(res.error || 'Printer not reachable');
+            }
+        } catch {
+            setConnectionResult({ reachable: false, error: 'Connection check failed' });
+            toast.error('Connection check failed');
+        } finally {
+            setCheckingConnection(false);
         }
     };
 
@@ -248,15 +274,36 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
                                     </button>
                                 </div>
                                 {networkPrinter && (
-                                    <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <Wifi className="w-5 h-5 text-primary" />
-                                            <div className="text-left">
-                                                <p className="text-[10px] font-black uppercase">{networkPrinter.name}</p>
-                                                <p className="text-[8px] font-bold text-muted-foreground">{networkPrinter.address}:{networkPrinter.port || 9100}</p>
+                                    <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-3">
+                                                <Wifi className="w-5 h-5 text-primary" />
+                                                <div className="text-left">
+                                                    <p className="text-[10px] font-black uppercase">{networkPrinter.name}</p>
+                                                    <p className="text-[8px] font-bold text-muted-foreground">{networkPrinter.address}:{networkPrinter.port || 9100}</p>
+                                                </div>
                                             </div>
+                                            <Check className="w-5 h-5 text-primary" />
                                         </div>
-                                        <Check className="w-5 h-5 text-primary" />
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={handleCheckConnection}
+                                                disabled={checkingConnection}
+                                                className="flex-1 h-8 bg-secondary/50 rounded-lg text-[8px] font-black uppercase tracking-wider hover:bg-secondary transition-all disabled:opacity-50 flex items-center justify-center gap-1"
+                                            >
+                                                <Plug className="w-3 h-3" />
+                                                {checkingConnection ? 'Checking...' : 'Check Connection'}
+                                            </button>
+                                        </div>
+                                        {connectionResult && (
+                                            <div className={`mt-2 px-3 py-2 rounded-lg text-[9px] font-bold flex items-center gap-2 ${connectionResult.reachable ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
+                                                {connectionResult.reachable ? (
+                                                    <>Printer reachable in {connectionResult.connectTimeMs}ms</>
+                                                ) : (
+                                                    <>{connectionResult.error}</>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

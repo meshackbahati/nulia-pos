@@ -184,7 +184,11 @@ export function HardwareProvider({ children }: { children: React.ReactNode }) {
 
     const generateEscPosData = useCallback(async (receiptData: ReceiptData): Promise<string> => {
         const bytes = generateEscPosBytes(receiptData, paperSize);
-        const binary = String.fromCharCode(...new Uint8Array(bytes));
+        const uint8 = new Uint8Array(bytes);
+        let binary = '';
+        for (let i = 0; i < uint8.length; i++) {
+            binary += String.fromCharCode(uint8[i]);
+        }
         return btoa(binary);
     }, [paperSize]);
 
