@@ -367,7 +367,7 @@ router.post('/create', authenticate, async (req, res) => {
             saleId: sale.id,
             receiptId: sale.receiptId,
             totalAmount: finalTotal,
-            paymentMethod: paymentMethod,
+            paymentMethod: sale.paymentMethod,
             itemCount: sale.items?.length || 0,
         }, branchId, io);
 

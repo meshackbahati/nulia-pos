@@ -82,9 +82,9 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
 
     useEffect(() => {
         if (autoPrint && isHardwareElectron !== undefined) {
-            const timer = setTimeout(() => {
-                handlePrint();
-            }, 1000); // Small delay to ensure everything is rendered
+            const timer = setTimeout(async () => {
+                try { await handlePrint(); } catch {}
+            }, 1000);
             return () => clearTimeout(timer);
         }
     }, [autoPrint, isHardwareElectron, defaultPrinter]);
@@ -357,12 +357,16 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
 
         if (networkPrinter || bluetoothPrinter || defaultPrinter) {
             toast.loading('Printing receipt...', { id: 'print-toast' });
-            const result = await printReceipt(receiptData);
-            if (result.success) {
-                toast.success('Printed successfully!', { id: 'print-toast' });
-                return;
+            try {
+                const result = await printReceipt(receiptData);
+                if (result.success) {
+                    toast.success('Printed successfully!', { id: 'print-toast' });
+                    return;
+                }
+                toast.error(result.error || 'Print failed', { id: 'print-toast' });
+            } catch {
+                toast.error('Print error', { id: 'print-toast' });
             }
-            toast.error(result.error || 'Print failed', { id: 'print-toast' });
         }
 
         if (isHardwareElectron && (window as any).electronAPI) {
