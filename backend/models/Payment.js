@@ -100,6 +100,16 @@ class Payment extends Model {
                     type: DataTypes.JSONB,
                     allowNull: true,
                 },
+                customerId: {
+                    type: DataTypes.UUID,
+                    allowNull: true,
+                    references: { model: 'customers', key: 'id' },
+                },
+                depositId: {
+                    type: DataTypes.UUID,
+                    allowNull: true,
+                    references: { model: 'customer_deposits', key: 'id' },
+                },
                 processedAt: {
                     type: DataTypes.DATE,
                     allowNull: true,

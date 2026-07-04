@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ChevronDown, MapPin, Globe, Check } from 'lucide-react';
 import api from '../lib/api-client';
 import { useAuth } from '../contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 interface Branch {
     id: string;
@@ -46,7 +47,7 @@ export default function BranchSelector() {
             window.location.reload();
         } catch (error: any) {
             console.error('Failed to switch branch:', error);
-            alert(error.message || 'Failed to switch branch');
+            toast.error(error.message || 'Failed to switch branch');
         }
     };
 

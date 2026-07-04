@@ -16,7 +16,15 @@ import {
     ShieldCheck,
     ChevronLeft,
     ChevronRight,
-    History
+    History,
+    Plug,
+    RotateCcw,
+    DollarSign,
+    ReceiptText,
+    Trash2,
+    QrCode,
+    Warehouse,
+    UserCircle
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ThemeToggle from './ThemeToggle';
@@ -51,6 +59,14 @@ export default function Layout({ children, noScroll = false }: LayoutProps) {
         { label: 'Suppliers', icon: Truck, path: '/manager/suppliers' },
         { label: 'People', icon: Users, path: '/users' },
         { label: 'Analytics', icon: TrendingUp, path: '/analytics' },
+        { label: 'Customers', icon: UserCircle, path: '/customers' },
+        { label: 'Returns', icon: RotateCcw, path: '/returns' },
+        { label: 'Expenses', icon: ReceiptText, path: '/expenses' },
+        { label: 'Waste', icon: Trash2, path: '/waste' },
+        { label: 'Cash Mgmt', icon: DollarSign, path: '/cash' },
+        { label: 'Serials', icon: QrCode, path: '/serials' },
+        { label: 'Warehouses', icon: Warehouse, path: '/warehouses' },
+        { label: 'Integrations', icon: Plug, path: '/integrations' },
         { label: 'Settings', icon: Settings, path: '/manager/settings' },
     ];
 
@@ -62,8 +78,8 @@ export default function Layout({ children, noScroll = false }: LayoutProps) {
     const filteredMenu = menuItems.filter(item => {
         if (!user) return false;
         const role = user.role;
-        if (role === 'salesperson') return ['Dashboard', 'POS Terminal', 'Sales History', 'Products'].includes(item.label);
-        if (role === 'head_of_sales') return !['Settings', 'Branches'].includes(item.label);
+        if (role === 'salesperson') return ['Dashboard', 'POS Terminal', 'Sales History', 'Products', 'Customers'].includes(item.label);
+        if (role === 'head_of_sales') return !['Settings', 'Branches', 'Integrations', 'Cash Mgmt'].includes(item.label);
         if (role === 'manager') return item.label !== 'Branches';
         return true;
     }).map(item => {

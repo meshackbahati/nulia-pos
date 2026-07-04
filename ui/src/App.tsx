@@ -27,6 +27,14 @@ import PurchaseOrdersPage from './pages/PurchaseOrdersPage';
 import InventoryTransferPage from './pages/InventoryTransferPage';
 import HeadOfSalesDashboard from './pages/HeadOfSalesDashboard';
 import SalesHistoryPage from './pages/SalesHistoryPage';
+import IntegrationsPage from './pages/IntegrationsPage';
+import CustomersPage from './pages/CustomersPage';
+import ReturnsPage from './pages/ReturnsPage';
+import CashManagementPage from './pages/CashManagementPage';
+import ExpensesPage from './pages/ExpensesPage';
+import WastePage from './pages/WastePage';
+import WarehousesPage from './pages/WarehousesPage';
+import SerialsPage from './pages/SerialsPage';
 
 function RootRedirect({ needsSetup }: { needsSetup: boolean }) {
   const { user, isLoading } = useAuth();
@@ -175,6 +183,48 @@ function App() {
               <Route path="/sales-dashboard" element={
                 <ProtectedRoute allowedRoles={['admin', 'manager', 'salesperson']}>
                   <SalesDashboard />
+                </ProtectedRoute>
+              } />
+
+              {/* New Feature Routes */}
+              <Route path="/customers" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales', 'salesperson']}>
+                  <Layout><CustomersPage /></Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/returns" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                  <Layout><ReturnsPage /></Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/expenses" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                  <Layout><ExpensesPage /></Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/waste" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                  <Layout><WastePage /></Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/cash" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                  <Layout><CashManagementPage /></Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/serials" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                  <Layout><SerialsPage /></Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/warehouses" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales']}>
+                  <Layout><WarehousesPage /></Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/integrations" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                  <Layout><IntegrationsPage /></Layout>
                 </ProtectedRoute>
               } />
 

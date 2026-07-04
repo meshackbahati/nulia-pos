@@ -3,6 +3,7 @@ import { X, Save, AlertCircle, Package, Maximize } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import BarcodeScanner from './BarcodeScanner';
+import CustomModal from './CustomModal';
 import useScanDetection from '../hooks/useScanDetection';
 
 interface Product {
@@ -30,9 +31,9 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
     const [reason, setReason] = useState('');
     const [loading, setLoading] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
+    const [pendingBarcode, setPendingBarcode] = useState<string | null>(null);
 
     const handleScan = async (scannedBarcode: string) => {
-        // Check if scanned product matches current product
         const isMatch = product.sku === scannedBarcode || 
                         product.barcode === scannedBarcode || 
                         (product.barcodes || []).includes(scannedBarcode);
@@ -44,20 +45,23 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
                 return (current + delta).toFixed(product.measurementType === 'measurable' ? 2 : 0);
             });
             toast.success(`Incremented ${product.name}`);
+            setShowScanner(false);
         } else {
-            // If it doesn't match, maybe they want to bind this barcode to the product?
-            if (window.confirm(`Scanned barcode (${scannedBarcode}) is not linked to ${product.name}. Link it now?`)) {
-                try {
-                    await api.post(`/products/${product.id}/barcodes`, { barcode: scannedBarcode });
-                    toast.success('Barcode linked to product');
-                    // Update local state if needed (or just let parent refresh)
-                    product.barcodes = [...(product.barcodes || []), scannedBarcode];
-                    setQuantity(prev => (parseInt(prev) || 0 + 1).toString());
-                } catch (error) {
-                    toast.error('Failed to link barcode');
-                }
-            }
+            setPendingBarcode(scannedBarcode);
         }
+    };
+
+    const handleLinkBarcode = async () => {
+        if (!pendingBarcode) return;
+        try {
+            await api.post(`/products/${product.id}/barcodes`, { barcode: pendingBarcode });
+            toast.success('Barcode linked to product');
+            product.barcodes = [...(product.barcodes || []), pendingBarcode];
+            setQuantity(prev => (parseInt(prev) || 0 + 1).toString());
+        } catch (error) {
+            toast.error('Failed to link barcode');
+        }
+        setPendingBarcode(null);
         setShowScanner(false);
     };
 
@@ -211,6 +215,18 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
             {showScanner && (
                 <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
             )}
+
+            <CustomModal
+                isOpen={!!pendingBarcode}
+                type="confirm"
+                title="Link Barcode?"
+                message={`Scanned barcode (${pendingBarcode || ''}) is not linked to ${product.name}. Link it to this product now?`}
+                confirmText="Link Barcode"
+                cancelText="Ignore"
+                onConfirm={handleLinkBarcode}
+                onCancel={() => { setPendingBarcode(null); setShowScanner(false); }}
+                onClose={() => { setPendingBarcode(null); setShowScanner(false); }}
+            />
         </div>
     );
 }

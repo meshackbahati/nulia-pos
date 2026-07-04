@@ -37,6 +37,7 @@ export const AUDIT_ACTIONS = {
 
     // Sales actions
     SALE_CREATE: 'sale_create',
+    SALE_UPDATE: 'sale_update',
     SALE_VOID: 'sale_void',
     SALE_REFUND: 'sale_refund',
 

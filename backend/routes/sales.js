@@ -1,10 +1,11 @@
 import express from 'express';
 import models, { sequelize } from '../models/index.js';
-import { authenticate, authorize } from '../lib/auth.js';
+import { authenticate, authorize, hasPermission } from '../lib/auth.js';
 import { createAuditLog, AUDIT_ACTIONS, AUDIT_RESOURCES } from '../lib/audit.js';
 import { Op } from 'sequelize';
 import { Decimal } from 'decimal.js';
 import notificationService from '../services/notificationService.js';
+import { triggerWebhook, WEBHOOK_EVENTS } from '../services/webhookService.js';
 
 const router = express.Router();
 
@@ -361,6 +362,15 @@ router.post('/create', authenticate, async (req, res) => {
             io.to(`branch-${branchId}`).emit('new-sale', { saleId: sale.id, receiptId: sale.receiptId });
         }
 
+        // Fire webhook
+        triggerWebhook(WEBHOOK_EVENTS.SALE_CREATED, {
+            saleId: sale.id,
+            receiptId: sale.receiptId,
+            totalAmount: finalTotal,
+            paymentMethod: paymentMethod,
+            itemCount: sale.items?.length || 0,
+        }, branchId, io);
+
         res.status(201).json({
             success: true,
             sale: completedSale,
@@ -515,6 +525,309 @@ router.get('/:id', authenticate, async (req, res) => {
         res.json({ sale });
     } catch (error) {
         console.error('Get sale error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Void/delete a sale (admin/manager/head_of_sales only) — restores stock
+router.delete('/:id', authenticate, async (req, res) => {
+    if (!hasPermission(req.user.role, 'head_of_sales')) {
+        return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
+    const t = await sequelize.transaction();
+    try {
+        const sale = await models.Sale.findByPk(req.params.id, {
+            include: [{ model: models.SaleItem, as: 'items' }],
+            transaction: t
+        });
+
+        if (!sale) {
+            await t.rollback();
+            return res.status(404).json({ error: 'Sale not found' });
+        }
+
+        if (sale.voidedAt) {
+            await t.rollback();
+            return res.status(400).json({ error: 'Sale has already been voided' });
+        }
+
+        const branchId = sale.branchId;
+        const { reason } = req.body;
+
+        // Restore stock for each item
+        for (const item of sale.items) {
+            const qty = new Decimal(item.quantity);
+            await models.Inventory.increment('quantity', {
+                by: qty.toString(),
+                where: {
+                    branchId,
+                    productId: item.productId,
+                    ...(item.variantId && { variantId: item.variantId })
+                },
+                transaction: t
+            });
+        }
+
+        // Mark sale as voided (soft delete)
+        await sale.update({
+            voidedAt: new Date(),
+            voidedBy: req.user.userId,
+            voidReason: reason || 'Manually voided',
+            paymentStatus: 'refunded',
+        }, { transaction: t });
+
+        await createAuditLog({
+            action: AUDIT_ACTIONS.SALE_VOID,
+            resource: AUDIT_RESOURCES.SALE,
+            resourceId: sale.id,
+            userId: req.user.userId,
+            branchId,
+            oldValues: { voidedAt: null, paymentStatus: 'completed' },
+            newValues: { voidedAt: sale.voidedAt, voidReason: reason || 'Manually voided', paymentStatus: 'refunded' },
+            metadata: { receiptId: sale.receiptId, reason: reason || '' }
+        }, req);
+
+        await t.commit();
+
+        const io = req.app.get('io');
+        if (io) {
+            io.to(`branch-${branchId}`).emit('inventory-update', { branchId });
+            io.to(`branch-${branchId}`).emit('new-sale', { type: 'void', saleId: sale.id, receiptId: sale.receiptId });
+        }
+
+        triggerWebhook(WEBHOOK_EVENTS.SALE_VOIDED, {
+            saleId: sale.id,
+            receiptId: sale.receiptId,
+            reason: reason || 'Manually voided',
+        }, branchId, io);
+
+        res.json({ success: true, message: 'Sale voided successfully' });
+    } catch (error) {
+        await t.rollback();
+        console.error('Delete sale error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Edit a sale (admin/manager/head_of_sales only) — recalculates totals and adjusts inventory
+router.put('/:id', authenticate, async (req, res) => {
+    if (!hasPermission(req.user.role, 'head_of_sales')) {
+        return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
+    const t = await sequelize.transaction();
+    try {
+        const sale = await models.Sale.findByPk(req.params.id, {
+            include: [
+                { model: models.SaleItem, as: 'items' },
+                { model: models.Branch, as: 'branch', attributes: ['taxRate', 'currency'] }
+            ],
+            transaction: t
+        });
+
+        if (!sale) {
+            await t.rollback();
+            return res.status(404).json({ error: 'Sale not found' });
+        }
+
+        if (sale.voidedAt) {
+            await t.rollback();
+            return res.status(400).json({ error: 'Cannot edit a voided sale' });
+        }
+
+        const oldTotal = Number(sale.totalAmount);
+        const branchId = sale.branchId;
+        const taxRate = sale.branch?.taxRate || 0;
+        const oldItems = [...sale.items];
+
+        // If items are provided, process item changes
+        if (req.body.items && Array.isArray(req.body.items)) {
+            // Build lookup of old items by productId+variantId
+            const oldItemMap = {};
+            for (const oi of oldItems) {
+                const key = `${oi.productId}|${oi.variantId || ''}`;
+                oldItemMap[key] = oi;
+            }
+
+            // Track which old items were matched
+            const matchedKeys = new Set();
+
+            for (const newItem of req.body.items) {
+                const key = `${newItem.productId}|${newItem.variantId || ''}`;
+                const oldItem = oldItemMap[key];
+                const newQty = new Decimal(newItem.quantity || 0);
+
+                // Check inventory exists
+                const inventory = await models.Inventory.findOne({
+                    where: {
+                        branchId,
+                        productId: newItem.productId,
+                        ...(newItem.variantId && { variantId: newItem.variantId })
+                    },
+                    transaction: t
+                });
+
+                if (oldItem) {
+                    // Existing item — adjust inventory by difference
+                    matchedKeys.add(key);
+                    const oldQty = new Decimal(oldItem.quantity);
+                    const diff = newQty.minus(oldQty);
+
+                    if (!diff.isZero()) {
+                        const available = inventory ? Number(inventory.quantity) - Number(inventory.reservedQuantity || 0) : 0;
+                        if (diff.isPositive() && diff.gt(available)) {
+                            await t.rollback();
+                            return res.status(400).json({ error: `Insufficient stock for product ${newItem.productId}. Available: ${available}, needed: ${diff.toString()}` });
+                        }
+
+                        if (diff.isNegative()) {
+                            // Restock
+                            await models.Inventory.increment('quantity', {
+                                by: diff.abs().toString(),
+                                where: {
+                                    branchId,
+                                    productId: newItem.productId,
+                                    ...(newItem.variantId && { variantId: newItem.variantId })
+                                },
+                                transaction: t
+                            });
+                        } else {
+                            // Decrement more
+                            await models.Inventory.decrement('quantity', {
+                                by: diff.toString(),
+                                where: {
+                                    branchId,
+                                    productId: newItem.productId,
+                                    ...(newItem.variantId && { variantId: newItem.variantId })
+                                },
+                                transaction: t
+                            });
+                        }
+                    }
+
+                    // Update the sale item record
+                    const unitPrice = newItem.unitPrice || oldItem.unitPrice;
+                    const totalPrice = newQty.times(unitPrice).toDecimalPlaces(2).toNumber();
+                    await oldItem.update({
+                        quantity: newQty.toString(),
+                        unitPrice: Number(unitPrice),
+                        totalPrice,
+                    }, { transaction: t });
+                } else {
+                    // New item added to sale — decrement inventory
+                    if (inventory) {
+                        const available = Number(inventory.quantity) - Number(inventory.reservedQuantity || 0);
+                        if (newQty.gt(available)) {
+                            await t.rollback();
+                            return res.status(400).json({ error: `Insufficient stock for product ${newItem.productId}. Available: ${available}` });
+                        }
+                        await models.Inventory.decrement('quantity', {
+                            by: newQty.toString(),
+                            where: { id: inventory.id },
+                            transaction: t
+                        });
+                    } else {
+                        await t.rollback();
+                        return res.status(400).json({ error: `No inventory record found for product ${newItem.productId}` });
+                    }
+
+                    // Find product for name snapshot
+                    const product = await models.Product.findByPk(newItem.productId, { attributes: ['name'], transaction: t });
+                    const unitPrice = newItem.unitPrice || 0;
+                    await models.SaleItem.create({
+                        saleId: sale.id,
+                        productId: newItem.productId,
+                        variantId: newItem.variantId || null,
+                        branchId,
+                        productName: product?.name || 'Unknown',
+                        quantity: newQty.toString(),
+                        unitPrice: Number(unitPrice),
+                        totalPrice: newQty.times(unitPrice).toDecimalPlaces(2).toNumber(),
+                    }, { transaction: t });
+                }
+            }
+
+            // Remove items that were in old but not in new (restore their stock)
+            for (const oi of oldItems) {
+                const key = `${oi.productId}|${oi.variantId || ''}`;
+                if (!matchedKeys.has(key)) {
+                    const restoreQty = new Decimal(oi.quantity);
+                    await models.Inventory.increment('quantity', {
+                        by: restoreQty.toString(),
+                        where: {
+                            branchId,
+                            productId: oi.productId,
+                            ...(oi.variantId && { variantId: oi.variantId })
+                        },
+                        transaction: t
+                    });
+                    await oi.destroy({ transaction: t });
+                }
+            }
+
+            // Recalculate totals from current sale items
+            const currentItems = await models.SaleItem.findAll({
+                where: { saleId: sale.id },
+                transaction: t
+            });
+
+            let subtotal = 0;
+            for (const ci of currentItems) {
+                subtotal = new Decimal(subtotal).plus(ci.totalPrice).toNumber();
+            }
+            const taxAmount = new Decimal(subtotal).times(taxRate).dividedBy(100).toDecimalPlaces(2).toNumber();
+            const totalAmount = new Decimal(subtotal).plus(taxAmount).toDecimalPlaces(2).toNumber();
+
+            await sale.update({
+                subtotal,
+                taxAmount,
+                totalAmount,
+            }, { transaction: t });
+        }
+
+        // Allow updating customer info and notes regardless of item changes
+        const updateFields = {};
+        if (req.body.customerPhone !== undefined) updateFields.customerPhone = req.body.customerPhone;
+        if (req.body.customerEmail !== undefined) updateFields.customerEmail = req.body.customerEmail;
+        if (req.body.notes !== undefined) updateFields.notes = req.body.notes;
+        if (Object.keys(updateFields).length > 0) {
+            await sale.update(updateFields, { transaction: t });
+        }
+
+        await createAuditLog({
+            action: AUDIT_ACTIONS.SALE_UPDATE,
+            resource: AUDIT_RESOURCES.SALE,
+            resourceId: sale.id,
+            userId: req.user.userId,
+            branchId,
+            oldValues: { totalAmount: oldTotal },
+            newValues: { totalAmount: sale.totalAmount, customerPhone: sale.customerPhone, notes: sale.notes },
+            metadata: { receiptId: sale.receiptId, itemsChanged: !!req.body.items }
+        }, req);
+
+        await t.commit();
+
+        // Re-fetch with associations for response
+        const updatedSale = await models.Sale.findByPk(sale.id, {
+            include: [
+                { model: models.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
+                { model: models.Branch, as: 'branch', attributes: ['id', 'name', 'currency', 'currencySymbol', 'taxRate'] },
+                { model: models.Payment, as: 'payments' },
+                { model: models.SaleItem, as: 'items' }
+            ]
+        });
+
+        const io = req.app.get('io');
+        if (io) {
+            io.to(`branch-${branchId}`).emit('inventory-update', { branchId });
+            io.to(`branch-${branchId}`).emit('sale-updated', { saleId: sale.id, receiptId: sale.receiptId });
+        }
+
+        res.json({ success: true, sale: updatedSale });
+    } catch (error) {
+        await t.rollback();
+        console.error('Edit sale error:', error);
         res.status(500).json({ error: error.message });
     }
 });

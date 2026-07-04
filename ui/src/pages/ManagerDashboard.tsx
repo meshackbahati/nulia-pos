@@ -14,7 +14,8 @@ import {
   Plus,
   BarChart3,
   Scan,
-  Truck
+  Truck,
+  DollarSign
 } from 'lucide-react';
 import CurrencyBreakdownWidget from '../components/CurrencyBreakdownWidget';
 import { useAuth } from '../contexts/AuthContext';

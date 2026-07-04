@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import api from '../lib/api-client';
 import ProductModal from '../components/ProductModal';
 import RestockModal from '../components/RestockModal';
+import InventoryAdjustModal from '../components/InventoryAdjustModal';
 import BarcodeScanner from '../components/BarcodeScanner';
-import { Plus, Package, AlertTriangle, PlusCircle, Search, FileUp, Building, Barcode } from 'lucide-react';
+import { Plus, Package, AlertTriangle, PlusCircle, ArrowDownCircle, Search, FileUp, Building, Barcode } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 import { useCurrency } from '../hooks/useCurrency';
 import toast from 'react-hot-toast';
@@ -42,6 +43,7 @@ export default function ProductsPage() {
     const [showScanner, setShowScanner] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [restockingProduct, setRestockingProduct] = useState<Product | null>(null);
+    const [adjustingProduct, setAdjustingProduct] = useState<Product | null>(null);
     const [initialBarcode, setInitialBarcode] = useState('');
     const { formatPrice } = useCurrency();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -328,9 +330,14 @@ export default function ProductsPage() {
                                             </p>
                                         </div>
                                         {user?.role !== 'salesperson' && (
-                                        <button onClick={() => setRestockingProduct(product)} className="text-emerald-500 hover:text-emerald-600 transition-colors">
-                                            <PlusCircle className="w-5 h-5" />
-                                        </button>
+                                        <div className="flex items-center gap-1">
+                                            <button onClick={() => setRestockingProduct(product)} className="text-emerald-500 hover:text-emerald-600 transition-colors" title="Restock">
+                                                <PlusCircle className="w-5 h-5" />
+                                            </button>
+                                            <button onClick={() => setAdjustingProduct(product)} className="text-amber-500 hover:text-amber-600 transition-colors" title="Adjust Stock">
+                                                <ArrowDownCircle className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                         )}
                                     </div>
 
@@ -372,6 +379,14 @@ export default function ProductsPage() {
                 <RestockModal
                     product={restockingProduct}
                     onClose={() => setRestockingProduct(null)}
+                    onSuccess={fetchProducts}
+                />
+            )}
+
+            {adjustingProduct && (
+                <InventoryAdjustModal
+                    product={adjustingProduct}
+                    onClose={() => setAdjustingProduct(null)}
                     onSuccess={fetchProducts}
                 />
             )}

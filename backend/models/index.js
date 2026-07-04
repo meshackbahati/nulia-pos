@@ -17,6 +17,23 @@ import PurchaseOrder from './PurchaseOrder.js';
 import PurchaseOrderItem from './PurchaseOrderItem.js';
 import Setting from './Setting.js';
 import ExchangeRate from './ExchangeRate.js';
+import Webhook from './Webhook.js';
+import Waste from './Waste.js';
+import TaxRate from './TaxRate.js';
+import CashRegister from './CashRegister.js';
+import CashSession from './CashSession.js';
+import CashTransaction from './CashTransaction.js';
+import Expense from './Expense.js';
+import ProductBundle from './ProductBundle.js';
+import SerialNumber from './SerialNumber.js';
+import Warehouse from './Warehouse.js';
+import WarehouseZone from './WarehouseZone.js';
+import Customer from './Customer.js';
+import CustomerDeposit from './CustomerDeposit.js';
+import Layaway from './Layaway.js';
+import Return from './Return.js';
+import ReturnItem from './ReturnItem.js';
+import Integration from './Integration.js';
 
 // Initialize models
 const models = {
@@ -35,6 +52,23 @@ const models = {
     PurchaseOrderItem: PurchaseOrderItem.initialize(sequelize),
     Setting: Setting.initialize(sequelize),
     ExchangeRate: ExchangeRate.initialize(sequelize),
+    Webhook: Webhook.initialize(sequelize),
+    Waste: Waste.initialize(sequelize),
+    TaxRate: TaxRate.initialize(sequelize),
+    CashRegister: CashRegister.initialize(sequelize),
+    CashSession: CashSession.initialize(sequelize),
+    CashTransaction: CashTransaction.initialize(sequelize),
+    Expense: Expense.initialize(sequelize),
+    ProductBundle: ProductBundle.initialize(sequelize),
+    SerialNumber: SerialNumber.initialize(sequelize),
+    Warehouse: Warehouse.initialize(sequelize),
+    WarehouseZone: WarehouseZone.initialize(sequelize),
+    Customer: Customer.initialize(sequelize),
+    CustomerDeposit: CustomerDeposit.initialize(sequelize),
+    Layaway: Layaway.initialize(sequelize),
+    Return: Return.initialize(sequelize),
+    ReturnItem: ReturnItem.initialize(sequelize),
+    Integration: Integration.initialize(sequelize),
 };
 
 // Define associations

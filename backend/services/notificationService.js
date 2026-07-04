@@ -1,6 +1,7 @@
 import models from '../models/index.js';
 import emailService from '../lib/email.js';
 import { Op } from 'sequelize';
+import { triggerWebhook, WEBHOOK_EVENTS } from './webhookService.js';
 
 class NotificationService {
   /**
@@ -87,6 +88,14 @@ class NotificationService {
       const recipients = await this.getBranchRecipients(branchId);
       if (recipients.length === 0) return;
       await emailService.sendStockAlert(recipients.join(','), branch.name, productName, type, available, minLevel);
+
+      triggerWebhook(WEBHOOK_EVENTS.INVENTORY_LOW_STOCK, {
+        branchId,
+        productName,
+        type,
+        available,
+        minLevel,
+      }, branchId, null);
     } catch (error) {
       console.error('[Notification] notifyStockAlert error:', error.message);
     }

@@ -1,12 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Calendar, Download, FileText, Printer, X, Eye, User, Phone, Hash, DollarSign, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Calendar, Download, FileText, Printer, X, Eye, User, Phone, Hash, DollarSign, Filter, ChevronLeft, ChevronRight, Trash2, Edit } from 'lucide-react';
 import api from '../lib/api-client';
 import { useCurrency } from '../hooks/useCurrency';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import ReceiptModal from '../components/ReceiptModal';
+import SaleEditModal from '../components/SaleEditModal';
+import CustomModal from '../components/CustomModal';
 
 export default function SalesHistoryPage() {
     const { formatPrice } = useCurrency();
+    const { user } = useAuth();
+    const canEditSales = user && ['admin', 'manager', 'head_of_sales'].includes(user.role);
     const [sales, setSales] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [totalPages, setTotalPages] = useState(0);
@@ -24,6 +29,42 @@ export default function SalesHistoryPage() {
     // Receipt modal
     const [selectedSale, setSelectedSale] = useState<any>(null);
     const [showReceipt, setShowReceipt] = useState(false);
+
+    // Edit/Delete state
+    const [editingSale, setEditingSale] = useState<any>(null);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [confirmDeleteSaleId, setConfirmDeleteSaleId] = useState<string | null>(null);
+
+    const handleDeleteSale = async (saleId: string) => {
+        setDeletingId(saleId);
+        try {
+            await api.deleteSale(saleId);
+            toast.success('Sale voided successfully');
+            fetchSales();
+        } catch (error: any) {
+            toast.error(error.response?.data?.error || 'Failed to void sale');
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+    const handleEditSale = (sale: any) => {
+        setEditingSale(sale);
+        setShowEditModal(true);
+    };
+
+    const handleSaveEdit = async (saleId: string, data: any) => {
+        try {
+            await api.updateSale(saleId, data);
+            toast.success('Sale updated successfully');
+            setShowEditModal(false);
+            setEditingSale(null);
+            fetchSales();
+        } catch (error: any) {
+            toast.error(error.response?.data?.error || 'Failed to update sale');
+        }
+    };
 
     const limit = 50;
 
@@ -290,24 +331,43 @@ export default function SalesHistoryPage() {
                                             <td className="px-6 py-4">
                                                 <span className="text-sm font-black text-primary tracking-tighter">{formatPrice(sale.totalAmount)}</span>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => viewSaleDetails(sale.id)}
-                                                        className="p-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-all"
-                                                        title="View & Reprint"
-                                                    >
-                                                        <Eye className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => viewSaleDetails(sale.id)}
-                                                        className="p-2 bg-secondary/30 text-foreground rounded-lg hover:bg-secondary/50 transition-all"
-                                                        title="Print Receipt"
-                                                    >
-                                                        <Printer className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
+                                             <td className="px-6 py-4">
+                                                 <div className="flex items-center gap-2">
+                                                     <button
+                                                         onClick={() => viewSaleDetails(sale.id)}
+                                                         className="p-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-all"
+                                                         title="View & Reprint"
+                                                     >
+                                                         <Eye className="w-4 h-4" />
+                                                     </button>
+                                                     <button
+                                                         onClick={() => viewSaleDetails(sale.id)}
+                                                         className="p-2 bg-secondary/30 text-foreground rounded-lg hover:bg-secondary/50 transition-all"
+                                                         title="Print Receipt"
+                                                     >
+                                                         <Printer className="w-4 h-4" />
+                                                     </button>
+                                                     {canEditSales && (
+                                                         <>
+                                                             <button
+                                                                 onClick={() => handleEditSale(sale)}
+                                                                 className="p-2 bg-amber-500/10 text-amber-600 rounded-lg hover:bg-amber-500/20 transition-all"
+                                                                 title="Edit Sale"
+                                                             >
+                                                                 <Edit className="w-4 h-4" />
+                                                             </button>
+                                                             <button
+                                                                 onClick={() => setConfirmDeleteSaleId(sale.id)}
+                                                                 disabled={deletingId === sale.id}
+                                                                 className="p-2 bg-destructive/10 text-destructive rounded-lg hover:bg-destructive/20 transition-all disabled:opacity-50"
+                                                                 title="Void Sale"
+                                                             >
+                                                                 <Trash2 className="w-4 h-4" />
+                                                             </button>
+                                                         </>
+                                                     )}
+                                                 </div>
+                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -340,6 +400,23 @@ export default function SalesHistoryPage() {
                                         >
                                             <Eye className="w-3.5 h-3.5" /> View & Reprint
                                         </button>
+                                        {canEditSales && (
+                                            <>
+                                                <button
+                                                    onClick={() => handleEditSale(sale)}
+                                                    className="flex items-center justify-center gap-1 p-2 bg-amber-500/10 text-amber-600 rounded-lg text-[10px] font-black uppercase tracking-wider"
+                                                >
+                                                    <Edit className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => setConfirmDeleteSaleId(sale.id)}
+                                                    disabled={deletingId === sale.id}
+                                                    className="flex items-center justify-center gap-1 p-2 bg-destructive/10 text-destructive rounded-lg text-[10px] font-black uppercase tracking-wider disabled:opacity-50"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -385,6 +462,33 @@ export default function SalesHistoryPage() {
                     }}
                 />
             )}
+
+            {/* Edit Sale Modal */}
+            {showEditModal && editingSale && (
+                <SaleEditModal
+                    sale={editingSale}
+                    onSave={handleSaveEdit}
+                    onClose={() => {
+                        setShowEditModal(false);
+                        setEditingSale(null);
+                    }}
+                />
+            )}
+
+            {/* Confirm Delete Sale */}
+            <CustomModal
+                isOpen={!!confirmDeleteSaleId}
+                type="confirm"
+                title="Void Sale?"
+                message="Are you sure you want to void this sale? Inventory will be restored and payment will be marked as refunded. This action cannot be undone."
+                confirmText="Void Sale"
+                cancelText="Cancel"
+                onConfirm={() => {
+                    if (confirmDeleteSaleId) handleDeleteSale(confirmDeleteSaleId);
+                }}
+                onCancel={() => setConfirmDeleteSaleId(null)}
+                onClose={() => setConfirmDeleteSaleId(null)}
+            />
         </div>
     );
 }

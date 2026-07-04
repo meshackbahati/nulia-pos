@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, Settings as SettingsIcon, Shield, CreditCard, Smartphone, Trash2, AlertTriangle } from 'lucide-react';
+import { Save, Settings as SettingsIcon, Shield, CreditCard, Smartphone, Trash2, AlertTriangle, Plus, DollarSign, Plug, RefreshCw } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import ThemeToggle from '../components/ThemeToggle';
@@ -7,6 +7,7 @@ import { useCurrency } from '../hooks/useCurrency';
 import { useAuth } from '../contexts/AuthContext';
 import { useHardware } from '../contexts/HardwareContext';
 import PrinterSetupModal from '../components/PrinterSetupModal';
+import CustomModal from '../components/CustomModal';
 import { Printer as PrinterIcon } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -14,6 +15,8 @@ export default function SettingsPage() {
     const { baseCurrency: defaultCurrency } = useCurrency();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [confirmClearSales, setConfirmClearSales] = useState(false);
+    const [confirmClearProducts, setConfirmClearProducts] = useState(false);
     const [settings, setSettings] = useState({
         mpesa: {
             consumerKey: '',
@@ -127,8 +130,6 @@ export default function SettingsPage() {
     };
 
     const handleClearSales = async () => {
-        if (!window.confirm('CRITICAL ACTION: This will permanently delete ALL transaction and payment records. Are you absolutely sure?')) return;
-        
         try {
             await api.clearSales();
             toast.success('All sales records have been cleared');
@@ -138,8 +139,6 @@ export default function SettingsPage() {
     };
 
     const handleClearProducts = async () => {
-        if (!window.confirm('CRITICAL ACTION: This will permanently delete ALL products and inventory. This cannot be undone. Proceed?')) return;
-        
         try {
             await api.clearProducts();
             toast.success('All products and inventory have been cleared');
@@ -411,6 +410,36 @@ export default function SettingsPage() {
                         </div>
                     </section>
 
+                    {/* Tax Rates */}
+                    <section className="space-y-6">
+                        <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+                            <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                                <DollarSign className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h2 className="text-sm font-black uppercase tracking-widest">Tax Rates</h2>
+                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Configure tax rates for products and branches</p>
+                                <p className="text-[8px] text-muted-foreground/50 mt-0.5">Set up different tax rates (e.g. VAT 16%, Zero Rated) and assign them to products. Rates can be inclusive (in the price) or exclusive (added on top).</p>
+                            </div>
+                        </div>
+                        <TaxRatesSection />
+                    </section>
+
+                    {/* Webhooks */}
+                    <section className="space-y-6">
+                        <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+                            <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                                <Plug className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h2 className="text-sm font-black uppercase tracking-widest">Webhooks</h2>
+                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Send real-time events to external services</p>
+                                <p className="text-[8px] text-muted-foreground/50 mt-0.5">Tell your own external server when something happens: a sale is made, stock runs low, or a return is processed. Your server gets a signed URL call it can act on. Not needed unless you run external software.</p>
+                            </div>
+                        </div>
+                        <WebhooksSection />
+                    </section>
+
                     {user?.role === 'admin' && (
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 border-b border-destructive/20 pb-4">
@@ -429,7 +458,7 @@ export default function SettingsPage() {
                                     <p className="text-[10px] text-muted-foreground mb-6">Wipes all sales, payments, and receipt logs. Inventory and user accounts are preserved.</p>
                                     <button 
                                         type="button"
-                                        onClick={handleClearSales}
+                                        onClick={() => setConfirmClearSales(true)}
                                         className="flex items-center gap-2 px-4 py-2 bg-destructive/10 text-destructive rounded-lg hover:bg-destructive text-[10px] font-black uppercase tracking-widest transition-all hover:text-white"
                                     >
                                         <Trash2 className="w-3.5 h-3.5" />
@@ -442,7 +471,7 @@ export default function SettingsPage() {
                                     <p className="text-[10px] text-muted-foreground mb-6">Deletes ALL products, variants, and current inventory levels. Requires full re-import.</p>
                                     <button 
                                         type="button"
-                                        onClick={handleClearProducts}
+                                        onClick={() => setConfirmClearProducts(true)}
                                         className="flex items-center gap-2 px-4 py-2 bg-destructive/10 text-destructive rounded-lg hover:bg-destructive text-[10px] font-black uppercase tracking-widest transition-all hover:text-white"
                                     >
                                         <Trash2 className="w-3.5 h-3.5" />
@@ -471,6 +500,249 @@ export default function SettingsPage() {
                 </form>
             </main>
             <PrinterSetupModal isOpen={showPrinterModal} onClose={() => setShowPrinterModal(false)} />
+
+            <CustomModal
+                isOpen={confirmClearSales}
+                type="warning"
+                title="Clear All Sales?"
+                message="CRITICAL ACTION: This will permanently delete ALL transaction and payment records. Are you absolutely sure? This cannot be undone."
+                confirmText="Delete All Sales"
+                cancelText="Cancel"
+                onConfirm={handleClearSales}
+                onCancel={() => setConfirmClearSales(false)}
+                onClose={() => setConfirmClearSales(false)}
+            />
+
+            <CustomModal
+                isOpen={confirmClearProducts}
+                type="warning"
+                title="Clear All Products?"
+                message="CRITICAL ACTION: This will permanently delete ALL products and inventory. This cannot be undone. Proceed?"
+                confirmText="Delete All Products"
+                cancelText="Cancel"
+                onConfirm={handleClearProducts}
+                onCancel={() => setConfirmClearProducts(false)}
+                onClose={() => setConfirmClearProducts(false)}
+            />
+        </div>
+    );
+}
+
+// Tax Rates Section Component
+function TaxRatesSection() {
+    const [rates, setRates] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showAdd, setShowAdd] = useState(false);
+    const [form, setForm] = useState({ name: '', rate: '', type: 'exclusive', isDefault: false });
+
+    useEffect(() => { load(); }, []);
+
+    async function load() {
+        setLoading(true);
+        try {
+            const res = await api.get('/tax-rates');
+            setRates(res.data.taxRates || []);
+        } catch { } finally { setLoading(false); }
+    }
+
+    async function handleAdd() {
+        if (!form.name || !form.rate) { toast.error('Name and rate required'); return; }
+        try {
+            await api.post('/tax-rates', { ...form, rate: parseFloat(form.rate) });
+            toast.success('Tax rate created');
+            setShowAdd(false);
+            setForm({ name: '', rate: '', type: 'exclusive', isDefault: false });
+            load();
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+    }
+
+    async function handleDelete(id: string) {
+        try {
+            await api.delete(`/tax-rates/${id}`);
+            toast.success('Tax rate deleted');
+            load();
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+    }
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-4">
+                <p className="text-[10px] text-muted-foreground">{rates.length} tax rate(s) configured</p>
+                <button onClick={() => setShowAdd(true)} className="flex items-center gap-1 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-[9px] font-black uppercase tracking-wider">
+                    <Plus className="w-3 h-3" /> Add Rate
+                </button>
+            </div>
+            <div className="space-y-2">
+                {rates.map((r: any) => (
+                    <div key={r.id} className="flex items-center justify-between glass-card p-4 rounded-xl">
+                        <div className="flex items-center gap-3">
+                            <div className={`w-2 h-2 rounded-full ${r.isActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                            <div>
+                                <p className="text-xs font-bold">{r.name} <span className="text-muted-foreground">({r.rate}%)</span></p>
+                                <p className="text-[9px] text-muted-foreground">{r.type} {r.isDefault ? '— Default' : ''}</p>
+                            </div>
+                        </div>
+                        <button onClick={() => handleDelete(r.id)} className="text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg text-[9px]">Delete</button>
+                    </div>
+                ))}
+                {!loading && rates.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-4">No tax rates. Add one above.</p>}
+            </div>
+
+            {showAdd && (
+                <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center p-4" onClick={() => setShowAdd(false)}>
+                    <div className="bg-background rounded-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-sm font-black mb-4">Add Tax Rate</h3>
+                        <div className="space-y-3">
+                            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Name (e.g. VAT 16%)"
+                                className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" />
+                            <input value={form.rate} onChange={e => setForm({ ...form, rate: e.target.value })} type="number" step="0.01" placeholder="Rate %"
+                                className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" />
+                            <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}
+                                className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary">
+                                <option value="exclusive">Exclusive (added to price)</option>
+                                <option value="inclusive">Inclusive (included in price)</option>
+                            </select>
+                            <label className="flex items-center gap-2 text-xs">
+                                <input type="checkbox" checked={form.isDefault} onChange={e => setForm({ ...form, isDefault: e.target.checked })} />
+                                Set as default
+                            </label>
+                            <div className="flex gap-3 pt-2">
+                                <button onClick={() => setShowAdd(false)} className="flex-1 px-4 py-3 bg-secondary/30 rounded-xl text-xs font-black uppercase">Cancel</button>
+                                <button onClick={handleAdd} className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// Webhooks Section Component
+function WebhooksSection() {
+    const [webhooks, setWebhooks] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showAdd, setShowAdd] = useState(false);
+    const [form, setForm] = useState({ name: '', url: '', events: [] as string[], secret: '' });
+
+    const EVENT_OPTIONS = [
+        'sale.created', 'sale.voided', 'product.created', 'product.updated',
+        'inventory.adjusted', 'inventory.low_stock', 'return.created', 'return.completed',
+    ];
+
+    useEffect(() => { load(); }, []);
+
+    async function load() {
+        setLoading(true);
+        try {
+            const res = await api.get('/webhooks');
+            setWebhooks(res.data.webhooks || []);
+        } catch { } finally { setLoading(false); }
+    }
+
+    async function handleAdd() {
+        if (!form.name || !form.url || form.events.length === 0) {
+            toast.error('Name, URL, and at least one event required');
+            return;
+        }
+        try {
+            await api.post('/webhooks', form);
+            toast.success('Webhook created');
+            setShowAdd(false);
+            setForm({ name: '', url: '', events: [], secret: '' });
+            load();
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+    }
+
+    async function handleDelete(id: string) {
+        try {
+            await api.delete(`/webhooks/${id}`);
+            toast.success('Webhook deleted');
+            load();
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+    }
+
+    async function handleTest(id: string) {
+        try {
+            await api.post(`/webhooks/${id}/test`);
+            toast.success('Test webhook sent');
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+    }
+
+    function toggleEvent(event: string) {
+        setForm(f => ({
+            ...f,
+            events: f.events.includes(event) ? f.events.filter(e => e !== event) : [...f.events, event],
+        }));
+    }
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-4">
+                <p className="text-[10px] text-muted-foreground">{webhooks.length} webhook(s) configured</p>
+                <button onClick={() => setShowAdd(true)} className="flex items-center gap-1 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-[9px] font-black uppercase tracking-wider">
+                    <Plus className="w-3 h-3" /> Add Webhook
+                </button>
+            </div>
+            <div className="space-y-2">
+                {webhooks.map((w: any) => (
+                    <div key={w.id} className="flex items-center justify-between glass-card p-4 rounded-xl">
+                        <div className="flex items-center gap-3">
+                            <div className={`w-2 h-2 rounded-full ${w.isActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                            <div>
+                                <p className="text-xs font-bold">{w.name}</p>
+                                <p className="text-[9px] text-muted-foreground truncate max-w-[300px]">{w.url}</p>
+                                <div className="flex gap-1 mt-1 flex-wrap">
+                                    {(w.events || []).map((e: string) => (
+                                        <span key={e} className="text-[8px] px-1.5 py-0.5 bg-secondary/30 rounded">{e}</span>
+                                    ))}
+                                </div>
+                                {w.failureCount > 0 && (
+                                    <p className="text-[8px] text-red-500 mt-1">{w.failureCount} failure(s)</p>
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => handleTest(w.id)} className="p-1.5 bg-secondary/30 rounded-lg hover:bg-secondary/50 text-[9px]">
+                                <RefreshCw className="w-3 h-3" />
+                            </button>
+                            <button onClick={() => handleDelete(w.id)} className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 text-[9px]">Delete</button>
+                        </div>
+                    </div>
+                ))}
+                {!loading && webhooks.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-4">No webhooks configured</p>}
+            </div>
+
+            {showAdd && (
+                <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center p-4" onClick={() => setShowAdd(false)}>
+                    <div className="bg-background rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-sm font-black mb-4">Add Webhook</h3>
+                        <div className="space-y-3">
+                            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Name"
+                                className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" />
+                            <input value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} placeholder="https://example.com/webhook"
+                                className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" />
+                            <input value={form.secret} onChange={e => setForm({ ...form, secret: e.target.value })} placeholder="Secret (for HMAC signature)"
+                                className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" />
+                            <div>
+                                <label className="text-[9px] font-black uppercase tracking-wider text-muted-foreground block mb-2">Events</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {EVENT_OPTIONS.map(event => (
+                                        <label key={event} className="flex items-center gap-2 text-[10px] cursor-pointer">
+                                            <input type="checkbox" checked={form.events.includes(event)} onChange={() => toggleEvent(event)} />
+                                            {event}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button onClick={() => setShowAdd(false)} className="flex-1 px-4 py-3 bg-secondary/30 rounded-xl text-xs font-black uppercase">Cancel</button>
+                                <button onClick={handleAdd} className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase">Create</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

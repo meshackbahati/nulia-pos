@@ -129,6 +129,19 @@ class Product extends Model {
                     allowNull: false,
                     defaultValue: 1.0,
                 },
+                isBundle: {
+                    type: DataTypes.BOOLEAN,
+                    defaultValue: false,
+                },
+                trackingMethod: {
+                    type: DataTypes.ENUM('quantity', 'serial', 'batch'),
+                    defaultValue: 'quantity',
+                },
+                taxRateId: {
+                    type: DataTypes.UUID,
+                    allowNull: true,
+                    references: { model: 'tax_rates', key: 'id' },
+                },
             },
             {
                 sequelize,

@@ -86,6 +86,21 @@ class Inventory extends Model {
                     type: DataTypes.DATE,
                     allowNull: true,
                 },
+                warehouseId: {
+                    type: DataTypes.UUID,
+                    allowNull: true,
+                    references: { model: 'warehouses', key: 'id' },
+                },
+                zoneId: {
+                    type: DataTypes.UUID,
+                    allowNull: true,
+                    references: { model: 'warehouse_zones', key: 'id' },
+                },
+                locationCode: {
+                    type: DataTypes.STRING,
+                    allowNull: true,
+                    comment: 'e.g. A3-B2-01 for aisle, shelf, position',
+                },
             },
             {
                 sequelize,

@@ -8,6 +8,7 @@ import multer from 'multer';
 import cloudinary from '../lib/cloudinary.js';
 import { parse } from 'csv-parse/sync';
 import notificationService from '../services/notificationService.js';
+import { triggerWebhook, WEBHOOK_EVENTS } from '../services/webhookService.js';
 
 const router = express.Router();
 const upload = multer({
@@ -414,6 +415,13 @@ router.post('/create', authenticate, authorize('head_of_sales'), async (req, res
 
         notificationService.notifyNewProduct(targetBranchId, product.name);
 
+        triggerWebhook(WEBHOOK_EVENTS.PRODUCT_CREATED, {
+            productId: product.id,
+            name: product.name,
+            sku: product.sku,
+            basePrice: product.basePrice,
+        }, targetBranchId, io);
+
         res.json({ success: true, product });
     } catch (error) {
         await t.rollback();
@@ -448,9 +456,14 @@ router.put('/update/:id', authenticate, authorize('head_of_sales'), async (req, 
         // Emit real-time update
         const io = req.app.get('io');
         if (io) {
-            // Find which branches this product belongs to (simplification: emit to all if not scoped)
             io.emit('product-update', { productId: id });
         }
+
+        triggerWebhook(WEBHOOK_EVENTS.PRODUCT_UPDATED, {
+            productId: product.id,
+            name: product.name,
+            changes: Object.keys(updateData),
+        }, req.user.branchId, io);
 
         res.json({ success: true, product });
     } catch (error) {

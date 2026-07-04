@@ -3,6 +3,11 @@ import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import sequelize from './lib/database.js';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './lib/swagger.js';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 // Route imports
 import authRoutes from './routes/auth.js';
@@ -21,9 +26,30 @@ import receiptRoutes from './routes/receipts.js';
 import paystackRoutes from './routes/paystack.js';
 import exchangeRateRoutes from './routes/exchange-rates.js';
 import dunRoutes from './routes/dun.js';
+import wasteRoutes from './routes/waste.js';
+import cashRoutes from './routes/cash.js';
+import expenseRoutes from './routes/expenses.js';
+import customerRoutes from './routes/customers.js';
+import returnRoutes from './routes/returns.js';
+import webhookRoutes from './routes/webhooks.js';
+import integrationRoutes from './routes/integrations.js';
+import taxRoutes from './routes/tax.js';
+import bundleRoutes from './routes/bundles.js';
+import serialRoutes from './routes/serials.js';
+import warehouseRoutes from './routes/warehouses.js';
+import exportRoutes from './routes/export.js';
 import { idempotency } from './lib/idempotency.js';
+import { authLimiter, installLimiter, receiptLimiter, publicLimiter, generalLimiter } from './lib/rateLimiter.js';
 
 dotenv.config();
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const startTime = Date.now();
+
+let pkg = {};
+try {
+    pkg = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf-8'));
+} catch { }
 
 const app = express();
 
@@ -38,7 +64,6 @@ app.use(cors({
 
 // 1. ULTRA-LOOSE CORS & TRAFFIC LOGGER (DEBUG)
 app.use((req, res, next) => {
-    // ALWAYS set CORS headers for every request
     const origin = req.headers.origin || '*';
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -46,13 +71,11 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Branch-ID, Cache-Control, X-Requested-With, Accept, Idempotency-Key');
     res.setHeader('Access-Control-Max-Age', '86400');
 
-    // Handle OPTIONS immediately to bypass any other middleware
     if (req.method === 'OPTIONS') {
         console.log(`[CORS] Short-circuit OPTIONS: ${req.url}`);
         return res.status(200).end();
     }
 
-    // Traffic Log
     console.log(`[TRAFFIC] ${new Date().toISOString()} ${req.method} ${req.url}`);
     next();
 });
@@ -67,11 +90,18 @@ app.use(idempotency);
 // 2. LOOSE SECURITY HEADERS & PERMISSIONS POLICY
 app.use((req, res, next) => {
     res.setHeader('Content-Security-Policy', "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;");
-    // SILENCE Permissions-Policy unrecognized feature errors by providing an explicit empty/narrow policy
-    // We only enable features we actually need, or leave empty if none are used.
     res.setHeader('Permissions-Policy', 'camera=*, microphone=(), geolocation=(), browsing-topics=()');
     next();
 });
+
+// Swagger API docs
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
+
+// Rate limiting - apply to sensitive routes
+app.use('/api/auth', authLimiter);
+app.use('/api/install', installLimiter);
+app.use('/api/receipts', receiptLimiter);
+app.use('/health', publicLimiter);
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -89,21 +119,51 @@ app.use('/api/purchase-orders', poRoutes);
 app.use('/api/receipts', receiptRoutes);
 app.use('/api/paystack', paystackRoutes);
 app.use('/api/exchange-rates', exchangeRateRoutes);
+app.use('/api/waste', wasteRoutes);
+app.use('/api/cash', cashRoutes);
+app.use('/api/expenses', expenseRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/returns', returnRoutes);
+app.use('/api/webhooks', webhookRoutes);
+app.use('/api/integrations', integrationRoutes);
+app.use('/api/tax-rates', taxRoutes);
+app.use('/api/bundles', bundleRoutes);
+app.use('/api/serials', serialRoutes);
+app.use('/api/warehouses', warehouseRoutes);
+app.use('/api/export', exportRoutes);
 app.use('/api', dunRoutes);
 
-// Health check endpoint
+// Enhanced health check endpoint
 app.get('/health', async (req, res) => {
+    const mem = process.memoryUsage();
+    let dbStatus = 'disconnected';
     try {
         await sequelize.authenticate();
-        res.json({ status: 'OK', database: 'connected' });
-    } catch (error) {
-        res.status(500).json({ status: 'ERROR', database: 'disconnected', error: error.message });
-    }
+        dbStatus = 'connected';
+    } catch { }
+
+    res.json({
+        status: dbStatus === 'connected' ? 'OK' : 'DEGRADED',
+        version: pkg.version || '1.0.0',
+        uptime: Math.floor((Date.now() - startTime) / 1000),
+        database: dbStatus,
+        memory: {
+            heapUsed: Math.round(mem.heapUsed / 1024 / 1024) + 'MB',
+            heapTotal: Math.round(mem.heapTotal / 1024 / 1024) + 'MB',
+            rss: Math.round(mem.rss / 1024 / 1024) + 'MB',
+        },
+        environment: process.env.NODE_ENV || 'development',
+        timestamp: new Date().toISOString(),
+    });
 });
 
 // Root endpoint
 app.get('/', (req, res) => {
-    res.json({ message: 'BorderShop POS API is running' });
+    res.json({
+        message: 'BorderShop POS API is running',
+        docs: '/api-docs',
+        health: '/health',
+    });
 });
 
 // Error handling middleware

@@ -1,0 +1,51 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bordershop-backend
+    ports:
+      - "${PORT:-5000}:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - backend_tmp:/app/tmp
+    restart: unless-stopped
+    networks:
+      - bordershop
+
+  db:
+    image: postgres:16-alpine
+    container_name: bordershop-db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-bordershop}
+      POSTGRES_USER: ${DB_USER:-bordershop}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bordershop} -d ${DB_NAME:-bordershop}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - bordershop
+
+volumes:
+  pgdata:
+  backend_tmp:
+
+networks:
+  bordershop:
+    driver: bridge
