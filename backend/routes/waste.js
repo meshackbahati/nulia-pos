@@ -210,4 +210,25 @@ router.post('/', authenticate, async (req, res) => {
     }
 });
 
+/**
+ * @openapi
+ * /api/waste/{id}:
+ *   delete:
+ *     tags: [Waste]
+ *     summary: Delete a waste record
+ *     security:
+ *       - bearerAuth: []
+ */
+router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const record = await models.Waste.findByPk(req.params.id);
+        if (!record) return res.status(404).json({ error: 'Waste record not found' });
+
+        await record.destroy();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;

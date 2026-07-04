@@ -71,6 +71,24 @@ router.put('/register/:id', authenticate, authorize('admin'), async (req, res) =
 
 /**
  * @openapi
+ * /api/cash/register/{id}:
+ *   delete:
+ *     tags: [Cash Management]
+ *     summary: Delete a cash register
+ */
+router.delete('/register/:id', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const register = await models.CashRegister.findByPk(req.params.id);
+        if (!register) return res.status(404).json({ error: 'Register not found' });
+        await register.destroy();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @openapi
  * /api/cash/session/open:
  *   post:
  *     tags: [Cash Management]

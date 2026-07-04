@@ -198,4 +198,29 @@ router.get('/available', authenticate, async (req, res) => {
     }
 });
 
+/**
+ * @openapi
+ * /api/serials/{id}:
+ *   delete:
+ *     tags: [Serial Numbers]
+ *     summary: Void/delete a serial number
+ *     security:
+ *       - bearerAuth: []
+ */
+router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const serial = await models.SerialNumber.findByPk(req.params.id);
+        if (!serial) return res.status(404).json({ error: 'Serial number not found' });
+
+        if (serial.status === 'sold') {
+            return res.status(400).json({ error: 'Cannot delete a sold serial number' });
+        }
+
+        await serial.destroy();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;

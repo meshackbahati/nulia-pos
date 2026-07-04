@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { DollarSign, Plus, Play } from 'lucide-react';
+import { DollarSign, Plus, Play, Pencil, Trash2 } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import LoadingButton from '../components/LoadingButton';
+import CustomModal from '../components/CustomModal';
 import { useLock } from '../lib/useLock';
 
 export default function CashManagementPage() {
@@ -16,6 +17,8 @@ export default function CashManagementPage() {
     const [showClose, setShowClose] = useState<any>(null);
     const [openForm, setOpenForm] = useState({ registerId: '', openingBalance: '' });
     const [closeForm, setCloseForm] = useState({ closingBalance: '' });
+    const [editRegister, setEditRegister] = useState<any | null>(null);
+    const [confirmDeleteRegister, setConfirmDeleteRegister] = useState<string | null>(null);
 
     useEffect(() => { load(); }, []);
 
@@ -40,6 +43,25 @@ export default function CashManagementPage() {
             setRegisterName('');
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+    });
+
+    const [handleUpdateRegister, isUpdatingRegister] = useLock(async () => {
+        if (!editRegister || !editRegister.name) { toast.error('Name required'); return; }
+        try {
+            await api.put(`/cash/register/${editRegister.id}`, { name: editRegister.name });
+            toast.success('Register updated');
+            setEditRegister(null);
+            load();
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+    });
+
+    const [handleDeleteRegister, _isDeletingRegister] = useLock(async (id: string) => {
+        try {
+            await api.delete(`/cash/register/${id}`);
+            toast.success('Register deleted');
+            setConfirmDeleteRegister(null);
+            load();
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Delete failed'); }
     });
 
     const [handleOpenSession, isOpening] = useLock(async () => {
@@ -127,13 +149,21 @@ export default function CashManagementPage() {
                                     </div>
                                     <h3 className="font-bold">{reg.name}</h3>
                                 </div>
-                                <span className={`text-[10px] px-2 py-1 rounded-full ${reg.isActive ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
-                                    {reg.isActive ? 'Active' : 'Inactive'}
-                                </span>
+                                <div className="flex items-center gap-1">
+                                    <span className={`text-[10px] px-2 py-1 rounded-full ${reg.isActive ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
+                                        {reg.isActive ? 'Active' : 'Inactive'}
+                                    </span>
+                                </div>
                             </div>
                             <div className="flex gap-2">
                                 <button onClick={() => handleToggleSession(reg)} disabled={isToggling} className="flex-1 px-4 py-2 bg-secondary/30 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-secondary/50 transition-all disabled:opacity-50">
                                     {reg.activeSession ? 'Close' : 'Open'} Session
+                                </button>
+                                <button onClick={() => setEditRegister({ ...reg })} className="p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 transition-all" title="Edit">
+                                    <Pencil className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => setConfirmDeleteRegister(reg.id)} className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all" title="Delete">
+                                    <Trash2 className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
@@ -198,6 +228,35 @@ export default function CashManagementPage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Edit Register Modal */}
+            {editRegister && (
+                <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center p-4" onClick={() => setEditRegister(null)}>
+                    <div className="glass-card rounded-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+                        <h2 className="text-lg font-black mb-4">Edit Register</h2>
+                        <input value={editRegister.name} onChange={e => setEditRegister({ ...editRegister, name: e.target.value })}
+                            className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary mb-4"
+                            placeholder="Register name" />
+                        <div className="flex gap-3">
+                            <LoadingButton onClick={() => setEditRegister(null)} variant="secondary">Cancel</LoadingButton>
+                            <LoadingButton onClick={handleUpdateRegister} loading={isUpdatingRegister}>Save</LoadingButton>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Register Confirmation */}
+            {confirmDeleteRegister && (
+                <CustomModal
+                    isOpen={true}
+                    onClose={() => setConfirmDeleteRegister(null)}
+                    type="confirm"
+                    title="Delete Register?"
+                    message="This will permanently remove this cash register and all its sessions."
+                    onConfirm={() => handleDeleteRegister(confirmDeleteRegister)}
+                    onCancel={() => setConfirmDeleteRegister(null)}
+                />
             )}
 
             {/* Open Session Modal */}

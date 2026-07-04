@@ -369,4 +369,24 @@ router.post('/layaways/:id/pay', authenticate, authorize('manager'), async (req,
     }
 });
 
+/**
+ * @openapi
+ * /api/customers/{id}:
+ *   delete:
+ *     tags: [Customers]
+ *     summary: Delete a customer
+ *     security:
+ *       - bearerAuth: []
+ */
+router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const customer = await models.Customer.findByPk(req.params.id);
+        if (!customer) return res.status(404).json({ error: 'Customer not found' });
+        await customer.destroy();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;

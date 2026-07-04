@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { QrCode, Search, Upload } from 'lucide-react';
+import { QrCode, Search, Upload, Trash2 } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import LoadingButton from '../components/LoadingButton';
+import CustomModal from '../components/CustomModal';
+import { useLock } from '../lib/useLock';
 
 export default function SerialsPage() {
     const [serials, setSerials] = useState<any[]>([]);
@@ -11,10 +13,11 @@ export default function SerialsPage() {
     const [showRegister, setShowRegister] = useState(false);
     const [statusFilter, setStatusFilter] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
     const [registerForm, setRegisterForm] = useState({ productSearch: '', productId: '', serialsText: '' });
     const [productResults, setProductResults] = useState<any[]>([]);
 
-    useEffect(() => { load(); }, [statusFilter]);
+    useEffect(() => { load(); }, [statusFilter, search]);
 
     async function load() {
         setLoading(true);
@@ -56,6 +59,15 @@ export default function SerialsPage() {
         finally { setSubmitting(false); }
     }
 
+    const [handleDeleteSerial, _isDeletingSerial] = useLock(async (id: string) => {
+        try {
+            await api.delete(`/serials/${id}`);
+            toast.success('Serial number deleted');
+            setConfirmDelete(null);
+            load();
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Delete failed'); }
+    });
+
     const statusBadge = (s: string) => {
         if (s === 'in_stock') return 'bg-emerald-500/20 text-emerald-500';
         if (s === 'sold') return 'bg-blue-500/20 text-blue-500';
@@ -79,7 +91,7 @@ export default function SerialsPage() {
             <div className="flex gap-2 items-center">
                 <div className="relative flex-1 max-w-sm">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && load()}
+                    <input value={search} onChange={e => setSearch(e.target.value)}
                         className="w-full pl-10 pr-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" placeholder="Search serial or batch..." />
                 </div>
                 {['', 'in_stock', 'sold', 'returned', 'voided'].map(s => (
@@ -100,20 +112,40 @@ export default function SerialsPage() {
                 </div>
             ) : (
                 <div className="space-y-2">
-                    <div className="grid grid-cols-6 gap-3 px-4 py-2 text-[9px] font-black uppercase tracking-wider text-muted-foreground">
-                        <span>Serial #</span><span>Product</span><span>Batch</span><span>Status</span><span>Expiry</span><span>Price</span>
+                    <div className="grid grid-cols-7 gap-3 px-4 py-2 text-[9px] font-black uppercase tracking-wider text-muted-foreground">
+                        <span>Serial #</span><span>Product</span><span>Batch</span><span>Status</span><span>Expiry</span><span>Price</span><span></span>
                     </div>
                     {serials.map((s: any) => (
-                        <div key={s.id} className="glass-card rounded-xl px-4 py-3 grid grid-cols-6 gap-3 items-center">
+                        <div key={s.id} className="glass-card rounded-xl px-4 py-3 grid grid-cols-7 gap-3 items-center">
                             <span className="font-mono text-xs font-bold">{s.serialNumber}</span>
                             <span className="text-xs">{s.product?.name || 'Unknown'}</span>
                             <span className="text-[10px] text-muted-foreground">{s.batchNumber || '-'}</span>
                             <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase font-black w-fit ${statusBadge(s.status)}`}>{s.status}</span>
                             <span className="text-[10px] text-muted-foreground">{s.expiryDate ? new Date(s.expiryDate).toLocaleDateString() : '-'}</span>
                             <span className="text-xs">{s.costPrice ? `KES ${parseFloat(s.costPrice).toLocaleString()}` : '-'}</span>
+                            <div className="flex justify-end">
+                                {s.status !== 'sold' && (
+                                    <button onClick={() => setConfirmDelete(s.id)} className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all" title="Delete">
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     ))}
                 </div>
+            )}
+
+            {/* Delete Confirmation */}
+            {confirmDelete && (
+                <CustomModal
+                    isOpen={true}
+                    onClose={() => setConfirmDelete(null)}
+                    type="confirm"
+                    title="Delete Serial Number?"
+                    message="This will permanently remove this serial number."
+                    onConfirm={() => handleDeleteSerial(confirmDelete)}
+                    onCancel={() => setConfirmDelete(null)}
+                />
             )}
 
             {/* Register Serials Modal */}

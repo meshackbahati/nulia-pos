@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Search, UserPlus, Phone, Mail, CreditCard, Calendar, DollarSign } from 'lucide-react';
+import { Search, UserPlus, Phone, Mail, CreditCard, Calendar, DollarSign, Pencil, Trash2 } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import LoadingButton from '../components/LoadingButton';
+import CustomModal from '../components/CustomModal';
 import { useLock } from '../lib/useLock';
 
 export default function CustomersPage() {
@@ -16,6 +17,8 @@ export default function CustomersPage() {
     const [depositAmount, setDepositAmount] = useState('');
     const [depositType, setDepositType] = useState('deposit');
     const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', email: '', idNumber: '', creditLimit: '' });
+    const [editCustomer, setEditCustomer] = useState<any | null>(null);
+    const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
     useEffect(() => { load(); }, []);
 
@@ -44,6 +47,36 @@ export default function CustomersPage() {
             setForm({ firstName: '', lastName: '', phone: '', email: '', idNumber: '', creditLimit: '' });
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+    });
+
+    const [handleUpdateCustomer, isUpdatingCustomer] = useLock(async () => {
+        if (!editCustomer || !editCustomer.firstName) { toast.error('First name required'); return; }
+        try {
+            await api.put(`/customers/${editCustomer.id}`, {
+                firstName: editCustomer.firstName,
+                lastName: editCustomer.lastName,
+                phone: editCustomer.phone,
+                email: editCustomer.email,
+                idNumber: editCustomer.idNumber,
+                creditLimit: editCustomer.creditLimit,
+            });
+            toast.success('Customer updated');
+            setEditCustomer(null);
+            load();
+            if (selected?.id === editCustomer.id) {
+                setSelected({ ...editCustomer });
+            }
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+    });
+
+    const [handleDeleteCustomer, _isDeletingCustomer] = useLock(async (id: string) => {
+        try {
+            await api.delete(`/customers/${id}`);
+            toast.success('Customer deleted');
+            setConfirmDelete(null);
+            if (selected?.id === id) setSelected(null);
+            load();
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Delete failed'); }
     });
 
     const [handleDepositSafe, isDepositing] = useLock(async () => {
@@ -119,9 +152,17 @@ export default function CustomersPage() {
                         <div className="glass-card rounded-2xl p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h2 className="text-lg font-black">{selected.firstName} {selected.lastName || ''}</h2>
-                                <button onClick={() => setShowDeposit(true)} className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2">
-                                    <DollarSign className="w-4 h-4" />Record Payment
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => setShowDeposit(true)} className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                                        <DollarSign className="w-4 h-4" />Record Payment
+                                    </button>
+                                    <button onClick={() => setEditCustomer({ ...selected, creditLimit: selected.creditLimit || '' })} className="p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 transition-all" title="Edit">
+                                        <Pencil className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => setConfirmDelete(selected.id)} className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all" title="Delete">
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
                             <div className="grid grid-cols-3 gap-4">
                                 {[
@@ -203,6 +244,61 @@ export default function CustomersPage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Edit Customer Modal */}
+            {editCustomer && (
+                <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center p-4" onClick={() => setEditCustomer(null)}>
+                    <div className="glass-card rounded-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+                        <h2 className="text-lg font-black mb-4">Edit Customer</h2>
+                        <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground block mb-1">First Name *</label>
+                                    <input value={editCustomer.firstName} onChange={e => setEditCustomer({ ...editCustomer, firstName: e.target.value })}
+                                        className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground block mb-1">Last Name</label>
+                                    <input value={editCustomer.lastName || ''} onChange={e => setEditCustomer({ ...editCustomer, lastName: e.target.value })}
+                                        className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground block mb-1">Phone</label>
+                                <input value={editCustomer.phone || ''} onChange={e => setEditCustomer({ ...editCustomer, phone: e.target.value })}
+                                    className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground block mb-1">Email</label>
+                                <input value={editCustomer.email || ''} onChange={e => setEditCustomer({ ...editCustomer, email: e.target.value })}
+                                    className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground block mb-1">Credit Limit</label>
+                                <input value={editCustomer.creditLimit} onChange={e => setEditCustomer({ ...editCustomer, creditLimit: e.target.value })} type="number"
+                                    className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <LoadingButton onClick={() => setEditCustomer(null)} variant="secondary">Cancel</LoadingButton>
+                                <LoadingButton onClick={handleUpdateCustomer} loading={isUpdatingCustomer}>Save</LoadingButton>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation */}
+            {confirmDelete && (
+                <CustomModal
+                    isOpen={true}
+                    onClose={() => setConfirmDelete(null)}
+                    type="confirm"
+                    title="Delete Customer?"
+                    message="This will permanently remove this customer and all their records."
+                    onConfirm={() => handleDeleteCustomer(confirmDelete)}
+                    onCancel={() => setConfirmDelete(null)}
+                />
             )}
 
             {/* Deposit Modal */}

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Warehouse, Plus, MapPin, Trash2 } from 'lucide-react';
+import { Warehouse, Plus, MapPin, Trash2, Pencil } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import CustomModal from '../components/CustomModal';
 import LoadingButton from '../components/LoadingButton';
+import { useLock } from '../lib/useLock';
 
 export default function WarehousesPage() {
     const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -11,9 +12,12 @@ export default function WarehousesPage() {
     const [showCreate, setShowCreate] = useState(false);
     const [showZone, setShowZone] = useState<{ wh: any } | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+    const [confirmZoneDelete, setConfirmZoneDelete] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [form, setForm] = useState({ name: '', location: '' });
     const [zoneForm, setZoneForm] = useState({ name: '', code: '' });
+    const [editWarehouse, setEditWarehouse] = useState<any | null>(null);
+    const [editZone, setEditZone] = useState<{ zone: any; whId: string } | null>(null);
 
     useEffect(() => { load(); }, []);
 
@@ -38,6 +42,16 @@ export default function WarehousesPage() {
         finally { setSubmitting(false); }
     }
 
+    const [handleUpdateWarehouse, isUpdatingWarehouse] = useLock(async () => {
+        if (!editWarehouse || !editWarehouse.name) { toast.error('Name required'); return; }
+        try {
+            await api.put(`/warehouses/${editWarehouse.id}`, { name: editWarehouse.name, location: editWarehouse.location });
+            toast.success('Warehouse updated');
+            setEditWarehouse(null);
+            load();
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+    });
+
     async function createZone() {
         if (!zoneForm.name || !showZone) { toast.error('Name required'); return; }
         setSubmitting(true);
@@ -49,6 +63,25 @@ export default function WarehousesPage() {
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
         finally { setSubmitting(false); }
     }
+
+    const [handleUpdateZone, isUpdatingZone] = useLock(async () => {
+        if (!editZone || !editZone.zone.name) { toast.error('Name required'); return; }
+        try {
+            await api.put(`/warehouses/zones/${editZone.zone.id}`, { name: editZone.zone.name, code: editZone.zone.code });
+            toast.success('Zone updated');
+            setEditZone(null);
+            load();
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+    });
+
+    const [handleDeleteZone, _isDeletingZone] = useLock(async (id: string) => {
+        try {
+            await api.delete(`/warehouses/zones/${id}`);
+            toast.success('Zone deleted');
+            setConfirmZoneDelete(null);
+            load();
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Delete failed'); }
+    });
 
     async function deleteWarehouse(id: string) {
         try {
@@ -94,9 +127,14 @@ export default function WarehousesPage() {
                                         {w.location && <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />{w.location}</p>}
                                     </div>
                                 </div>
-                                <button onClick={() => setConfirmDelete(w.id)} className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all" title="Delete">
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
+                                <div className="flex items-center gap-1">
+                                    <button onClick={() => setEditWarehouse({ ...w })} className="p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 transition-all" title="Edit">
+                                        <Pencil className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => setConfirmDelete(w.id)} className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all" title="Delete">
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="flex items-center justify-between mb-2">
@@ -108,9 +146,14 @@ export default function WarehousesPage() {
                                 <div className="space-y-1">
                                     {w.zones.map((z: any) => (
                                         <div key={z.id} className="flex items-center gap-2 text-xs bg-secondary/20 rounded-lg px-3 py-2">
-                                            <MapPin className="w-3 h-3 text-muted-foreground" />
-                                            <span>{z.name}</span>
-                                            {z.code && <span className="text-muted-foreground">({z.code})</span>}
+                                            <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
+                                            <span className="flex-1">{z.name} {z.code && <span className="text-muted-foreground">({z.code})</span>}</span>
+                                            <button onClick={() => setEditZone({ zone: { ...z }, whId: w.id })} className="p-1 rounded-lg hover:bg-blue-500/20 text-blue-500 transition-all" title="Edit zone">
+                                                <Pencil className="w-3 h-3" />
+                                            </button>
+                                            <button onClick={() => setConfirmZoneDelete(z.id)} className="p-1 rounded-lg hover:bg-red-500/20 text-red-500 transition-all" title="Delete zone">
+                                                <Trash2 className="w-3 h-3" />
+                                            </button>
                                         </div>
                                     ))}
                                 </div>
@@ -139,7 +182,45 @@ export default function WarehousesPage() {
                 </div>
             )}
 
-            {/* Delete Confirmation */}
+            {/* Edit Warehouse Modal */}
+            {editWarehouse && (
+                <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center p-4" onClick={() => setEditWarehouse(null)}>
+                    <div className="glass-card rounded-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+                        <h2 className="text-lg font-black mb-4">Edit Warehouse</h2>
+                        <div className="space-y-3">
+                            <input value={editWarehouse.name} onChange={e => setEditWarehouse({ ...editWarehouse, name: e.target.value })}
+                                className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" placeholder="Warehouse name" />
+                            <input value={editWarehouse.location || ''} onChange={e => setEditWarehouse({ ...editWarehouse, location: e.target.value })}
+                                className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" placeholder="Location (optional)" />
+                            <div className="flex gap-3 pt-2">
+                                <LoadingButton onClick={() => setEditWarehouse(null)} variant="secondary">Cancel</LoadingButton>
+                                <LoadingButton onClick={handleUpdateWarehouse} loading={isUpdatingWarehouse}>Save</LoadingButton>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Zone Modal */}
+            {editZone && (
+                <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center p-4" onClick={() => setEditZone(null)}>
+                    <div className="glass-card rounded-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+                        <h2 className="text-lg font-black mb-4">Edit Zone</h2>
+                        <div className="space-y-3">
+                            <input value={editZone.zone.name} onChange={e => setEditZone({ ...editZone, zone: { ...editZone.zone, name: e.target.value } })}
+                                className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" placeholder="Zone name" />
+                            <input value={editZone.zone.code || ''} onChange={e => setEditZone({ ...editZone, zone: { ...editZone.zone, code: e.target.value } })}
+                                className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" placeholder="Code (optional)" />
+                            <div className="flex gap-3 pt-2">
+                                <LoadingButton onClick={() => setEditZone(null)} variant="secondary">Cancel</LoadingButton>
+                                <LoadingButton onClick={handleUpdateZone} loading={isUpdatingZone}>Save</LoadingButton>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Warehouse Confirmation */}
             {confirmDelete && (
                 <CustomModal
                     isOpen={true}
@@ -149,6 +230,19 @@ export default function WarehousesPage() {
                     message="This will permanently remove this warehouse and all its zones. Inventory assigned to it will not be deleted."
                     onConfirm={() => deleteWarehouse(confirmDelete)}
                     onCancel={() => setConfirmDelete(null)}
+                />
+            )}
+
+            {/* Delete Zone Confirmation */}
+            {confirmZoneDelete && (
+                <CustomModal
+                    isOpen={true}
+                    onClose={() => setConfirmZoneDelete(null)}
+                    type="confirm"
+                    title="Delete Zone?"
+                    message="Remove this zone from the warehouse."
+                    onConfirm={() => handleDeleteZone(confirmZoneDelete)}
+                    onCancel={() => setConfirmZoneDelete(null)}
                 />
             )}
 

@@ -92,6 +92,28 @@ router.post('/zones', authenticate, authorize('admin'), async (req, res) => {
 /**
  * @openapi
  * /api/warehouses/zones/{id}:
+ *   put:
+ *     tags: [Warehouses]
+ *     summary: Update a warehouse zone
+ */
+router.put('/zones/:id', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const zone = await models.WarehouseZone.findByPk(req.params.id);
+        if (!zone) return res.status(404).json({ error: 'Zone not found' });
+
+        if (req.body.name) zone.name = req.body.name;
+        if (req.body.code !== undefined) zone.code = req.body.code;
+        await zone.save();
+
+        res.json({ zone });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @openapi
+ * /api/warehouses/zones/{id}:
  *   delete:
  *     tags: [Warehouses]
  *     summary: Delete a warehouse zone

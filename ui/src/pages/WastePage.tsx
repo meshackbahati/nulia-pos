@@ -3,6 +3,8 @@ import { Trash2, AlertTriangle, BarChart3, Plus } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import LoadingButton from '../components/LoadingButton';
+import CustomModal from '../components/CustomModal';
+import { useLock } from '../lib/useLock';
 
 const REASONS = ['spoilage', 'damage', 'expired', 'theft', 'breakage', 'other'];
 
@@ -13,6 +15,7 @@ export default function WastePage() {
     const [showCreate, setShowCreate] = useState(false);
     const [activeTab, setActiveTab] = useState<'list' | 'summary'>('list');
     const [submitting, setSubmitting] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
     const [form, setForm] = useState({ productId: '', productSearch: '', quantity: '', reason: 'spoilage', notes: '' });
     const [productResults, setProductResults] = useState<any[]>([]);
 
@@ -54,6 +57,15 @@ export default function WastePage() {
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
         finally { setSubmitting(false); }
     }
+
+    const [handleDeleteWaste, _isDeletingWaste] = useLock(async (id: string) => {
+        try {
+            await api.delete(`/waste/${id}`);
+            toast.success('Waste record deleted');
+            setConfirmDelete(null);
+            load();
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Delete failed'); }
+    });
 
     const reasonColor = (r: string) => {
         if (r === 'spoilage' || r === 'expired') return 'text-amber-500 bg-amber-500/10';
@@ -134,13 +146,31 @@ export default function WastePage() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="text-right">
-                                <p className="font-bold text-sm">{parseFloat(r.quantity).toFixed(1)} units</p>
-                                {r.costValue && <p className="text-[10px] text-muted-foreground">KES {parseFloat(r.costValue).toLocaleString()}</p>}
+                            <div className="flex items-center gap-3">
+                                <div className="text-right">
+                                    <p className="font-bold text-sm">{parseFloat(r.quantity).toFixed(1)} units</p>
+                                    {r.costValue && <p className="text-[10px] text-muted-foreground">KES {parseFloat(r.costValue).toLocaleString()}</p>}
+                                </div>
+                                <button onClick={() => setConfirmDelete(r.id)} className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all" title="Delete">
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
                     ))}
                 </div>
+            )}
+
+            {/* Delete Confirmation */}
+            {confirmDelete && (
+                <CustomModal
+                    isOpen={true}
+                    onClose={() => setConfirmDelete(null)}
+                    type="confirm"
+                    title="Delete Waste Record?"
+                    message="This will permanently remove this waste record."
+                    onConfirm={() => handleDeleteWaste(confirmDelete)}
+                    onCancel={() => setConfirmDelete(null)}
+                />
             )}
 
             {/* Create Waste Modal */}

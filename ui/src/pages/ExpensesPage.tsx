@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Plus, ReceiptText, TrendingDown } from 'lucide-react';
+import { Plus, ReceiptText, TrendingDown, Pencil, Trash2, Check } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import LoadingButton from '../components/LoadingButton';
+import CustomModal from '../components/CustomModal';
 import { useLock } from '../lib/useLock';
 
 const CATEGORIES = ['utilities', 'rent', 'salaries', 'supplies', 'maintenance', 'transport', 'marketing', 'other'];
@@ -13,6 +14,8 @@ export default function ExpensesPage() {
     const [loading, setLoading] = useState(true);
     const [showCreate, setShowCreate] = useState(false);
     const [filter, setFilter] = useState('');
+    const [editExpense, setEditExpense] = useState<any | null>(null);
+    const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
     const [form, setForm] = useState({ category: 'other', amount: '', description: '', paidAt: new Date().toISOString().split('T')[0] });
 
     useEffect(() => { load(); }, []);
@@ -43,6 +46,38 @@ export default function ExpensesPage() {
             setForm({ category: 'other', amount: '', description: '', paidAt: new Date().toISOString().split('T')[0] });
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+    });
+
+    const [handleApproveExpense, isApprovingExpense] = useLock(async (id: string) => {
+        try {
+            await api.post(`/expenses/${id}/approve`);
+            toast.success('Expense approved');
+            load();
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+    });
+
+    const [handleUpdateExpense, isUpdatingExpense] = useLock(async () => {
+        if (!editExpense || !editExpense.amount) { toast.error('Amount required'); return; }
+        try {
+            await api.put(`/expenses/${editExpense.id}`, {
+                category: editExpense.category,
+                amount: parseFloat(editExpense.amount),
+                description: editExpense.description,
+                paidAt: editExpense.paidAt,
+            });
+            toast.success('Expense updated');
+            setEditExpense(null);
+            load();
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+    });
+
+    const [handleDeleteExpense, _isDeletingExpense] = useLock(async (id: string) => {
+        try {
+            await api.delete(`/expenses/${id}`);
+            toast.success('Expense deleted');
+            setConfirmDelete(null);
+            load();
+        } catch (e: any) { toast.error(e?.response?.data?.error || 'Delete failed'); }
     });
 
     return (
@@ -113,8 +148,21 @@ export default function ExpensesPage() {
                                     </p>
                                 </div>
                             </div>
-                            <div className="text-right">
-                                <p className="font-bold text-sm">KES {parseFloat(e.amount).toLocaleString()}</p>
+                            <div className="flex items-center gap-2">
+                                <div className="text-right mr-2">
+                                    <p className="font-bold text-sm">KES {parseFloat(e.amount).toLocaleString()}</p>
+                                </div>
+                                {!e.isApproved && (
+                                    <button onClick={() => handleApproveExpense(e.id)} disabled={isApprovingExpense} className="p-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 transition-all disabled:opacity-50" title="Approve">
+                                        <Check className="w-4 h-4" />
+                                    </button>
+                                )}
+                                <button onClick={() => setEditExpense({ ...e, amount: String(e.amount) })} className="p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 transition-all" title="Edit">
+                                    <Pencil className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => setConfirmDelete(e.id)} className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all" title="Delete">
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -156,6 +204,56 @@ export default function ExpensesPage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Edit Expense Modal */}
+            {editExpense && (
+                <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center p-4" onClick={() => setEditExpense(null)}>
+                    <div className="glass-card rounded-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+                        <h2 className="text-lg font-black mb-4">Edit Expense</h2>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground block mb-1">Category</label>
+                                <select value={editExpense.category} onChange={e => setEditExpense({ ...editExpense, category: e.target.value })}
+                                    className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary">
+                                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground block mb-1">Amount (KES)</label>
+                                <input value={editExpense.amount} onChange={e => setEditExpense({ ...editExpense, amount: e.target.value })} type="number" step="0.01"
+                                    className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" placeholder="0.00" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground block mb-1">Description</label>
+                                <input value={editExpense.description || ''} onChange={e => setEditExpense({ ...editExpense, description: e.target.value })}
+                                    className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" placeholder="What is this for?" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground block mb-1">Date</label>
+                                <input value={editExpense.paidAt ? editExpense.paidAt.split('T')[0] : ''} onChange={e => setEditExpense({ ...editExpense, paidAt: e.target.value })} type="date"
+                                    className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <LoadingButton onClick={() => setEditExpense(null)} variant="secondary">Cancel</LoadingButton>
+                                <LoadingButton onClick={handleUpdateExpense} loading={isUpdatingExpense}>Save</LoadingButton>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation */}
+            {confirmDelete && (
+                <CustomModal
+                    isOpen={true}
+                    onClose={() => setConfirmDelete(null)}
+                    type="confirm"
+                    title="Delete Expense?"
+                    message="This will permanently remove this expense record."
+                    onConfirm={() => handleDeleteExpense(confirmDelete)}
+                    onCancel={() => setConfirmDelete(null)}
+                />
             )}
         </div>
     );

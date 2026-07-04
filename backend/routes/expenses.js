@@ -181,4 +181,50 @@ router.post('/:id/approve', authenticate, authorize('admin'), async (req, res) =
     }
 });
 
+/**
+ * @openapi
+ * /api/expenses/{id}:
+ *   put:
+ *     tags: [Expenses]
+ *     summary: Update an expense
+ *     security:
+ *       - bearerAuth: []
+ */
+router.put('/:id', authenticate, authorize('manager'), async (req, res) => {
+    try {
+        const expense = await models.Expense.findByPk(req.params.id);
+        if (!expense) return res.status(404).json({ error: 'Expense not found' });
+
+        if (req.body.category) expense.category = req.body.category;
+        if (req.body.amount !== undefined) expense.amount = req.body.amount;
+        if (req.body.description !== undefined) expense.description = req.body.description;
+        if (req.body.paidAt) expense.paidAt = req.body.paidAt;
+        await expense.save();
+
+        res.json({ expense });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @openapi
+ * /api/expenses/{id}:
+ *   delete:
+ *     tags: [Expenses]
+ *     summary: Delete an expense
+ *     security:
+ *       - bearerAuth: []
+ */
+router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const expense = await models.Expense.findByPk(req.params.id);
+        if (!expense) return res.status(404).json({ error: 'Expense not found' });
+        await expense.destroy();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;
