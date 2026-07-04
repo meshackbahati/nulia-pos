@@ -3,6 +3,7 @@ import { Plug, RefreshCw, Plus, Trash2, CheckCircle, XCircle, Edit2 } from 'luci
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import CustomModal from '../components/CustomModal';
+import LoadingButton from '../components/LoadingButton';
 
 const PROVIDER_CONFIG_FIELDS: Record<string, { key: string; label: string; placeholder: string; type?: string }[]> = {
     quickbooks: [
@@ -29,6 +30,7 @@ export default function IntegrationsPage() {
     const [syncing, setSyncing] = useState<string | null>(null);
     const [syncDataType, setSyncDataType] = useState<string>('products');
     const [form, setForm] = useState({ name: '', provider: '', config: '{}' as string | Record<string, string> });
+    const [submitting, setSubmitting] = useState(false);
     const [configFields, setConfigFields] = useState<Record<string, string>>({});
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
@@ -67,6 +69,7 @@ export default function IntegrationsPage() {
             return;
         }
         const config = buildConfig(form.provider, configFields);
+        setSubmitting(true);
         try {
             if (editId) {
                 await api.put(`/integrations/${editId}`, { name: form.name, config });
@@ -82,6 +85,8 @@ export default function IntegrationsPage() {
             load();
         } catch (e: any) {
             toast.error(e?.response?.data?.error || 'Save failed');
+        } finally {
+            setSubmitting(false);
         }
     }
 
@@ -241,8 +246,8 @@ export default function IntegrationsPage() {
                                 </div>
                             )}
                             <div className="flex gap-3 pt-2">
-                                <button onClick={() => { setShowAdd(false); setEditId(null); }} className="flex-1 px-4 py-3 bg-secondary/30 rounded-xl text-xs font-black uppercase tracking-wider">Cancel</button>
-                                <button onClick={handleSave} className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase tracking-wider">{editId ? 'Save Changes' : 'Connect & Test'}</button>
+                                <LoadingButton onClick={() => { setShowAdd(false); setEditId(null); }} variant="secondary">Cancel</LoadingButton>
+                                <LoadingButton onClick={handleSave} loading={submitting}>{editId ? 'Save Changes' : 'Connect & Test'}</LoadingButton>
                             </div>
                         </div>
                     </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { QrCode, Search, Upload } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
+import LoadingButton from '../components/LoadingButton';
 
 export default function SerialsPage() {
     const [serials, setSerials] = useState<any[]>([]);
@@ -9,6 +10,7 @@ export default function SerialsPage() {
     const [search, setSearch] = useState('');
     const [showRegister, setShowRegister] = useState(false);
     const [statusFilter, setStatusFilter] = useState('');
+    const [submitting, setSubmitting] = useState(false);
     const [registerForm, setRegisterForm] = useState({ productSearch: '', productId: '', serialsText: '' });
     const [productResults, setProductResults] = useState<any[]>([]);
 
@@ -43,6 +45,7 @@ export default function SerialsPage() {
             return { serialNumber: parts[0].trim(), batchNumber: parts[1]?.trim() || null };
         });
         if (serialNumbers.length === 0) { toast.error('No valid serial numbers'); return; }
+        setSubmitting(true);
         try {
             const res = await api.post('/serials', { productId: registerForm.productId, serialNumbers });
             toast.success(`${res.data.created} serials registered${res.data.errors?.length ? `, ${res.data.errors.length} errors` : ''}`);
@@ -50,6 +53,7 @@ export default function SerialsPage() {
             setRegisterForm({ productSearch: '', productId: '', serialsText: '' });
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+        finally { setSubmitting(false); }
     }
 
     const statusBadge = (s: string) => {
@@ -138,8 +142,8 @@ export default function SerialsPage() {
                                     placeholder="SN001&#10;SN002, BATCH-A&#10;SN003, BATCH-A" />
                             </div>
                             <div className="flex gap-3 pt-2">
-                                <button onClick={() => setShowRegister(false)} className="flex-1 px-4 py-3 bg-secondary/30 rounded-xl text-xs font-black uppercase">Cancel</button>
-                                <button onClick={handleRegister} className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase">Register</button>
+                                <LoadingButton onClick={() => setShowRegister(false)} variant="secondary">Cancel</LoadingButton>
+                                <LoadingButton onClick={handleRegister} loading={submitting}>Register</LoadingButton>
                             </div>
                         </div>
                     </div>

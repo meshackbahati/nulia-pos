@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Save, AlertCircle, Package, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
+import LoadingButton from './LoadingButton';
 
 interface Product {
     id: string;
@@ -29,8 +30,7 @@ export default function InventoryAdjustModal({ product, onClose, onSuccess }: In
         ? product.stockQuantity + qtyNum
         : product.stockQuantity - qtyNum;
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async () => {
 
         if (!qtyNum || qtyNum <= 0) {
             toast.error('Enter a valid quantity');
@@ -75,7 +75,7 @@ export default function InventoryAdjustModal({ product, onClose, onSuccess }: In
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-6">
                     <div className="bg-blue-500/10 p-4 rounded-xl flex items-start gap-3 border border-blue-500/20">
                         <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5" />
                         <div>
@@ -145,20 +145,19 @@ export default function InventoryAdjustModal({ product, onClose, onSuccess }: In
                     </div>
 
                     <div className="flex gap-4 pt-4 border-t border-border">
-                        <button type="button" onClick={onClose} className="flex-1 h-12 bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground rounded-lg font-bold uppercase text-xs transition-colors">CANCEL</button>
-                        <button
-                            type="submit"
-                            disabled={loading || !qtyNum}
-                            className={`flex-1 h-12 rounded-lg font-bold uppercase text-xs flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:scale-100 ${direction === 'add'
-                                ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/25'
-                                : 'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-destructive/25'
-                                }`}
+                        <LoadingButton onClick={onClose} variant="secondary" className="h-12 rounded-lg">CANCEL</LoadingButton>
+                        <LoadingButton
+                            onClick={handleSubmit}
+                            loading={loading}
+                            disabled={!qtyNum}
+                            variant={direction === 'add' ? 'primary' : 'danger'}
+                            className={`h-12 rounded-lg shadow-lg ${direction === 'add' ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/25' : 'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-destructive/25'}`}
                         >
                             <Save className="w-4 h-4" />
                             {loading ? 'SAVING...' : direction === 'add' ? 'ADD STOCK' : 'REMOVE STOCK'}
-                        </button>
+                        </LoadingButton>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
     );

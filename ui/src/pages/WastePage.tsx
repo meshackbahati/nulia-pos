@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Trash2, AlertTriangle, BarChart3, Plus } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
+import LoadingButton from '../components/LoadingButton';
 
 const REASONS = ['spoilage', 'damage', 'expired', 'theft', 'breakage', 'other'];
 
@@ -11,6 +12,7 @@ export default function WastePage() {
     const [loading, setLoading] = useState(true);
     const [showCreate, setShowCreate] = useState(false);
     const [activeTab, setActiveTab] = useState<'list' | 'summary'>('list');
+    const [submitting, setSubmitting] = useState(false);
     const [form, setForm] = useState({ productId: '', productSearch: '', quantity: '', reason: 'spoilage', notes: '' });
     const [productResults, setProductResults] = useState<any[]>([]);
 
@@ -39,6 +41,7 @@ export default function WastePage() {
 
     async function handleCreate() {
         if (!form.productId || !form.quantity) { toast.error('Product and quantity required'); return; }
+        setSubmitting(true);
         try {
             await api.post('/waste', {
                 productId: form.productId, quantity: parseFloat(form.quantity),
@@ -49,6 +52,7 @@ export default function WastePage() {
             setForm({ productId: '', productSearch: '', quantity: '', reason: 'spoilage', notes: '' });
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+        finally { setSubmitting(false); }
     }
 
     const reasonColor = (r: string) => {
@@ -177,8 +181,8 @@ export default function WastePage() {
                                     className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" />
                             </div>
                             <div className="flex gap-3 pt-2">
-                                <button onClick={() => setShowCreate(false)} className="flex-1 px-4 py-3 bg-secondary/30 rounded-xl text-xs font-black uppercase">Cancel</button>
-                                <button onClick={handleCreate} className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase">Record</button>
+                                <LoadingButton onClick={() => setShowCreate(false)} variant="secondary">Cancel</LoadingButton>
+                                <LoadingButton onClick={handleCreate} loading={submitting}>Record</LoadingButton>
                             </div>
                         </div>
                     </div>

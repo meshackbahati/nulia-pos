@@ -3,6 +3,7 @@ import { Warehouse, Plus, MapPin, Trash2 } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import CustomModal from '../components/CustomModal';
+import LoadingButton from '../components/LoadingButton';
 
 export default function WarehousesPage() {
     const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -10,6 +11,7 @@ export default function WarehousesPage() {
     const [showCreate, setShowCreate] = useState(false);
     const [showZone, setShowZone] = useState<{ wh: any } | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+    const [submitting, setSubmitting] = useState(false);
     const [form, setForm] = useState({ name: '', location: '' });
     const [zoneForm, setZoneForm] = useState({ name: '', code: '' });
 
@@ -25,6 +27,7 @@ export default function WarehousesPage() {
 
     async function createWarehouse() {
         if (!form.name) { toast.error('Name required'); return; }
+        setSubmitting(true);
         try {
             await api.post('/warehouses', form);
             toast.success('Warehouse created');
@@ -32,16 +35,19 @@ export default function WarehousesPage() {
             setForm({ name: '', location: '' });
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+        finally { setSubmitting(false); }
     }
 
     async function createZone() {
         if (!zoneForm.name || !showZone) { toast.error('Name required'); return; }
+        setSubmitting(true);
         try {
             await api.post('/warehouses/zones', { warehouseId: showZone.wh.id, ...zoneForm });
             toast.success('Zone created');
             setZoneForm({ name: '', code: '' });
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+        finally { setSubmitting(false); }
     }
 
     async function deleteWarehouse(id: string) {
@@ -125,8 +131,8 @@ export default function WarehousesPage() {
                             <input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })}
                                 className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" placeholder="Location (optional)" />
                             <div className="flex gap-3 pt-2">
-                                <button onClick={() => setShowCreate(false)} className="flex-1 px-4 py-3 bg-secondary/30 rounded-xl text-xs font-black uppercase">Cancel</button>
-                                <button onClick={createWarehouse} className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase">Create</button>
+                                <LoadingButton onClick={() => setShowCreate(false)} variant="secondary">Cancel</LoadingButton>
+                                <LoadingButton onClick={createWarehouse} loading={submitting}>Create</LoadingButton>
                             </div>
                         </div>
                     </div>
@@ -158,8 +164,8 @@ export default function WarehousesPage() {
                             <input value={zoneForm.code} onChange={e => setZoneForm({ ...zoneForm, code: e.target.value })}
                                 className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" placeholder="Code (e.g. A3)" />
                             <div className="flex gap-3 pt-2">
-                                <button onClick={() => setShowZone(null)} className="flex-1 px-4 py-3 bg-secondary/30 rounded-xl text-xs font-black uppercase">Cancel</button>
-                                <button onClick={createZone} className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase">Add</button>
+                                <LoadingButton onClick={() => setShowZone(null)} variant="secondary">Cancel</LoadingButton>
+                                <LoadingButton onClick={createZone} loading={submitting}>Add</LoadingButton>
                             </div>
                         </div>
                     </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X, Save } from 'lucide-react';
+import LoadingButton from './LoadingButton';
 
 interface SaleItem {
     id: string;
@@ -147,19 +148,10 @@ export default function SaleEditModal({ sale, onSave, onClose }: SaleEditModalPr
                 </div>
 
                 <div className="flex items-center justify-end gap-3 p-5 border-t border-border">
-                    <button
-                        onClick={onClose}
-                        className="px-5 h-10 bg-secondary/30 text-foreground rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-secondary/50 transition-all"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="flex items-center gap-2 px-5 h-10 bg-primary text-primary-foreground rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
-                    >
+                    <LoadingButton onClick={onClose} variant="secondary" className="px-5 h-10">Cancel</LoadingButton>
+                    <LoadingButton onClick={handleSave} loading={saving} className="px-5 h-10 shadow-lg shadow-primary/20">
                         <Save className="w-3.5 h-3.5" /> {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
+                    </LoadingButton>
                 </div>
             </div>
         </div>

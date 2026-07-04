@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { DollarSign, Plus, Play } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
+import LoadingButton from '../components/LoadingButton';
 
 export default function CashManagementPage() {
     const [registers, setRegisters] = useState<any[]>([]);
@@ -13,6 +14,7 @@ export default function CashManagementPage() {
     const [showOpen, setShowOpen] = useState(false);
     const [showClose, setShowClose] = useState<any>(null);
     const [openForm, setOpenForm] = useState({ registerId: '', openingBalance: '' });
+    const [submitting, setSubmitting] = useState(false);
     const [closeForm, setCloseForm] = useState({ closingBalance: '' });
 
     useEffect(() => { load(); }, []);
@@ -31,6 +33,7 @@ export default function CashManagementPage() {
 
     async function createRegister() {
         if (!registerName) { toast.error('Name required'); return; }
+        setSubmitting(true);
         try {
             await api.post('/cash/register', { name: registerName });
             toast.success('Register created');
@@ -38,10 +41,12 @@ export default function CashManagementPage() {
             setRegisterName('');
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+        finally { setSubmitting(false); }
     }
 
     async function openSession() {
         if (!openForm.registerId || !openForm.openingBalance) { toast.error('All fields required'); return; }
+        setSubmitting(true);
         try {
             await api.post('/cash/session/open', {
                 registerId: openForm.registerId,
@@ -52,10 +57,12 @@ export default function CashManagementPage() {
             setOpenForm({ registerId: '', openingBalance: '' });
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+        finally { setSubmitting(false); }
     }
 
     async function closeSession() {
         if (!closeForm.closingBalance) { toast.error('Closing balance required'); return; }
+        setSubmitting(true);
         try {
             const res = await api.post('/cash/session/close', {
                 sessionId: showClose.id,
@@ -67,6 +74,7 @@ export default function CashManagementPage() {
             setCloseForm({ closingBalance: '' });
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+        finally { setSubmitting(false); }
     }
 
     async function getActiveSession(registerId: string) {
@@ -190,8 +198,8 @@ export default function CashManagementPage() {
                             className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary mb-4"
                             placeholder="Till 1, Main Register..." />
                         <div className="flex gap-3">
-                            <button onClick={() => setShowRegister(false)} className="flex-1 px-4 py-3 bg-secondary/30 rounded-xl text-xs font-black uppercase">Cancel</button>
-                            <button onClick={createRegister} className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase">Create</button>
+                            <LoadingButton onClick={() => setShowRegister(false)} variant="secondary">Cancel</LoadingButton>
+                            <LoadingButton onClick={createRegister} loading={submitting}>Create Register</LoadingButton>
                         </div>
                     </div>
                 </div>
@@ -219,8 +227,8 @@ export default function CashManagementPage() {
                                     className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" placeholder="0.00" />
                             </div>
                             <div className="flex gap-3 pt-2">
-                                <button onClick={() => setShowOpen(false)} className="flex-1 px-4 py-3 bg-secondary/30 rounded-xl text-xs font-black uppercase">Cancel</button>
-                                <button onClick={openSession} className="flex-1 px-4 py-3 bg-emerald-500 text-white rounded-xl text-xs font-black uppercase">Open</button>
+                                <LoadingButton onClick={() => setShowOpen(false)} variant="secondary">Cancel</LoadingButton>
+                                <LoadingButton onClick={openSession} loading={submitting} className="bg-emerald-500 text-white hover:bg-emerald-600">Open Session</LoadingButton>
                             </div>
                         </div>
                     </div>
@@ -239,8 +247,8 @@ export default function CashManagementPage() {
                                 className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" placeholder="0.00" />
                         </div>
                         <div className="flex gap-3 pt-4">
-                            <button onClick={() => setShowClose(null)} className="flex-1 px-4 py-3 bg-secondary/30 rounded-xl text-xs font-black uppercase">Cancel</button>
-                            <button onClick={closeSession} className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl text-xs font-black uppercase">Close</button>
+                            <LoadingButton onClick={() => setShowClose(null)} variant="secondary">Cancel</LoadingButton>
+                            <LoadingButton onClick={closeSession} loading={submitting} variant="danger" className="bg-red-500 text-white hover:bg-red-600">Close Session</LoadingButton>
                         </div>
                     </div>
                 </div>

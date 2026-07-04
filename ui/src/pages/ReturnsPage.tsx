@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { RotateCcw, CheckCircle, XCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
+import LoadingButton from '../components/LoadingButton';
 
 export default function ReturnsPage() {
     const [returns, setReturns] = useState<any[]>([]);
@@ -11,6 +12,7 @@ export default function ReturnsPage() {
     const [saleSearch, setSaleSearch] = useState('');
     const [saleResult, setSaleResult] = useState<any | null>(null);
     const [searching, setSearching] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
     const [createForm, setCreateForm] = useState({ saleId: '', reason: 'defective', notes: '', items: [] as any[] });
 
     useEffect(() => { load(); }, []);
@@ -47,6 +49,7 @@ export default function ReturnsPage() {
             refundAmount: i.totalPrice,
             restock: true,
         }));
+        setSubmitting(true);
         try {
             const res = await api.post('/returns', {
                 saleId: saleResult.id,
@@ -62,6 +65,8 @@ export default function ReturnsPage() {
             load();
         } catch (e: any) {
             toast.error(e?.response?.data?.error || 'Failed to create return');
+        } finally {
+            setSubmitting(false);
         }
     }
 
@@ -209,11 +214,8 @@ export default function ReturnsPage() {
                             </div>
 
                             <div className="flex gap-3 pt-2">
-                                <button onClick={() => setShowCreate(false)} className="flex-1 px-4 py-3 bg-secondary/30 rounded-xl text-xs font-black uppercase tracking-wider">Cancel</button>
-                                <button onClick={handleCreate} disabled={!saleResult}
-                                    className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase tracking-wider disabled:opacity-40">
-                                    Create Return
-                                </button>
+                                <LoadingButton onClick={() => setShowCreate(false)} variant="secondary">Cancel</LoadingButton>
+                                <LoadingButton onClick={handleCreate} loading={submitting} disabled={!saleResult}>Process Return</LoadingButton>
                             </div>
                         </div>
                     </div>

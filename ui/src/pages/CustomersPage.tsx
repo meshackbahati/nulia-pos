@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, UserPlus, Phone, Mail, CreditCard, Calendar, DollarSign } from 'lucide-react';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
+import LoadingButton from '../components/LoadingButton';
 
 export default function CustomersPage() {
     const [customers, setCustomers] = useState<any[]>([]);
@@ -13,6 +14,7 @@ export default function CustomersPage() {
     const [showDeposit, setShowDeposit] = useState(false);
     const [depositAmount, setDepositAmount] = useState('');
     const [depositType, setDepositType] = useState('deposit');
+    const [submitting, setSubmitting] = useState(false);
     const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', email: '', idNumber: '', creditLimit: '' });
 
     useEffect(() => { load(); }, []);
@@ -35,6 +37,7 @@ export default function CustomersPage() {
 
     async function handleCreate() {
         if (!form.firstName) { toast.error('First name is required'); return; }
+        setSubmitting(true);
         try {
             await api.post('/customers', form);
             toast.success('Customer created');
@@ -42,10 +45,12 @@ export default function CustomersPage() {
             setForm({ firstName: '', lastName: '', phone: '', email: '', idNumber: '', creditLimit: '' });
             load();
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+        finally { setSubmitting(false); }
     }
 
     async function handleDeposit() {
         if (!depositAmount || !depositType) { toast.error('Amount and type required'); return; }
+        setSubmitting(true);
         try {
             await api.post(`/customers/${selected?.id}/deposit`, {
                 amount: parseFloat(depositAmount), type: depositType,
@@ -55,6 +60,7 @@ export default function CustomersPage() {
             setDepositAmount('');
             selectCustomer(selected);
         } catch (e: any) { toast.error(e?.response?.data?.error || 'Failed'); }
+        finally { setSubmitting(false); }
     }
 
     const filtered = customers.filter((c: any) =>
@@ -195,8 +201,8 @@ export default function CustomersPage() {
                                     className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" />
                             </div>
                             <div className="flex gap-3 pt-2">
-                                <button onClick={() => setShowCreate(false)} className="flex-1 px-4 py-3 bg-secondary/30 rounded-xl text-xs font-black uppercase tracking-wider">Cancel</button>
-                                <button onClick={handleCreate} className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase tracking-wider">Create</button>
+                                <LoadingButton onClick={() => setShowCreate(false)} variant="secondary">Cancel</LoadingButton>
+                                <LoadingButton onClick={handleCreate} loading={submitting}>Create Customer</LoadingButton>
                             </div>
                         </div>
                     </div>
@@ -226,8 +232,8 @@ export default function CustomersPage() {
                                     className="w-full px-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" placeholder="0.00" />
                             </div>
                             <div className="flex gap-3 pt-2">
-                                <button onClick={() => setShowDeposit(false)} className="flex-1 px-4 py-3 bg-secondary/30 rounded-xl text-xs font-black uppercase tracking-wider">Cancel</button>
-                                <button onClick={handleDeposit} className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-black uppercase tracking-wider">Record</button>
+                                <LoadingButton onClick={() => setShowDeposit(false)} variant="secondary">Cancel</LoadingButton>
+                                <LoadingButton onClick={handleDeposit} loading={submitting}>Add Deposit</LoadingButton>
                             </div>
                         </div>
                     </div>

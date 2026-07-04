@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import BarcodeScanner from './BarcodeScanner';
 import CustomModal from './CustomModal';
 import useScanDetection from '../hooks/useScanDetection';
+import LoadingButton from './LoadingButton';
 
 interface Product {
     id: string;
@@ -71,8 +72,7 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
         timeLimit: 50
     });
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async () => {
 
         let qty = parseFloat(quantity);
         if (isNaN(qty) || qty <= 0) {
@@ -123,7 +123,7 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-6">
                     <div className="bg-blue-500/10 p-4 rounded-xl flex items-start gap-3 border border-blue-500/20">
                         <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5" />
                         <div>
@@ -199,17 +199,13 @@ export default function RestockModal({ product, onClose, onSuccess }: RestockMod
                     </div>
 
                     <div className="flex gap-4 pt-4 border-t border-border">
-                        <button type="button" onClick={onClose} className="flex-1 h-12 bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground rounded-lg font-bold uppercase text-xs transition-colors">CANCEL</button>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="flex-1 h-12 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg font-bold uppercase text-xs flex items-center justify-center gap-2 shadow-lg shadow-primary/25 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100"
-                        >
+                        <LoadingButton onClick={onClose} variant="secondary" className="h-12 rounded-lg">CANCEL</LoadingButton>
+                        <LoadingButton onClick={handleSubmit} loading={loading} className="h-12 rounded-lg shadow-lg shadow-primary/25">
                             <Save className="w-4 h-4" />
                             {loading ? 'STORING...' : 'RESTOCK'}
-                        </button>
+                        </LoadingButton>
                     </div>
-                </form>
+                </div>
             </div>
 
             {showScanner && (
