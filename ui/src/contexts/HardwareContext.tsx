@@ -25,18 +25,32 @@ interface ReceiptData {
     cashierName?: string;
 }
 
+export type PaperSize = '58mm' | '78mm' | '80mm';
+
+export function paperSizeWidth(size: PaperSize): number {
+    if (size === '58mm') return 58;
+    if (size === '78mm') return 78;
+    return 80;
+}
+
+export function paperSizeChars(size: PaperSize): number {
+    if (size === '58mm') return 32;
+    if (size === '78mm') return 44;
+    return 46;
+}
+
 interface HardwareContextType {
     defaultPrinter: string | null;
     bluetoothPrinter: PrinterDevice | null;
     networkPrinter: PrinterDevice | null;
-    paperSize: '58mm' | '80mm';
+    paperSize: PaperSize;
     isElectron: boolean;
     isMobile: boolean;
     handheldMode: boolean;
     setDefaultPrinter: (name: string) => void;
     setBluetoothPrinter: (printer: PrinterDevice | null) => void;
     setNetworkPrinter: (printer: PrinterDevice | null) => void;
-    setPaperSize: (size: '58mm' | '80mm') => void;
+    setPaperSize: (size: PaperSize) => void;
     setHandheldMode: (enabled: boolean) => void;
     discoverPrinters: () => Promise<PrinterDevice[]>;
     requestWebUsbPrinter: () => Promise<PrinterDevice | null>;
@@ -49,25 +63,25 @@ interface HardwareContextType {
 
 const HardwareContext = createContext<HardwareContextType | undefined>(undefined);
 
-function generateEscPosBytes(receiptData: ReceiptData, paperSize: '58mm' | '80mm'): Uint8Array {
+function generateEscPosBytes(receiptData: ReceiptData, _paperSize: PaperSize): Uint8Array {
     const encoder = new EscPosEncoder();
 
     encoder.initialize();
     encoder.align('center');
+    encoder.size(1, 1);
+    encoder.font('A');
 
-    const style = paperSize === '58mm' ? { font: 'A', width: 1, height: 1 } : { font: 'A', width: 1, height: 1 };
-
-    encoder.style({ ...style, bold: true });
+    encoder.bold(true);
     encoder.text(receiptData.companyName);
     encoder.newline();
 
-    encoder.style({ ...style, bold: false });
+    encoder.bold(false);
     encoder.text('OFFICIAL TRANSACTION RECORD');
     encoder.newline();
     encoder.newline();
 
     encoder.align('left');
-    encoder.style({ ...style, bold: true });
+    encoder.bold(true);
     if (receiptData.cashierName) {
         encoder.text(`Cashier: ${receiptData.cashierName}`);
         encoder.newline();
@@ -80,8 +94,7 @@ function generateEscPosBytes(receiptData: ReceiptData, paperSize: '58mm' | '80mm
     encoder.newline();
     encoder.newline();
 
-    encoder.align('left');
-    encoder.style({ ...style, bold: true });
+    encoder.bold(true);
     encoder.text('--------------------------------');
     encoder.newline();
     encoder.text('DESCRIPTION');
@@ -89,7 +102,7 @@ function generateEscPosBytes(receiptData: ReceiptData, paperSize: '58mm' | '80mm
     encoder.newline();
     encoder.text('--------------------------------');
     encoder.newline();
-    encoder.style({ ...style, bold: false });
+    encoder.bold(false);
 
     for (const item of receiptData.items) {
         const name = item.name.length > 22 ? item.name.substring(0, 19) + '...' : item.name;
@@ -110,10 +123,10 @@ function generateEscPosBytes(receiptData: ReceiptData, paperSize: '58mm' | '80mm
     encoder.text(`TAX: ${receiptData.tax.toFixed(2)}`);
     encoder.newline();
 
-    encoder.style({ ...style, bold: true });
+    encoder.bold(true);
     encoder.text(`TOTAL: ${receiptData.total.toFixed(2)}`);
     encoder.newline();
-    encoder.style({ ...style, bold: false });
+    encoder.bold(false);
 
     encoder.newline();
     encoder.align('center');
@@ -142,8 +155,8 @@ export function HardwareProvider({ children }: { children: React.ReactNode }) {
         const saved = localStorage.getItem('networkPrinter');
         return saved ? JSON.parse(saved) : null;
     });
-    const [paperSize, setPaperSizeState] = useState<'58mm' | '80mm'>(
-        (localStorage.getItem('receiptPaperSize') as '58mm' | '80mm') || '80mm'
+    const [paperSize, setPaperSizeState] = useState<PaperSize>(
+        (localStorage.getItem('receiptPaperSize') as PaperSize) || '80mm'
     );
     const [handheldMode, setHandheldModeState] = useState<boolean>(
         localStorage.getItem('handheldMode') === 'true'
@@ -172,7 +185,7 @@ export function HardwareProvider({ children }: { children: React.ReactNode }) {
         else localStorage.removeItem('networkPrinter');
     };
 
-    const setPaperSize = (size: '58mm' | '80mm') => {
+    const setPaperSize = (size: PaperSize) => {
         setPaperSizeState(size);
         localStorage.setItem('receiptPaperSize', size);
     };

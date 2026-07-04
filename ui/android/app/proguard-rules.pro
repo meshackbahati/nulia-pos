@@ -1,3 +1,10 @@
+# Keep Capacitor custom plugins (loaded reflectively by the bridge)
+-keep class com.retailpro.pos.TcpPrinterPlugin { *; }
+
+# Keep all Capacitor plugin classes (loaded reflectively)
+-keep class com.getcapacitor.** { *; }
+-keepclassmembers class * extends com.getcapacitor.Plugin { *; }
+
 # Add project specific ProGuard rules here.
 # You can control the set of applied configuration files using the
 # proguardFiles setting in build.gradle.

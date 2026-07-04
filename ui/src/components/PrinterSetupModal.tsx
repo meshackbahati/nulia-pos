@@ -465,8 +465,8 @@ export default function PrinterSetupModal({ isOpen, onClose }: PrinterSetupModal
                     {/* Paper Size */}
                     <div className="space-y-2 shrink-0">
                         <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest ml-1">Receipt Width</label>
-                        <div className="grid grid-cols-2 gap-3">
-                            {(['58mm', '80mm'] as const).map(size => (
+                        <div className="grid grid-cols-3 gap-3">
+                            {(['58mm', '78mm', '80mm'] as const).map(size => (
                                 <button
                                     key={size}
                                     onClick={() => setPaperSize(size)}

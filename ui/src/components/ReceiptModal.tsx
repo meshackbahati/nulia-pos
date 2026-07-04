@@ -5,7 +5,7 @@ import jsPDF from 'jspdf';
 import api from '../lib/api-client';
 import toast from 'react-hot-toast';
 import { useCurrency } from '../hooks/useCurrency';
-import { useHardware } from '../contexts/HardwareContext';
+import { useHardware, type PaperSize, paperSizeWidth } from '../contexts/HardwareContext';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
@@ -90,8 +90,8 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
     }, [autoPrint, isHardwareElectron, defaultPrinter]);
 
     const getReceiptPDF = () => {
-        const selectedSize = localStorage.getItem('receiptPaperSize') || '80mm';
-        const width = selectedSize === '58mm' ? 58 : 80;
+        const selectedSize = (localStorage.getItem('receiptPaperSize') || '80mm') as PaperSize;
+        const width = paperSizeWidth(selectedSize);
 
         const doc = new jsPDF({
             unit: 'mm',
@@ -257,16 +257,22 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
 
 
     const getReceiptHTML = () => {
+        const paperOpts = paperSize === '58mm' ? { fontSize: 12, smallFont: 10, titleFont: 16, maxNameLen: 16, viewW: 220, bodyW: '200px' } :
+            paperSize === '78mm' ? { fontSize: 13, smallFont: 11, titleFont: 18, maxNameLen: 20, viewW: 270, bodyW: '250px' } :
+            { fontSize: 14, smallFont: 11, titleFont: 20, maxNameLen: 24, viewW: 320, bodyW: '280px' };
+        const { fontSize, smallFont, titleFont, maxNameLen, viewW, bodyW } = paperOpts;
+
         const itemsHtml = sale.items.map(item => {
             const itemPrice = item.price || item.unitPrice || 0;
             const displayName = item.productName || item.name || 'Unknown Item';
+            const shortName = displayName.length > maxNameLen ? displayName.substring(0, maxNameLen - 3) + '...' : displayName;
             return `
-                <div style="margin-bottom: 8px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold;">
-                        <span style="text-transform: uppercase;">${displayName}</span>
-                        <span>${formatPrice(new Decimal(item.quantity).times(itemPrice).toNumber())}</span>
+                <div style="margin-bottom: 3pt;">
+                    <div style="display: flex; justify-content: space-between; font-size: ${fontSize}pt; font-weight: 700; line-height: 1.3;">
+                        <span style="text-transform: uppercase;">${shortName}</span>
+                        <span style="white-space: nowrap;">${formatPrice(new Decimal(item.quantity).times(itemPrice).toNumber())}</span>
                     </div>
-                    <div style="font-size: 9px; color: #444; margin-top: 1px;">
+                    <div style="font-size: ${smallFont - 2}pt; color: #555; line-height: 1.2;">
                         ${item.quantity}${item.baseUnit || ''} x ${formatPrice(itemPrice)}
                         ${item.catalogPrice && Number(item.catalogPrice) !== Number(itemPrice) ? `<span style="text-decoration: line-through; opacity: 0.5; margin-left: 4px;">(${formatPrice(item.catalogPrice)})</span>` : ''}
                     </div>
@@ -277,64 +283,92 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
         const payTransSym = sale.transactionCurrency ? getCurrencySymbol(sale.transactionCurrency) : '';
         const paySep = payTransSym.length > 1 ? ' ' : '';
         const paymentsHtml = (sale.payments || []).map(p => `
-            <div style="display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px;">
+            <div style="display: flex; justify-content: space-between; font-size: ${smallFont - 1}pt; margin-bottom: 1pt;">
                 <span style="text-transform: uppercase;">${p.method}</span>
-                <span style="font-weight: bold;">${payTransSym}${paySep}${p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                <span style="font-weight: 700;">${payTransSym}${paySep}${p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
         `).join('');
 
-        return `
-            <div style="padding: 15px; font-family: 'Courier New', Courier, monospace; color: #000; background: #fff;">
-                <div style="text-align: center; margin-bottom: 15px;">
-                    <div style="font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">${companyName}</div>
-                    <div style="font-size: 10px; font-weight: bold; border: 1px solid #000; display: inline-block; padding: 2px 8px; margin: 5px 0;">OFFICIAL RECEIPT</div>
-                    <div style="font-size: 8px; color: #444; text-transform: uppercase; margin-top: 8px;">
-                        ${new Date(sale?.createdAt || Date.now()).toLocaleString()}<br/>
-                        Receipt: ${sale.receiptId}<br/>
-                        Served By: ${sale.user?.firstName || ''} ${sale.user?.lastName || ''}
-                    </div>
-                </div>
-                
-                <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
-                
-                <div style="text-align: left; margin: 10px 0;">
-                    ${itemsHtml}
-                </div>
-                
-                <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
-                
-                <div style="margin: 10px 0;">
-                    <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 2px;">
-                        <span>SUBTOTAL</span>
-                        <span>${formatPrice(sale.subtotal || 0)}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 2px;">
-                        <span>TAX (VAT)</span>
-                        <span>${formatPrice(sale.tax || 0)}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 900; margin-top: 8px; padding-top: 8px; border-top: 1px double #000;">
-                        <span>NET TOTAL</span>
-                        <span>${formatPrice(sale.total || sale.totalAmount || 0)}</span>
-                    </div>
-                </div>
-                
-                <div style="border-top: 1px dashed #000; margin: 15px 0;"></div>
-                
-                <div style="text-align: left; margin: 10px 0;">
-                    <div style="font-size: 9px; font-weight: 900; text-transform: uppercase; margin-bottom: 6px; text-decoration: underline;">Payment Breakdown</div>
-                    ${paymentsHtml}
-                </div>
-                
-                <div style="border-top: 1px dashed #000; margin: 15px 0;"></div>
-                
-                <div style="text-align: center; margin-top: 15px;">
-                    <div style="font-size: 10px; font-weight: 900; text-transform: uppercase;">Thank you for your business</div>
-                    <div style="font-size: 12px; font-weight: 900; text-transform: uppercase; color: #000; margin: 4px 0;">${companyName}</div>
-                    <div style="font-size: 7px; font-weight: bold; text-transform: uppercase; margin-top: 10px; opacity: 0.8;">Goods once sold cannot be returned</div>
-                    <div style="font-size: 6px; font-weight: bold; text-transform: uppercase; margin-top: 15px; letter-spacing: 2px; opacity: 0.5;">POWERED BY RETAILPRO POS</div>
-                </div>
-            </div>
-        `;
+        return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=${viewW}">
+<style>
+  @page { margin: 5mm 3mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Courier New', 'Courier', 'Lucida Console', monospace;
+    color: #000; background: #fff;
+    font-size: ${fontSize}pt;
+    line-height: 1.4;
+    width: ${bodyW};
+    margin: 0 auto;
+    padding: 5pt 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .center { text-align: center; }
+  .header-title { font-size: ${titleFont}pt; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5pt; margin-bottom: 2pt; }
+  .header-badge { font-size: ${smallFont}pt; font-weight: 700; border: 1pt solid #000; display: inline-block; padding: 1pt 6pt; margin: 3pt 0; }
+  .header-meta { font-size: ${smallFont - 1}pt; color: #333; text-transform: uppercase; margin-top: 4pt; line-height: 1.6; }
+  .divider { border-top: 1pt dashed #000; margin: 6pt 0; }
+  .divider-thick { border-top: 1.5pt double #000; margin: 6pt 0; }
+  .items { text-align: left; margin: 6pt 0; }
+  .totals { margin: 6pt 0; }
+  .totals-row { display: flex; justify-content: space-between; font-size: ${smallFont}pt; margin-bottom: 1pt; }
+  .totals-row-large { display: flex; justify-content: space-between; font-size: ${titleFont}pt; font-weight: 900; margin-top: 4pt; padding-top: 4pt; }
+  .footer { text-align: center; margin-top: 8pt; }
+  .footer-thanks { font-size: ${smallFont}pt; font-weight: 900; text-transform: uppercase; }
+  .footer-company { font-size: ${titleFont - 2}pt; font-weight: 900; text-transform: uppercase; margin: 2pt 0; }
+  .footer-note { font-size: ${smallFont - 3}pt; font-weight: 700; text-transform: uppercase; margin-top: 6pt; opacity: 0.7; }
+  .footer-credit { font-size: ${smallFont - 4}pt; font-weight: 700; text-transform: uppercase; margin-top: 10pt; letter-spacing: 1pt; opacity: 0.4; }
+  @media print {
+    body { width: 100%; padding: 0; }
+    .header-title { font-size: ${titleFont}pt; }
+  }
+</style>
+</head>
+<body>
+    <div class="center">
+        <div class="header-title">${companyName}</div>
+        <div class="header-badge">OFFICIAL RECEIPT</div>
+        <div class="header-meta">
+            ${new Date(sale?.createdAt || Date.now()).toLocaleString()}<br/>
+            Receipt: ${sale.receiptId}<br/>
+            Served By: ${sale.user?.firstName || ''} ${sale.user?.lastName || ''}
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="items">${itemsHtml}</div>
+
+    <div class="divider"></div>
+
+    <div class="totals">
+        <div class="totals-row"><span>SUBTOTAL</span><span>${formatPrice(sale.subtotal || 0)}</span></div>
+        <div class="totals-row"><span>TAX (VAT)</span><span>${formatPrice(sale.tax || 0)}</span></div>
+        <div class="totals-row-large"><span>NET TOTAL</span><span>${formatPrice(sale.total || sale.totalAmount || 0)}</span></div>
+    </div>
+
+    <div class="divider-thick"></div>
+
+    <div style="text-align: left; margin: 6pt 0;">
+        <div style="font-size: ${smallFont}pt; font-weight: 900; text-transform: uppercase; margin-bottom: 4pt; text-decoration: underline;">Payment Breakdown</div>
+        ${paymentsHtml}
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="footer">
+        <div class="footer-thanks">Thank you for your business</div>
+        <div class="footer-company">${companyName}</div>
+        <div class="footer-note">Goods once sold cannot be returned</div>
+        <div class="footer-credit">POWERED BY RETAILPRO POS</div>
+    </div>
+</body>
+</html>`;
     };
 
     const handlePrint = async () => {
@@ -355,7 +389,20 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
             cashierName: sale?.user ? `${sale.user.firstName} ${sale.user.lastName}` : undefined
         };
 
-        if (networkPrinter || bluetoothPrinter || defaultPrinter) {
+        // Desktop (Electron) — skip ESC/POS, use system print API directly
+        if (isHardwareElectron && (window as any).electronAPI) {
+            try {
+                const html = getReceiptHTML();
+                const r = await (window as any).electronAPI.printReceiptHTML(html, {
+                    printerName: defaultPrinter || undefined,
+                    paperSize
+                });
+                if (r.success) { toast.success('Printed via system!'); return; }
+            } catch {}
+        }
+
+        // Mobile — try hardware printer (network/BLE/USB) via ESC/POS
+        if (!isHardwareElectron && (networkPrinter || bluetoothPrinter || defaultPrinter)) {
             toast.loading('Printing receipt...', { id: 'print-toast' });
             try {
                 const result = await printReceipt(receiptData);
@@ -367,16 +414,6 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
             } catch {
                 toast.error('Print error', { id: 'print-toast' });
             }
-        }
-
-        if (isHardwareElectron && (window as any).electronAPI) {
-            try {
-                const r = await (window as any).electronAPI.printReceiptHTML(getReceiptHTML(), {
-                    printerName: defaultPrinter || undefined,
-                    paperSize
-                });
-                if (r.success) { toast.success('Printed via system!'); return; }
-            } catch {}
         }
 
         if (isHardwareMobile) {
