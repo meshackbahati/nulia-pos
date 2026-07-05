@@ -22,7 +22,14 @@ export default function SaleEditModal({ sale, onSave, onClose }: SaleEditModalPr
     const [customerPhone, setCustomerPhone] = useState(sale.customerPhone || '');
     const [customerEmail, setCustomerEmail] = useState(sale.customerEmail || '');
     const [notes, setNotes] = useState(sale.notes || '');
-    const [items, setItems] = useState<SaleItem[]>(sale.items || []);
+    const [items, setItems] = useState<SaleItem[]>(
+        (sale.items || []).map((item: any) => ({
+            ...item,
+            unitPrice: Number(item.unitPrice) || 0,
+            totalPrice: Number(item.totalPrice) || 0,
+            quantity: Number(item.quantity) || 0,
+        }))
+    );
     const [saving, setSaving] = useState(false);
 
     const updateItemQty = (index: number, qty: number) => {
@@ -54,7 +61,7 @@ export default function SaleEditModal({ sale, onSave, onClose }: SaleEditModalPr
         }
     };
 
-    const subtotal = items.reduce((sum, i) => sum + i.totalPrice, 0);
+    const subtotal = items.reduce((sum, i) => sum + (Number(i.totalPrice) || 0), 0);
     const taxRate = sale.branch?.taxRate || 0;
     const taxAmount = subtotal * (taxRate / 100);
     const total = subtotal + taxAmount;

@@ -1,6 +1,6 @@
 {
     "name": "bordershop-backend",
-    "version": "1.0.11",
+    "version": "1.10.0",
     "description": "Standard Express backend for BorderShop POS",
     "main": "server.js",
     "type": "module",
