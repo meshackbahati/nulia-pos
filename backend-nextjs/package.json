@@ -1,0 +1,46 @@
+{
+    "name": "bordershop-backend-nextjs",
+    "version": "1.10.0",
+    "description": "BorderShop POS backend ported to Next.js App Router API routes for Vercel hosting",
+    "private": true,
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "lint": "next lint",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "axios": "^1.6.7",
+        "bcryptjs": "^2.4.3",
+        "cloudinary": "^2.9.0",
+        "cors": "^2.8.5",
+        "csv-parse": "^6.1.0",
+        "decimal.js": "^10.6.0",
+        "dotenv": "^16.4.1",
+        "express": "^4.18.2",
+        "express-rate-limit": "^8.5.2",
+        "jsonwebtoken": "^9.0.2",
+        "multer": "^2.0.2",
+        "next": "14.2.5",
+        "node-cron": "^4.5.0",
+        "pdfkit": "^0.19.1",
+        "pg": "^8.11.3",
+        "pg-hstore": "^2.3.4",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+        "sequelize": "^6.37.1",
+        "swagger-jsdoc": "^6.3.0",
+        "swagger-ui-express": "^5.0.1",
+        "uuid": "^9.0.1"
+    },
+    "devDependencies": {
+        "@types/node": "^20.14.0",
+        "@types/react": "^18.3.0",
+        "@types/react-dom": "^18.3.0",
+        "typescript": "^5.5.0"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}

@@ -1,0 +1,16 @@
+{
+    "crons": [
+        {
+            "path": "/api/cron/daily-product-status",
+            "schedule": "0 23 * * *"
+        },
+        {
+            "path": "/api/cron/weekly-summary",
+            "schedule": "0 8 * * 1"
+        },
+        {
+            "path": "/api/cron/hosting-invoice",
+            "schedule": "0 0 1,3 * *"
+        }
+    ]
+}
