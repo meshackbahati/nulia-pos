@@ -329,6 +329,15 @@ class EmailService {
     });
   }
 
+  async sendDailyProductStatus(recipients, branchName, reportData) {
+    const html = this.generateDailyProductStatusHTML(branchName, reportData);
+    return this.sendEmail({
+      to: recipients,
+      subject: `Product Status Report - ${branchName} - ${reportData.dateLabel}`,
+      html,
+    });
+  }
+
   generateReceiptHTML(data) {
     const currency = data.transactionCurrency || 'USD';
     const symbol = data.transactionCurrencySymbol || currency;
@@ -637,12 +646,19 @@ class EmailService {
   }
 
   generateWeeklySummaryHTML(branchName, data) {
+    const productImageCell = (item) => {
+      const img = item.imageUrl
+        ? `<img src="${item.imageUrl}" alt="${item.name}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;border:1px solid #e5e7eb;vertical-align:middle;margin-right:10px;">`
+        : `<div style="width:36px;height:36px;border-radius:6px;background:#f3f4f6;display:inline-block;vertical-align:middle;margin-right:10px;"></div>`;
+      return `${img}<span>${item.name}</span>`;
+    };
+
     const outOfStockRows = (data.outOfStockItems || []).map(item =>
-      `<tr><td>${item.name}</td><td style="color:#ef4444;font-weight:bold;">Out of Stock</td></tr>`
+      `<tr><td>${productImageCell(item)}</td><td style="color:#ef4444;font-weight:bold;">Out of Stock</td></tr>`
     ).join('');
 
     const lowStockRows = (data.lowStockItems || []).map(item =>
-      `<tr><td>${item.name}</td><td style="color:#f59e0b;">${item.currentStock} / ${item.minLevel}</td></tr>`
+      `<tr><td>${productImageCell(item)}</td><td style="color:#f59e0b;">${item.currentStock} / ${item.minLevel}</td></tr>`
     ).join('');
 
     return `
@@ -693,6 +709,74 @@ class EmailService {
 
         <div class="footer">
           <p>This is your automated weekly summary from RetailPro.</p>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  generateDailyProductStatusHTML(branchName, data) {
+    const productImageCell = (item) => {
+      const img = item.imageUrl
+        ? `<img src="${item.imageUrl}" alt="${item.name}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;border:1px solid #e5e7eb;vertical-align:middle;margin-right:12px;">`
+        : `<div style="width:40px;height:40px;border-radius:8px;background:#f3f4f6;display:inline-block;vertical-align:middle;margin-right:12px;"></div>`;
+      return `${img}<span>${item.name}</span>`;
+    };
+
+    const outOfStockRows = (data.outOfStockItems || []).map(item =>
+      `<tr><td>${productImageCell(item)}</td><td style="color:#ef4444;font-weight:bold;">0</td><td style="color:#ef4444;font-weight:bold;">OUT OF STOCK</td></tr>`
+    ).join('');
+
+    const lowStockRows = (data.lowStockItems || []).map(item =>
+      `<tr><td>${productImageCell(item)}</td><td style="color:#f59e0b;">${item.currentStock}</td><td style="color:#f59e0b;">${item.minLevel}</td></tr>`
+    ).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Product Status Report - ${branchName}</title>
+        <style>
+          body { font-family: Arial, sans-serif; max-width: 650px; margin: 0 auto; padding: 20px; }
+          .header { text-align: center; border-bottom: 2px solid #f59e0b; padding-bottom: 20px; margin-bottom: 20px; }
+          h2 { color: #1f2937; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
+          th { background: #f3f4f6; font-weight: 600; }
+          .section-title { font-size: 16px; font-weight: bold; margin-top: 24px; margin-bottom: 8px; color: #374151; }
+          .summary-card { background: #fffbeb; border: 1px solid #fde68a; padding: 16px; border-radius: 8px; margin-bottom: 20px; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>End of Day Product Status</h1>
+          <p><strong>${branchName}</strong></p>
+          <p>${data.dateLabel}</p>
+        </div>
+
+        <div class="summary-card">
+          <p style="margin:0;color:#92400e;"><strong>${(data.outOfStockItems || []).length}</strong> item(s) out of stock &nbsp;|&nbsp; <strong>${(data.lowStockItems || []).length}</strong> item(s) low on stock</p>
+        </div>
+
+        ${outOfStockRows ? `
+        <div class="section-title">Out of Stock Items</div>
+        <table>
+          <thead><tr><th>Product</th><th>Current Stock</th><th>Status</th></tr></thead>
+          <tbody>${outOfStockRows}</tbody>
+        </table>` : ''}
+
+        ${lowStockRows ? `
+        <div class="section-title">Low Stock Items</div>
+        <table>
+          <thead><tr><th>Product</th><th>Current Stock</th><th>Min Level</th></tr></thead>
+          <tbody>${lowStockRows}</tbody>
+        </table>` : ''}
+
+        <div class="footer">
+          <p>Please review and restock these items.</p>
+          <p>This is your automated end-of-day product status from RetailPro.</p>
         </div>
       </body>
       </html>

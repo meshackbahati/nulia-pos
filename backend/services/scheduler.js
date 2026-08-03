@@ -22,7 +22,18 @@ class Scheduler {
       }
     });
 
-    // 2. Monthly Hosting Invoice (1st and 3rd of every month at 00:00 AM)
+    // 2. Daily Product Status Report (every day at 11:00 PM)
+    cron.schedule('0 23 * * *', async () => {
+      console.log('[Scheduler] Running daily product status report...');
+      try {
+        await notificationService.sendDailyProductStatus();
+        console.log('[Scheduler] Daily product status report completed.');
+      } catch (error) {
+        console.error('[Scheduler] Error during daily product status report:', error);
+      }
+    });
+
+    // 3. Monthly Hosting Invoice (1st and 3rd of every month at 00:00 AM)
     for (const day of [1, 3]) {
       cron.schedule(`0 0 ${day} * *`, async () => {
         console.log(`[Scheduler] Running hosting invoice generation (day ${day})...`);

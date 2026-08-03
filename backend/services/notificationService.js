@@ -102,6 +102,63 @@ class NotificationService {
   }
 
   /**
+   * Sends a daily end-of-day product status report to all branches.
+   * Only sends if there is at least one item to report (out of stock or low stock).
+   * Lists include product images.
+   */
+  async sendDailyProductStatus() {
+    const branches = await models.Branch.findAll({ where: { isActive: true } });
+    const now = new Date();
+    const dateLabel = now.toLocaleDateString();
+
+    for (const branch of branches) {
+      try {
+        const recipients = await this.getBranchRecipients(branch.id);
+        if (recipients.length === 0) continue;
+
+        const inventoryItems = await models.Inventory.findAll({
+          where: { branchId: branch.id },
+          include: [{ model: models.Product, as: 'product' }]
+        });
+
+        const outOfStockItems = [];
+        const lowStockItems = [];
+
+        for (const item of inventoryItems) {
+          const available = Number(item.quantity) - Number(item.reservedQuantity || 0);
+          const imageUrl = item.product.imageUrl || null;
+          if (available <= 0) {
+            outOfStockItems.push({ name: item.product.name, currentStock: 0, imageUrl });
+          } else if (available <= item.minStockLevel) {
+            lowStockItems.push({
+              name: item.product.name,
+              currentStock: available,
+              minLevel: item.minStockLevel,
+              imageUrl,
+            });
+          }
+        }
+
+        if (outOfStockItems.length === 0 && lowStockItems.length === 0) {
+          console.log(`[Notification] No product status issues for ${branch.name}, skipping email.`);
+          continue;
+        }
+
+        const reportData = {
+          dateLabel,
+          outOfStockItems,
+          lowStockItems,
+        };
+
+        await emailService.sendDailyProductStatus(recipients.join(','), branch.name, reportData);
+        console.log(`[Notification] Daily product status sent to ${branch.name}`);
+      } catch (error) {
+        console.error(`[Notification] Error sending daily product status for ${branch.name}:`, error.message);
+      }
+    }
+  }
+
+  /**
    * Sends weekly summary report to all branches.
    * Includes low stock / out of stock items and weekly sales totals.
    */
