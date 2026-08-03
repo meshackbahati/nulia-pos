@@ -1,17 +1,20 @@
 import { Readable } from 'stream';
-import { NextResponse } from 'next/server';
 
 /**
- * Bridges a Next.js App Router Request into the ported Express app
- * and converts the Express response back into a NextResponse.
+ * Builds a Next.js App Router Request into an Express-style req/res pair,
+ * runs the Express app, and returns { status, headers, body }.
  *
  * The request body is exposed as a real Readable stream so that
  * express.json(), express.urlencoded() and multer (multipart) all work.
  */
-export async function runExpress(req, app) {
+export async function runExpressToResult(req, app) {
     const url = new URL(req.url);
     const method = req.method || 'GET';
-    const headers = Object.fromEntries(req.headers.entries());
+    const rawHeaders = req.headers && typeof req.headers.entries === 'function'
+        ? Object.fromEntries(req.headers.entries())
+        : (req.headers || {});
+    const headers = {};
+    Object.keys(rawHeaders).forEach(k => { headers[k.toLowerCase()] = rawHeaders[k]; });
     let bodyBuffer = Buffer.alloc(0);
 
     if (!['GET', 'HEAD'].includes(method)) {
@@ -21,8 +24,10 @@ export async function runExpress(req, app) {
     }
 
     const bodyStream = Readable.from(bodyBuffer);
-    const headersObj = {};
-    Object.keys(headers).forEach(k => { headersObj[k.toLowerCase()] = headers[k]; });
+    const headersObj = headers;
+    if (bodyBuffer.length > 0 && !('content-length' in headersObj)) {
+        headersObj['content-length'] = String(bodyBuffer.length);
+    }
 
     const expressReq = Object.assign(bodyStream, {
         method,
@@ -37,11 +42,18 @@ export async function runExpress(req, app) {
         _body: undefined,
         rawBody: bodyBuffer,
         ip: headersObj['x-forwarded-for']?.split(',')[0]?.trim() || headersObj['x-real-ip'] || '127.0.0.1',
-        socket: { remoteAddress: headersObj['x-forwarded-for']?.split(',')[0]?.trim() || '127.0.0.1' },
+        socket: {
+            remoteAddress: headersObj['x-forwarded-for']?.split(',')[0]?.trim() || '127.0.0.1',
+            destroy: () => {},
+        },
         connection: null,
         get: (name) => headersObj[name.toLowerCase()] || headers[name],
     });
     expressReq.connection = expressReq.socket;
+    // Prevent _http_incoming._destroy from assuming a real network socket
+    expressReq._destroy = function (err, cb) { cb(err); };
+    expressReq.destroy = function () { return this; };
+    expressReq.destroyed = false;
 
     let statusCode = 200;
     const resHeaders = {};
@@ -160,8 +172,22 @@ export async function runExpress(req, app) {
     const isBuffer = Buffer.isBuffer(responseBody);
     const body = isBuffer ? responseBody : String(responseBody);
 
-    return new NextResponse(body, {
+    return {
         status: statusCode,
         headers: resHeaders,
+        body,
+    };
+}
+
+/**
+ * Bridges a Next.js App Router Request into the ported Express app
+ * and converts the Express response back into a NextResponse.
+ */
+export async function runExpress(req, app) {
+    const { status, headers, body } = await runExpressToResult(req, app);
+    const { NextResponse } = await import('next/server');
+    return new NextResponse(body, {
+        status,
+        headers,
     });
 }
