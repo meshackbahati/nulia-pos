@@ -79,10 +79,10 @@ Point `***REMOVED***` at your existing BorderShop PostgreSQL database. All table
 
 ### Serverless pool sizing
 
-In `src/lib/database.js` the Sequelize pool is `max: 5`. On serverless this may be too high per function instance; reduce it if you hit "too many clients" errors:
+In `src/lib/database.js` the Sequelize pool is already optimized for serverless (`max: 1` per function instance). If you hit connection errors on a provider that keeps instances warm, you can raise it slightly:
 
 ```js
-pool: { max: 1, min: 0, acquire: 30000, idle: 10000 }
+pool: { max: 2, min: 0, acquire: 30000, idle: 10000 }
 ```
 
 ---
@@ -145,6 +145,16 @@ Server runs at `http://localhost:3000`. The whole API is live:
 - Health check: `http://localhost:3000/health`
 - API docs: `http://localhost:3000/api-docs`
 - Root: `http://localhost:3000/`
+
+### Running the smoke tests (no server needed)
+
+In-process tests that drive the ported Express app through the exact bridge used in production, against the configured database:
+
+```bash
+npm test
+```
+
+Covers: root/health/install-check, JSON body parsing (login), auth guards, and multer multipart uploads.
 
 ---
 

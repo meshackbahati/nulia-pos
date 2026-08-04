@@ -20,10 +20,12 @@ const sequelize = new Sequelize(databaseUrl, {
     },
     logging: process.env.DEBUG_MODE === 'true' ? console.log : false,
     pool: {
-        max: 5, // Back to standard pool size for non-serverless
+        max: 1, // Serverless-optimized pool: one connection per function instance
         min: 0,
         acquire: 30000,
-        idle: 10000
+        idle: 10000,
+        idleTimeoutMillis: 10000,
+        evict: 10000,
     },
     define: {
         timestamps: true,
