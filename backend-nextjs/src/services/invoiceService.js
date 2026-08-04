@@ -1,8 +1,10 @@
 import pdfkit from 'pdfkit';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 
-const TMP_DIR = path.join(process.cwd(), 'tmp');
+// Use the OS temp dir (e.g. /tmp on Vercel serverless) — the project dir is read-only
+const TMP_DIR = path.join(os.tmpdir(), 'bordershop-invoices');
 
 if (!fs.existsSync(TMP_DIR)) {
   fs.mkdirSync(TMP_DIR, { recursive: true });
