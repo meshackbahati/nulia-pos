@@ -1,5 +1,6 @@
 import { Sequelize } from 'sequelize';
 import dotenv from 'dotenv';
+import pg from 'pg';
 
 dotenv.config({ path: '.env.local' });
 dotenv.config();
@@ -13,6 +14,7 @@ if (!databaseUrl) {
 const sequelize = new Sequelize(databaseUrl, {
     dialect: 'postgres',
     native: false,
+    dialectModule: pg, // statically imported so Vercel/Next.js bundles it (avoids dynamic require('pg'))
     dialectOptions: {
         ssl: {
             rejectUnauthorized: false

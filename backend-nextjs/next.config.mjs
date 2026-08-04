@@ -8,7 +8,11 @@ const nextConfig = {
         ignoreBuildErrors: true,
     },
     experimental: {
-        serverComponentsExternalPackages: ['sequelize', 'pg', 'pg-hstore', 'pdfkit'],
+        serverComponentsExternalPackages: ['sequelize', 'pdfkit'],
+    },
+    outputFileTracingIncludes: {
+        '/api/[...path]': ['./node_modules/pg/**/*', './node_modules/pg-hstore/**/*'],
+        '/[[...path]]': ['./node_modules/pg/**/*', './node_modules/pg-hstore/**/*'],
     },
 };
 
