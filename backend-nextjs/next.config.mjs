@@ -9,11 +9,12 @@ const nextConfig = {
     },
     experimental: {
         serverComponentsExternalPackages: ['sequelize', 'pdfkit'],
+        outputFileTracingIncludes: {
+            '/api/[...path]': ['./node_modules/pg/**/*', './node_modules/pg-hstore/**/*'],
+            '/[[...path]]': ['./node_modules/pg/**/*', './node_modules/pg-hstore/**/*'],
+        },
     },
-    outputFileTracingIncludes: {
-        '/api/[...path]': ['./node_modules/pg/**/*', './node_modules/pg-hstore/**/*'],
-        '/[[...path]]': ['./node_modules/pg/**/*', './node_modules/pg-hstore/**/*'],
-    },
+    skipTrailingSlashRedirect: true,
 };
 
 export default nextConfig;
