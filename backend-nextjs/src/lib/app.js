@@ -37,6 +37,7 @@ import bundleRoutes from '../routes/bundles.js';
 import serialRoutes from '../routes/serials.js';
 import warehouseRoutes from '../routes/warehouses.js';
 import exportRoutes from '../routes/export.js';
+import realtimeRoutes from '../routes/realtime.js';
 import { idempotency } from './idempotency.js';
 import { authLimiter, installLimiter, receiptLimiter, publicLimiter } from './rateLimiter.js';
 
@@ -127,6 +128,7 @@ app.use('/api/bundles', bundleRoutes);
 app.use('/api/serials', serialRoutes);
 app.use('/api/warehouses', warehouseRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/realtime', realtimeRoutes);
 app.use('/api', dunRoutes);
 
 // Enhanced health check endpoint

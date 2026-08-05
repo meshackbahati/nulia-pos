@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const getBaseURL = () => {
     // Production domain
-    const PRIMARY_API = 'https://api2.g24sec.com/api';
+    const PRIMARY_API = 'https://retailpro-api.vercel.app/api';
 
     if (import.meta.env.DEV) {
         return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';

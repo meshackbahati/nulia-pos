@@ -47,4 +47,8 @@ console.log(`POST /api/products/upload-image (multipart, no token): ${upload.sta
 const analytics = await makeRequest('/api/analytics/summary');
 console.log(`GET /api/analytics/summary (no token): ${analytics.status}`);
 
+// 6. Realtime events without token -> expect 401
+const realtimeNoToken = await makeRequest('/api/realtime/events');
+console.log(`GET /api/realtime/events (no token): ${realtimeNoToken.status}`);
+
 process.exit(0);

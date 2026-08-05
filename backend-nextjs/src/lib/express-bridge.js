@@ -1,4 +1,5 @@
 import { Readable } from 'stream';
+import realtimeIo from './realtime.js';
 
 /**
  * Builds a Next.js App Router Request into an Express-style req/res pair,
@@ -144,7 +145,7 @@ export async function runExpressToResult(req, app) {
         flushHeaders() { return this; },
     };
 
-    expressReq.app = { get: (key) => (key === 'io' ? null : undefined) };
+    expressReq.app = { get: (key) => (key === 'io' ? realtimeIo : undefined) };
 
     await new Promise((resolve) => {
         const done = () => { if (!resEnded) resolve(); };

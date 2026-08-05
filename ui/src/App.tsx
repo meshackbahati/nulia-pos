@@ -58,7 +58,7 @@ function App() {
     // Check if user is already logged in (local session)
     const hasToken = !!localStorage.getItem('token') || document.cookie.includes('token=');
 
-    const primaryApi = import.meta.env.VITE_API_URL || 'https://api2.g24sec.com/api';
+    const primaryApi = import.meta.env.VITE_API_URL || 'https://retailpro-api.vercel.app/api';
 
     const tryFetch = async (url: string) => {
       const response = await fetch(`${url}/install/check`, {

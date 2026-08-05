@@ -34,6 +34,7 @@ import Layaway from './Layaway.js';
 import Return from './Return.js';
 import ReturnItem from './ReturnItem.js';
 import Integration from './Integration.js';
+import RealtimeEvent from './RealtimeEvent.js';
 
 // Initialize models
 const models = {
@@ -69,6 +70,7 @@ const models = {
     Return: Return.initialize(sequelize),
     ReturnItem: ReturnItem.initialize(sequelize),
     Integration: Integration.initialize(sequelize),
+    RealtimeEvent: RealtimeEvent.initialize(sequelize),
 };
 
 // Define associations
