@@ -94,27 +94,28 @@ export const useSocket = (events: { [key: string]: (data: any) => void }) => {
         // Primary: socket.io (works against the non-serverless backend).
         // Fallback: HTTP polling (works against the Vercel serverless backend).
         const trySocket = () => {
-            socket = io(SOCKET_URL, {
+            const sock = io(SOCKET_URL, {
                 transports: ['websocket', 'polling'],
                 reconnectionAttempts: 0, // we manage reconnects ourselves via the fallback timer
                 timeout: 10000,
             });
 
-            socketRef.current = socket;
-            registerSocketListeners(socket);
+            socket = sock;
+            socketRef.current = sock;
+            registerSocketListeners(sock);
 
-            socket.on('connect', () => {
-                console.log('📡 Connected to Socket server:', socket.id);
+            sock.on('connect', () => {
+                console.log('📡 Connected to Socket server:', sock.id);
                 if (stopPolling) { stopPolling(); stopPolling = null; }
                 setIsConnected(true);
-                setUsePolling(socket.io.engine.transport.name === 'polling');
+                setUsePolling(sock.io.engine.transport.name === 'polling');
 
                 if (user.branchId) {
-                    socket.emit('join-branch', user.branchId);
+                    sock.emit('join-branch', user.branchId);
                 }
             });
 
-            socket.on('connect_error', (error) => {
+            sock.on('connect_error', (error) => {
                 console.error('🔌 Socket connection error:', error.message);
                 setIsConnected(false);
                 // Fall back to HTTP polling if the socket backend is unavailable
@@ -123,7 +124,7 @@ export const useSocket = (events: { [key: string]: (data: any) => void }) => {
                 }
             });
 
-            socket.on('disconnect', (reason) => {
+            sock.on('disconnect', (reason) => {
                 console.log('🔌 Socket disconnected:', reason);
                 setIsConnected(false);
                 // Polling will pick up events missed while disconnected
