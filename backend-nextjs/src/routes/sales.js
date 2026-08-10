@@ -359,12 +359,12 @@ router.post('/create', authenticate, async (req, res) => {
 
         // Emit real-time update (io is already declared above)
         if (io) {
-            io.to(`branch-${branchId}`).emit('inventory-update', { branchId });
-            io.to(`branch-${branchId}`).emit('new-sale', { saleId: sale.id, receiptId: sale.receiptId });
+            await io.to(`branch-${branchId}`).emit('inventory-update', { branchId });
+            await io.to(`branch-${branchId}`).emit('new-sale', { saleId: sale.id, receiptId: sale.receiptId });
         }
 
         // Fire webhook
-        triggerWebhook(WEBHOOK_EVENTS.SALE_CREATED, {
+        await triggerWebhook(WEBHOOK_EVENTS.SALE_CREATED, {
             saleId: sale.id,
             receiptId: sale.receiptId,
             totalAmount: finalTotal,
@@ -381,7 +381,11 @@ router.post('/create', authenticate, async (req, res) => {
         });
 
     } catch (error) {
-        if (transaction) await transaction.rollback();
+        try {
+            if (transaction) await transaction.rollback();
+        } catch (rbErr) {
+            console.error('[sales/create] Rollback failed (likely already committed):', rbErr.message);
+        }
         console.error('Create sale error:', error);
         res.status(500).json({ error: error.message });
     }
@@ -593,11 +597,11 @@ router.delete('/:id', authenticate, async (req, res) => {
 
         const io = req.app.get('io');
         if (io) {
-            io.to(`branch-${branchId}`).emit('inventory-update', { branchId });
-            io.to(`branch-${branchId}`).emit('new-sale', { type: 'void', saleId: sale.id, receiptId: sale.receiptId });
+            await io.to(`branch-${branchId}`).emit('inventory-update', { branchId });
+            await io.to(`branch-${branchId}`).emit('new-sale', { type: 'void', saleId: sale.id, receiptId: sale.receiptId });
         }
 
-        triggerWebhook(WEBHOOK_EVENTS.SALE_VOIDED, {
+        await triggerWebhook(WEBHOOK_EVENTS.SALE_VOIDED, {
             saleId: sale.id,
             receiptId: sale.receiptId,
             reason: reason || 'Manually voided',
@@ -605,7 +609,11 @@ router.delete('/:id', authenticate, async (req, res) => {
 
         res.json({ success: true, message: 'Sale voided successfully' });
     } catch (error) {
-        await t.rollback();
+        try {
+            if (t) await t.rollback();
+        } catch (rbErr) {
+            console.error('[sales/void] Rollback failed:', rbErr.message);
+        }
         console.error('Delete sale error:', error);
         res.status(500).json({ error: error.message });
     }
@@ -821,13 +829,17 @@ router.put('/:id', authenticate, async (req, res) => {
 
         const io = req.app.get('io');
         if (io) {
-            io.to(`branch-${branchId}`).emit('inventory-update', { branchId });
-            io.to(`branch-${branchId}`).emit('sale-updated', { saleId: sale.id, receiptId: sale.receiptId });
+            await io.to(`branch-${branchId}`).emit('inventory-update', { branchId });
+            await io.to(`branch-${branchId}`).emit('sale-updated', { saleId: sale.id, receiptId: sale.receiptId });
         }
 
         res.json({ success: true, sale: updatedSale });
     } catch (error) {
-        await t.rollback();
+        try {
+            if (t) await t.rollback();
+        } catch (rbErr) {
+            console.error('[sales/edit] Rollback failed:', rbErr.message);
+        }
         console.error('Edit sale error:', error);
         res.status(500).json({ error: error.message });
     }

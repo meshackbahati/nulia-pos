@@ -200,12 +200,16 @@ router.post('/', authenticate, async (req, res) => {
 
         const io = req.app.get('io');
         if (io) {
-            io.to(`branch-${branchId}`).emit('inventory-update', { branchId });
+            await io.to(`branch-${branchId}`).emit('inventory-update', { branchId });
         }
 
         res.status(201).json({ waste });
     } catch (error) {
-        await t.rollback();
+        try {
+            if (t) await t.rollback();
+        } catch (rbErr) {
+            console.error('[waste/create] Rollback failed:', rbErr.message);
+        }
         res.status(500).json({ error: error.message });
     }
 });

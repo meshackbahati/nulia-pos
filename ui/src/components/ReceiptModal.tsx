@@ -24,8 +24,10 @@ interface ReceiptModalProps {
             baseUnit?: string;
         }>;
         payments?: Array<{
-            paidAmount: number;
-            paidCurrency: string;
+            paidAmount?: number;
+            paidCurrency?: string;
+            amount?: number;
+            currency?: string;
             method: string;
         }>;
         subtotal?: number;
@@ -199,8 +201,9 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
             const transSym = sale.transactionCurrency ? getCurrencySymbol(sale.transactionCurrency) : '';
             const paSep = transSym.length > 1 ? ' ' : '';
             sale.payments.forEach(p => {
+                const paidAmt = p.paidAmount !== undefined ? p.paidAmount : (p.amount || 0);
                 doc.text(`${p.method.toUpperCase()}:`, margin, y);
-                doc.text(`${transSym}${paSep}${p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, rightAlign, y, { align: 'right' });
+                doc.text(`${transSym}${paSep}${paidAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, rightAlign, y, { align: 'right' });
                 y += 3;
             });
         }
@@ -282,12 +285,15 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
 
         const payTransSym = sale.transactionCurrency ? getCurrencySymbol(sale.transactionCurrency) : '';
         const paySep = payTransSym.length > 1 ? ' ' : '';
-        const paymentsHtml = (sale.payments || []).map(p => `
-            <div style="display: flex; justify-content: space-between; font-size: ${smallFont - 1}pt; margin-bottom: 1pt;">
-                <span style="text-transform: uppercase;">${p.method}</span>
-                <span style="font-weight: 700;">${payTransSym}${paySep}${p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-            </div>
-        `).join('');
+        const paymentsHtml = (sale.payments || []).map(p => {
+            const paidAmt = p.paidAmount !== undefined ? p.paidAmount : (p.amount || 0);
+            return `
+                <div style="display: flex; justify-content: space-between; font-size: ${smallFont - 1}pt; margin-bottom: 1pt;">
+                    <span style="text-transform: uppercase;">${p.method}</span>
+                    <span style="font-weight: 700;">${payTransSym}${paySep}${paidAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+            `;
+        }).join('');
 
         return `<!DOCTYPE html>
 <html>
@@ -519,10 +525,11 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
                                 {sale.payments.map((p, idx) => {
                                     const transSymbol = sale.transactionCurrency ? getCurrencySymbol(sale.transactionCurrency) : '';
                                     const sep = transSymbol.length > 1 ? ' ' : '';
+                                    const paidAmt = p.paidAmount !== undefined ? p.paidAmount : (p.amount || 0);
                                     return (
                                         <div key={idx} className="flex justify-between text-[9px]">
                                             <span className="uppercase">{p.method}</span>
-                                            <span className="font-bold">{transSymbol}{sep}{p.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                            <span className="font-bold">{transSymbol}{sep}{paidAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                         </div>
                                     );
                                 })}

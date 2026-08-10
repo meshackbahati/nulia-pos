@@ -212,12 +212,16 @@ router.post('/import-csv', authenticate, authorize('head_of_sales'), upload.sing
         // Emit real-time update
         const io = req.app.get('io');
         if (io) {
-            io.to(`branch-${targetBranchId}`).emit('inventory-update', { branchId: targetBranchId });
+            await io.to(`branch-${targetBranchId}`).emit('inventory-update', { branchId: targetBranchId });
         }
 
         res.json({ success: true, results });
     } catch (error) {
-        await t.rollback();
+        try {
+            if (t) await t.rollback();
+        } catch (rbErr) {
+            console.error('[products/import] Rollback failed:', rbErr.message);
+        }
         console.error('CSV import error:', error);
         res.status(500).json({ error: error.message });
     }
@@ -410,12 +414,12 @@ router.post('/create', authenticate, authorize('head_of_sales'), async (req, res
         // Emit real-time update
         const io = req.app.get('io');
         if (io) {
-            io.to(`branch-${targetBranchId}`).emit('inventory-update', { branchId: targetBranchId });
+            await io.to(`branch-${targetBranchId}`).emit('inventory-update', { branchId: targetBranchId });
         }
 
         notificationService.notifyNewProduct(targetBranchId, product.name);
 
-        triggerWebhook(WEBHOOK_EVENTS.PRODUCT_CREATED, {
+        await triggerWebhook(WEBHOOK_EVENTS.PRODUCT_CREATED, {
             productId: product.id,
             name: product.name,
             sku: product.sku,
@@ -424,7 +428,11 @@ router.post('/create', authenticate, authorize('head_of_sales'), async (req, res
 
         res.json({ success: true, product });
     } catch (error) {
-        await t.rollback();
+        try {
+            if (t) await t.rollback();
+        } catch (rbErr) {
+            console.error('[products/create] Rollback failed:', rbErr.message);
+        }
         console.error('Create product error:', error);
         res.status(500).json({ error: error.message });
     }
@@ -456,10 +464,10 @@ router.put('/update/:id', authenticate, authorize('head_of_sales'), async (req, 
         // Emit real-time update
         const io = req.app.get('io');
         if (io) {
-            io.emit('product-update', { productId: id });
+            await io.emit('product-update', { productId: id });
         }
 
-        triggerWebhook(WEBHOOK_EVENTS.PRODUCT_UPDATED, {
+        await triggerWebhook(WEBHOOK_EVENTS.PRODUCT_UPDATED, {
             productId: product.id,
             name: product.name,
             changes: Object.keys(updateData),
@@ -492,7 +500,7 @@ router.delete('/delete/:id', authenticate, authorize('head_of_sales'), async (re
         // Emit real-time update
         const io = req.app.get('io');
         if (io) {
-            io.emit('product-update', { productId: id, deleted: true });
+            await io.emit('product-update', { productId: id, deleted: true });
         }
 
         res.json({ success: true });
@@ -778,7 +786,7 @@ router.post('/:id/barcodes', authenticate, authorize('salesperson'), async (req,
 
         // Emit update
         const io = req.app.get('io');
-        if (io) io.emit('product-update', { productId: id });
+        if (io) await io.emit('product-update', { productId: id });
 
         res.json({ success: true, barcodes: product.barcodes });
     } catch (error) {
