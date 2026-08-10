@@ -85,10 +85,10 @@ router.post('/restock', authenticate, async (req, res) => {
         // Emit real-time update
         const io = req.app.get('io');
         if (io) {
-            io.to(`branch-${targetBranchId}`).emit('inventory-update', { branchId: targetBranchId });
+            await io.to(`branch-${targetBranchId}`).emit('inventory-update', { branchId: targetBranchId });
         }
 
-        triggerWebhook(WEBHOOK_EVENTS.INVENTORY_ADJUSTED, {
+        await triggerWebhook(WEBHOOK_EVENTS.INVENTORY_ADJUSTED, {
             branchId: targetBranchId,
             items: items.map(i => ({ productId: i.productId, quantity: i.quantity })),
             type: 'restock',
@@ -96,7 +96,11 @@ router.post('/restock', authenticate, async (req, res) => {
 
         res.json({ success: true });
     } catch (error) {
-        await t.rollback();
+        try {
+            if (t) await t.rollback();
+        } catch (rbErr) {
+            console.error('[inventory/restock] Rollback failed:', rbErr.message);
+        }
         console.error('Inventory restock error:', error);
         res.status(500).json({ error: error.message });
     }
@@ -189,10 +193,10 @@ router.post('/adjust', authenticate, async (req, res) => {
 
         const io = req.app.get('io');
         if (io) {
-            io.to(`branch-${targetBranchId}`).emit('inventory-update', { branchId: targetBranchId });
+            await io.to(`branch-${targetBranchId}`).emit('inventory-update', { branchId: targetBranchId });
         }
 
-        triggerWebhook(WEBHOOK_EVENTS.INVENTORY_ADJUSTED, {
+        await triggerWebhook(WEBHOOK_EVENTS.INVENTORY_ADJUSTED, {
             branchId: targetBranchId,
             adjustments: adjustments,
             type: 'adjustment',
@@ -200,7 +204,11 @@ router.post('/adjust', authenticate, async (req, res) => {
 
         res.json({ success: true, adjustments });
     } catch (error) {
-        await t.rollback();
+        try {
+            if (t) await t.rollback();
+        } catch (rbErr) {
+            console.error('[inventory/adjust] Rollback failed:', rbErr.message);
+        }
         console.error('Inventory adjustment error:', error);
         res.status(500).json({ error: error.message });
     }

@@ -210,7 +210,7 @@ router.post('/', authenticate, authorize('manager'), async (req, res) => {
         await t.commit();
 
         const io = req.app.get('io');
-        triggerWebhook(WEBHOOK_EVENTS.RETURN_CREATED, {
+        await triggerWebhook(WEBHOOK_EVENTS.RETURN_CREATED, {
             returnId: ret.id,
             saleId,
             totalRefund: totalRefund.toNumber(),
@@ -219,8 +219,8 @@ router.post('/', authenticate, authorize('manager'), async (req, res) => {
         }, branchId, io);
 
         if (io) {
-            io.to(`branch-${branchId}`).emit('return-created', { returnId: ret.id, saleId });
-            io.to(`branch-${branchId}`).emit('inventory-update', { branchId });
+            await io.to(`branch-${branchId}`).emit('return-created', { returnId: ret.id, saleId });
+            await io.to(`branch-${branchId}`).emit('inventory-update', { branchId });
         }
 
         res.status(201).json({
@@ -228,7 +228,11 @@ router.post('/', authenticate, authorize('manager'), async (req, res) => {
             totalRefund: totalRefund.toNumber(),
         });
     } catch (error) {
-        await t.rollback();
+        try {
+            if (t) await t.rollback();
+        } catch (rbErr) {
+            console.error('[returns/create] Rollback failed:', rbErr.message);
+        }
         res.status(500).json({ error: error.message });
     }
 });
@@ -273,7 +277,7 @@ router.post('/:id/approve', authenticate, authorize('admin'), async (req, res) =
 
         const returnData = ret.toJSON();
         if (approved) {
-            triggerWebhook(WEBHOOK_EVENTS.RETURN_COMPLETED, {
+            await triggerWebhook(WEBHOOK_EVENTS.RETURN_COMPLETED, {
                 returnId: ret.id,
                 saleId: ret.saleId,
                 status: 'approved',
@@ -282,7 +286,11 @@ router.post('/:id/approve', authenticate, authorize('admin'), async (req, res) =
 
         res.json({ return: returnData });
     } catch (error) {
-        await t.rollback();
+        try {
+            if (t) await t.rollback();
+        } catch (rbErr) {
+            console.error('[returns/approve] Rollback failed:', rbErr.message);
+        }
         res.status(500).json({ error: error.message });
     }
 });

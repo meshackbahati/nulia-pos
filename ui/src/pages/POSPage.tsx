@@ -512,6 +512,7 @@ export default function POSPage() {
             setShowPaymentModal(false);
             setShowReceipt(true);
             setCart([]);
+            toast.error('Network Issue: Saved locally & queued for sync!', { icon: '📡', duration: 5000 });
             toast('Sale queued (Offline)', { icon: '📦' });
         } finally {
             setLoading(false);
@@ -863,7 +864,12 @@ export default function POSPage() {
             {showSuccessModal && currentSale && (
                 <PaymentSuccessModal
                     isOpen={showSuccessModal}
-                    amount={formatPrice(currentSale.totalAmount).split(' ')[1] || formatPrice(currentSale.totalAmount).replace(/[A-Za-z$]/g, '').trim()}
+                    amount={
+                        currentSale
+                            ? (formatPrice(currentSale.totalAmount || currentSale.total || 0).split(' ')[1] ||
+                               formatPrice(currentSale.totalAmount || currentSale.total || 0).replace(/[A-Za-z$]/g, '').trim())
+                            : '0.00'
+                    }
                     currency={currentSale.transactionCurrency || targetCurrency}
                     receiptId={currentSale.receiptId}
                     servedBy={`${currentSale.user?.firstName || user?.firstName} ${currentSale.user?.lastName || user?.lastName}`}

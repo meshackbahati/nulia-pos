@@ -1,6 +1,6 @@
 {
     "name": "bordershop-backend-nextjs",
-    "version": "1.10.0",
+    "version": "1.11.0",
     "description": "BorderShop POS backend ported to Next.js App Router API routes for Vercel hosting",
     "private": true,
     "scripts": {
