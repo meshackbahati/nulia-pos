@@ -226,6 +226,49 @@ class NotificationService {
       }
     }
   }
+
+  /**
+   * Broadcasts a server update notification to all admins, managers, and support recipients.
+   */
+  async notifyServerUpdate(updateData = {}) {
+    try {
+      const recipientsSet = new Set();
+
+      // 1. Get all Admins, Managers, and Head of Sales
+      const users = await models.User.findAll({
+        where: {
+          isActive: true,
+          role: { [Op.in]: ['admin', 'manager', 'head_of_sales'] }
+        },
+        attributes: ['email']
+      });
+      users.forEach(u => recipientsSet.add(u.email));
+
+      // 2. Get support emails from settings
+      const supportSettings = await models.Setting.findAll({
+        where: {
+          category: 'notifications',
+          key: 'support_email'
+        }
+      });
+      supportSettings.forEach(s => {
+        if (s.value) recipientsSet.add(s.value);
+      });
+
+      const recipients = Array.from(recipientsSet);
+      if (recipients.length === 0) {
+        console.log('[Notification] No recipients found for server update email.');
+        return false;
+      }
+
+      await emailService.sendServerUpdateNotification(recipients.join(','), updateData);
+      console.log(`[Notification] Server update email sent to ${recipients.length} recipient(s).`);
+      return true;
+    } catch (error) {
+      console.error('[Notification] notifyServerUpdate error:', error.message);
+      return false;
+    }
+  }
 }
 
 export default new NotificationService();

@@ -1,6 +1,7 @@
 import express from 'express';
 import models, { sequelize } from '../models/index.js';
 import { authenticate, authorize } from '../lib/auth.js';
+import notificationService from '../services/notificationService.js';
 
 const router = express.Router();
 
@@ -120,6 +121,27 @@ router.post('/clear-products', authenticate, authorize('admin'), async (req, res
         res.json({ success: true, message: 'All products and inventory cleared.' });
     } catch (error) {
         console.error('Clear products error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Broadcast server update notification email to subscribers and staff
+router.post('/notify-server-update', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const { version, releaseNotes, title, date } = req.body;
+        const sent = await notificationService.notifyServerUpdate({
+            version,
+            releaseNotes,
+            title,
+            date
+        });
+        if (sent) {
+            res.json({ success: true, message: 'Server update notification emails sent successfully.' });
+        } else {
+            res.status(400).json({ success: false, error: 'No recipients found or emailing failed.' });
+        }
+    } catch (error) {
+        console.error('Notify server update error:', error);
         res.status(500).json({ error: error.message });
     }
 });

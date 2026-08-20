@@ -3,6 +3,7 @@
     "version": "1.11.0",
     "description": "BorderShop POS backend ported to Next.js App Router API routes for Vercel hosting",
     "private": true,
+    "type": "module",
     "scripts": {
         "dev": "next dev",
         "build": "next build",
@@ -24,6 +25,7 @@
         "jsonwebtoken": "^9.0.2",
         "multer": "^2.0.2",
         "next": "14.2.5",
+        "node-cron": "^4.5.0",
         "pdfkit": "^0.19.1",
         "pg": "^8.22.0",
         "pg-hstore": "^2.3.4",
