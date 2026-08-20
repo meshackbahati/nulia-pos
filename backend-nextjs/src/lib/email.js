@@ -108,6 +108,16 @@ class EmailService {
     });
   }
 
+  async sendServerUpdateNotification(recipients, updateData) {
+    const html = this.generateServerUpdateHTML(updateData);
+    const versionStr = updateData.version ? ` v${updateData.version}` : '';
+    return this.sendEmail({
+      to: recipients,
+      subject: `Server Update Notification${versionStr} - ${updateData.title || 'System Maintenance & Update'}`,
+      html,
+    });
+  }
+
   async sendOutOfStockAlert(managerEmail, branchName, items) {
     const html = this.generateOutOfStockAlertHTML(branchName, items);
 
@@ -777,6 +787,45 @@ class EmailService {
         <div class="footer">
           <p>Please review and restock these items.</p>
           <p>This is your automated end-of-day product status from RetailPro.</p>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  generateServerUpdateHTML(data) {
+    const version = data.version || '1.0.0';
+    const title = data.title || 'Server Update Completed';
+    const notes = data.releaseNotes || data.notes || 'The system has been updated with performance enhancements and stability fixes.';
+    const date = data.date || new Date().toLocaleDateString();
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Server Update Notification</title>
+        <style>
+          body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { text-align: center; border-bottom: 2px solid #6366f1; padding-bottom: 20px; margin-bottom: 20px; }
+          .badge { display: inline-block; background: #6366f1; color: #fff; padding: 6px 14px; border-radius: 16px; font-weight: bold; font-size: 14px; }
+          .detail-box { background: #eef2ff; border: 1px solid #c7d2fe; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="badge">SERVER UPDATE v${version}</div>
+          <h2>${title}</h2>
+          <p><strong>Date:</strong> ${date}</p>
+        </div>
+        <div class="detail-box">
+          <h3>Update Details & Release Notes</h3>
+          <p style="white-space: pre-wrap; color: #374151;">${notes}</p>
+        </div>
+        <p>No further action is required. If you notice any anomalies, please reach out to system support.</p>
+        <div class="footer">
+          <p>RetailPro POS — Server Update Notification Service</p>
         </div>
       </body>
       </html>
