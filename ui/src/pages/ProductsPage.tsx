@@ -180,32 +180,32 @@ export default function ProductsPage() {
     });
 
     return (
-        <div className="min-h-screen bg-background flex flex-col font-sans transition-colors duration-300">
-            {/* Header */}
-            <header className="bg-background border-b border-border px-6 py-4 sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary shadow-sm">
+        <div className="min-h-screen bg-background flex flex-col font-sans transition-colors duration-300 overflow-x-hidden">
+            {/* Header — stacks on 320px */}
+            <header className="bg-background border-b border-border px-3 sm:px-6 py-3 sm:py-4 sticky top-0 z-50">
+                <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary shadow-sm shrink-0">
                             <Package className="w-5 h-5" />
                         </div>
-                        <div>
-                            <h1 className="text-lg font-bold text-foreground">
+                        <div className="min-w-0">
+                            <h1 className="text-base sm:text-lg font-bold text-foreground truncate">
                                 Product <span className="text-primary">Inventory</span>
                             </h1>
-                            <p className="text-xs text-muted-foreground font-medium">Control stock levels and catalog items</p>
+                            <p className="text-[11px] sm:text-xs text-muted-foreground font-medium truncate">Control stock levels and catalog items</p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 sm:gap-4 justify-between sm:justify-end flex-wrap">
                         <ThemeToggle />
                         {user?.role !== 'salesperson' && (
-                        <div className="flex gap-2">
-                            <div className="flex items-center gap-2">
-                                <Building className="w-4 h-4 text-muted-foreground" />
+                        <div className="flex gap-2 flex-wrap w-full sm:w-auto">
+                            <div className="flex items-center gap-2 flex-1 sm:flex-none min-w-[120px]">
+                                <Building className="w-4 h-4 text-muted-foreground shrink-0 hidden sm:block" />
                                 <select
                                     value={selectedImportBranch}
                                     onChange={(e) => setSelectedImportBranch(e.target.value)}
-                                    className="h-9 rounded-md border border-input bg-background px-3 py-1 text-xs font-bold uppercase focus:outline-none focus:ring-2 focus:ring-ring"
+                                    className="h-9 rounded-md border border-input bg-background px-2 sm:px-3 py-1 text-xs font-bold uppercase focus:outline-none focus:ring-2 focus:ring-ring w-full sm:w-auto min-h-[36px]"
                                 >
                                     <option value="">Select Hub...</option>
                                     {branches.map(b => (
@@ -215,17 +215,17 @@ export default function ProductsPage() {
                             </div>
                             <button
                                 onClick={() => fileInputRef.current?.click()}
-                                className="flex items-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-9 px-4 py-2 rounded-md transition-colors text-sm font-medium"
+                                className="flex items-center justify-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-9 px-3 sm:px-4 py-2 rounded-md transition-colors text-sm font-medium min-h-[36px] flex-1 sm:flex-none"
                             >
                                 <FileUp className="w-4 h-4" />
-                                <span className="hidden md:inline uppercase text-xs font-bold">Import CSV</span>
+                                <span className="uppercase text-xs font-bold">Import</span>
                             </button>
                             <button
                                 onClick={() => setShowAddModal(true)}
-                                className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 rounded-md transition-colors text-sm font-medium"
+                                className="flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3 sm:px-4 py-2 rounded-md transition-colors text-sm font-medium min-h-[36px] flex-1 sm:flex-none"
                             >
                                 <Plus className="w-4 h-4" />
-                                <span className="hidden md:inline uppercase text-xs font-bold">Register Item</span>
+                                <span className="uppercase text-xs font-bold">Add</span>
                             </button>
                         </div>
                         )}
@@ -243,12 +243,12 @@ export default function ProductsPage() {
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto w-full px-6 py-8 space-y-8 animate-in fade-in duration-500">
-                {/* Search & Stats */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="relative flex-1 max-w-md flex gap-2">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
+            <main className="max-w-7xl mx-auto w-full px-3 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8 animate-in fade-in duration-500 overflow-x-hidden">
+                {/* Search & Stats — stacks on 320px */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
+                    <div className="relative flex-1 max-w-md flex gap-2 w-full">
+                        <div className="relative flex-1 min-w-0">
+                            <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4 sm:w-5 sm:h-5" />
                             <input
                                 type="text"
                                 placeholder="Search catalog..."
@@ -278,20 +278,20 @@ export default function ProductsPage() {
                 </div>
 
                 {loading ? (
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
                         {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                            <div key={i} className="h-64 bg-card border border-border rounded-xl animate-pulse"></div>
+                            <div key={i} className="h-56 sm:h-64 bg-card border border-border rounded-xl animate-pulse"></div>
                         ))}
                     </div>
                 ) : filteredProducts.length === 0 ? (
-                    <div className="bg-card border border-dashed border-border p-16 text-center rounded-2xl">
-                        <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                        <h3 className="text-lg font-bold text-foreground">No products found</h3>
+                    <div className="bg-card border border-dashed border-border p-8 sm:p-16 text-center rounded-2xl">
+                        <Package className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                        <h3 className="text-base sm:text-lg font-bold text-foreground">No products found</h3>
                         <p className="text-muted-foreground text-sm mt-1">Start by adding your first item to the terminal inventory.</p>
-                        <button onClick={() => setShowAddModal(true)} className="mt-6 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 rounded-md transition-colors text-sm font-medium inline-flex items-center justify-center">Add Item</button>
+                        <button onClick={() => setShowAddModal(true)} className="mt-6 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 rounded-md transition-colors text-sm font-medium inline-flex items-center justify-center min-h-[44px]">Add Item</button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
                         {filteredProducts.map((product) => (
                             <div key={product.id} className="bg-card text-card-foreground rounded-xl border border-border shadow-sm p-4 flex flex-col group hover:shadow-lg transition-all duration-300">
                                 <div className="aspect-square bg-muted rounded-lg overflow-hidden relative mb-4">

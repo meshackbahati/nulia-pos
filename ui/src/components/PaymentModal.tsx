@@ -138,8 +138,8 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
     const suggestedAmount = (remainingBase * getRate(branchConfig?.currency || 'KES', currentCurrency)).toFixed(2);
 
     return (
-        <div className="fixed inset-0 bg-background/95 backdrop-blur-md flex items-center justify-center z-[200] p-4 animate-in fade-in duration-200">
-            <div className="bg-card rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.3)] max-w-5xl w-full p-8 border border-white/10 flex flex-col md:flex-row gap-8 overflow-y-auto max-h-[95vh] custom-scrollbar relative">
+        <div className="fixed inset-0 bg-background/95 backdrop-blur-md flex items-center justify-center z-[200] p-3 sm:p-4 animate-in fade-in duration-200 overflow-y-auto">
+            <div className="bg-card rounded-2xl sm:rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.3)] max-w-5xl w-full p-4 sm:p-6 lg:p-8 border border-white/10 flex flex-col md:flex-row gap-6 sm:gap-8 overflow-y-auto max-h-[96dvh] sm:max-h-[95vh] custom-scrollbar relative my-4">
 
                 {/* Floating Close Button - Highly Visible */}
                 <button

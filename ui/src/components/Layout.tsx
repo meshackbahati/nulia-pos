@@ -99,9 +99,9 @@ export default function Layout({ children, noScroll = false }: LayoutProps) {
                 />
             )}
 
-            {/* Sidebar - Enhanced Visibility & Interaction */}
+            {/* Sidebar - Responsive: 86vw on phones so overlay remains tappable */}
             <aside
-                className={`fixed lg:relative top-0 left-0 z-[110] h-full glass border-r border-white/10 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                className={`fixed lg:relative top-0 left-0 z-[110] h-full glass border-r border-white/10 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] w-[86vw] max-w-[300px] lg:max-w-none ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
                     } ${isCollapsed ? 'lg:w-20' : 'lg:w-72'}`}
             >
                 <div className="h-full flex flex-col p-4 lg:p-6 relative overflow-hidden">
@@ -184,12 +184,13 @@ export default function Layout({ children, noScroll = false }: LayoutProps) {
 
             {/* Main Execution Arena */}
             <div className="flex-1 flex flex-col h-full min-w-0 relative overflow-hidden">
-                {/* Top Navbar Node */}
-                <header className="sticky top-0 z-50 h-16 lg:h-20 bg-background/40 backdrop-blur-2xl border-b border-white/5 px-4 lg:px-8 flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-4 lg:gap-6">
+                {/* Top Navbar Node — compact on 320px */}
+                <header className="sticky top-0 z-50 h-14 sm:h-16 lg:h-20 bg-background/60 backdrop-blur-md border-b border-border/40 px-3 sm:px-4 lg:px-8 flex items-center justify-between shrink-0 gap-2">
+                    <div className="flex items-center gap-2 sm:gap-4 lg:gap-6 min-w-0 flex-1">
                         <button
                             onClick={() => setIsSidebarOpen(true)}
-                            className="lg:hidden p-2.5 bg-secondary/50 rounded-xl text-foreground hover:bg-primary/20 hover:text-primary transition-all border border-white/5 shadow-xl"
+                            aria-label="Open navigation menu"
+                            className="lg:hidden p-2.5 bg-secondary/50 rounded-xl text-foreground hover:bg-primary/20 hover:text-primary transition-all border border-white/5 shadow-xl shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center"
                         >
                             <Menu className="w-6 h-6" />
                         </button>
@@ -203,19 +204,19 @@ export default function Layout({ children, noScroll = false }: LayoutProps) {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3 lg:gap-6">
-                        <div className="scale-90 lg:scale-100">
+                    <div className="flex items-center gap-2 sm:gap-3 lg:gap-6 shrink-0">
+                        <div className="scale-[0.85] sm:scale-90 lg:scale-100 origin-right">
                             <BranchSelector />
                         </div>
                         <div className="h-8 w-px bg-white/10 hidden sm:block"></div>
-                        <div className="p-1 lg:p-1.5 bg-secondary/30 rounded-xl lg:rounded-2xl border border-white/5 flex items-center">
+                        <div className="p-1 lg:p-1.5 bg-secondary/30 rounded-xl lg:rounded-2xl border border-white/5 flex items-center shrink-0">
                              <ThemeToggle />
                         </div>
                     </div>
                 </header>
 
-                {/* Main Content Node */}
-                <main className={`flex-1 ${noScroll ? 'overflow-hidden' : 'p-4 lg:p-10 max-w-[1920px] mx-auto w-full animate-in fade-in duration-1000 overflow-y-auto'}`}>
+                {/* Main Content Node — tighter on 320px to preserve content width */}
+                <main className={`flex-1 min-w-0 ${noScroll ? 'overflow-hidden' : 'p-3 sm:p-4 lg:p-8 xl:p-10 max-w-[1920px] mx-auto w-full animate-in fade-in duration-700 overflow-y-auto overflow-x-hidden'}`}>
                     {children}
                 </main>
             </div>

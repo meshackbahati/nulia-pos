@@ -5,5 +5,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
   printReceipt: (options) => ipcRenderer.invoke('print-receipt', options),
   printReceiptHTML: (html, options) => ipcRenderer.invoke('print-receipt-html', html, options),
-  getPrinters: () => ipcRenderer.invoke('get-printers')
+  getPrinters: () => ipcRenderer.invoke('get-printers'),
+  // Flag for fast path detection — renderer can branch without awaiting getPrinters
+  isElectron: true,
 });

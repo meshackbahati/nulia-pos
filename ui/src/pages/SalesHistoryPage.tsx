@@ -150,9 +150,9 @@ export default function SalesHistoryPage() {
 
     return (
         <div className="min-h-screen bg-background font-body">
-            {/* Header */}
-            <div className="bg-card/60 backdrop-blur-md border-b border-border/50 px-6 lg:px-8 py-6">
-                <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            {/* Header — responsive for 320px */}
+            <div className="bg-card/60 backdrop-blur-md border-b border-border/50 px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+                <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/20">
                             <FileText className="w-6 h-6" />
@@ -162,25 +162,25 @@ export default function SalesHistoryPage() {
                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{total} transactions found</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
                         <button
                             onClick={() => setShowFilters(!showFilters)}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-secondary/30 rounded-xl border border-border text-[10px] font-black uppercase tracking-widest text-foreground hover:bg-secondary/50 transition-all"
+                            className="flex items-center justify-center gap-2 flex-1 sm:flex-none px-3 sm:px-4 py-2.5 bg-secondary/30 rounded-xl border border-border text-[10px] font-black uppercase tracking-widest text-foreground hover:bg-secondary/50 transition-all min-h-[44px]"
                         >
                             <Filter className="w-4 h-4" /> Filters
                         </button>
                         <button
                             onClick={handleExportCSV}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+                            className="flex items-center justify-center gap-2 flex-1 sm:flex-none px-3 sm:px-4 py-2.5 bg-primary text-primary-foreground rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all min-h-[44px]"
                         >
-                            <Download className="w-4 h-4" /> Export CSV
+                            <Download className="w-4 h-4" /> Export
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Search & Filters */}
-            <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6 space-y-4">
+            {/* Search & Filters — 320px safe */}
+            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 overflow-x-hidden">
                 <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
                     <div className="relative flex-1">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -265,8 +265,8 @@ export default function SalesHistoryPage() {
                 )}
             </div>
 
-            {/* Sales Table */}
-            <div className="max-w-7xl mx-auto px-6 lg:px-8 pb-8">
+            {/* Sales Table — cards stack on 320px */}
+            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pb-8 overflow-x-hidden">
                 {loading ? (
                     <div className="h-64 flex flex-col items-center justify-center gap-4">
                         <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>

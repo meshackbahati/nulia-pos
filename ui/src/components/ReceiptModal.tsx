@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Decimal } from 'decimal.js';
 import { X, Download, Printer, Mail, FileText, Share2, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -69,27 +69,33 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
 
     const [customerEmail, setCustomerEmail] = useState('');
     const [sending, setSending] = useState(false);
+    const [isPrinting, setIsPrinting] = useState(false);
     const isMobile = Capacitor.isNativePlatform();
+    const autoPrintFiredRef = useRef(false);
 
     const { 
         defaultPrinter, 
         bluetoothPrinter,
         networkPrinter,
         paperSize, 
-        isElectron: isHardwareElectron, 
         isMobile: isHardwareMobile,
         printReceipt
     } = useHardware();
 
+    // Memoize the isElectron check — avoid re-triggering on every render
+    const isElectronEnv = typeof window !== 'undefined' && !!(window as any).electronAPI;
 
     useEffect(() => {
-        if (autoPrint && isHardwareElectron !== undefined) {
-            const timer = setTimeout(async () => {
-                try { await handlePrint(); } catch {}
-            }, 1000);
-            return () => clearTimeout(timer);
-        }
-    }, [autoPrint, isHardwareElectron, defaultPrinter]);
+        if (!autoPrint || autoPrintFiredRef.current) return;
+        // Only auto-print on desktop (electron). Mobile uses manual share.
+        if (!isElectronEnv) return;
+        autoPrintFiredRef.current = true;
+        // 250ms is enough for the modal to mount + paint, vs old 1000ms which felt sluggish
+        const timer = setTimeout(async () => {
+            try { await handlePrint(); } catch {}
+        }, 250);
+        return () => clearTimeout(timer);
+    }, [autoPrint, isElectronEnv]);
 
     const getReceiptPDF = () => {
         const selectedSize = (localStorage.getItem('receiptPaperSize') || '80mm') as PaperSize;
@@ -259,7 +265,8 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
     };
 
 
-    const getReceiptHTML = () => {
+    // Cache receipt HTML — avoid rebuilding on every print click (saves ~30ms)
+    const receiptHtmlCache = useMemo(() => {
         const paperOpts = paperSize === '58mm' ? { fontSize: 12, smallFont: 10, titleFont: 16, maxNameLen: 16, viewW: 220, bodyW: '200px' } :
             paperSize === '78mm' ? { fontSize: 13, smallFont: 11, titleFont: 18, maxNameLen: 20, viewW: 270, bodyW: '250px' } :
             { fontSize: 14, smallFont: 11, titleFont: 20, maxNameLen: 24, viewW: 320, bodyW: '280px' };
@@ -295,6 +302,11 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
             `;
         }).join('');
 
+        return { itemsHtml, paymentsHtml, fontSize, smallFont, titleFont, viewW, bodyW };
+    }, [sale.items, sale.payments, sale.transactionCurrency, sale.transactionExchangeRate, paperSize, companyName, sale.subtotal, sale.tax, sale.total, sale.totalAmount]);
+
+    const getReceiptHTML = useCallback(() => {
+        const { itemsHtml, paymentsHtml, fontSize, smallFont, titleFont, viewW, bodyW } = receiptHtmlCache as any;
         return `<!DOCTYPE html>
 <html>
 <head>
@@ -345,28 +357,20 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
             Served By: ${sale.user?.firstName || ''} ${sale.user?.lastName || ''}
         </div>
     </div>
-
     <div class="divider"></div>
-
     <div class="items">${itemsHtml}</div>
-
     <div class="divider"></div>
-
     <div class="totals">
         <div class="totals-row"><span>SUBTOTAL</span><span>${formatPrice(sale.subtotal || 0)}</span></div>
         <div class="totals-row"><span>TAX (VAT)</span><span>${formatPrice(sale.tax || 0)}</span></div>
         <div class="totals-row-large"><span>NET TOTAL</span><span>${formatPrice(sale.total || sale.totalAmount || 0)}</span></div>
     </div>
-
     <div class="divider-thick"></div>
-
     <div style="text-align: left; margin: 6pt 0;">
         <div style="font-size: ${smallFont}pt; font-weight: 900; text-transform: uppercase; margin-bottom: 4pt; text-decoration: underline;">Payment Breakdown</div>
         ${paymentsHtml}
     </div>
-
     <div class="divider"></div>
-
     <div class="footer">
         <div class="footer-thanks">Thank you for your business</div>
         <div class="footer-company">${companyName}</div>
@@ -375,59 +379,88 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
     </div>
 </body>
 </html>`;
-    };
+    }, [receiptHtmlCache, companyName, sale.receiptId, sale.createdAt, sale.user, sale.subtotal, sale.tax, sale.total, sale.totalAmount, formatPrice]);
 
-    const handlePrint = async () => {
-        const receiptData = {
-            companyName,
-            receiptId: sale?.receiptId || 'N/A',
-            items: (sale?.items || []).map(item => ({
-                name: item.productName || item.name || '',
-                quantity: item.quantity,
-                price: item.unitPrice || item.price || 0,
-                total: (item.unitPrice || item.price || 0) * item.quantity
-            })),
-            subtotal: sale?.subtotal || 0,
-            tax: sale?.tax || 0,
-            total: sale?.total || sale?.totalAmount || 0,
-            paymentMethod: sale?.paymentMethod || 'cash',
-            date: sale?.createdAt ? new Date(sale.createdAt).toLocaleString() : new Date().toLocaleString(),
-            cashierName: sale?.user ? `${sale.user.firstName} ${sale.user.lastName}` : undefined
-        };
+    const handlePrint = useCallback(async () => {
+        if (isPrinting) return;
+        setIsPrinting(true);
+        toast.loading('Printing receipt...', { id: 'receipt-print' });
+        try {
+            const receiptData = {
+                companyName,
+                receiptId: sale?.receiptId || 'N/A',
+                items: (sale?.items || []).map(item => ({
+                    name: item.productName || item.name || '',
+                    quantity: item.quantity,
+                    price: item.unitPrice || item.price || 0,
+                    total: (item.unitPrice || item.price || 0) * item.quantity
+                })),
+                subtotal: sale?.subtotal || 0,
+                tax: sale?.tax || 0,
+                total: sale?.total || sale?.totalAmount || 0,
+                paymentMethod: sale?.paymentMethod || 'cash',
+                date: sale?.createdAt ? new Date(sale.createdAt).toLocaleString() : new Date().toLocaleString(),
+                cashierName: sale?.user ? `${sale.user.firstName} ${sale.user.lastName}` : undefined
+            };
 
-        // Desktop (Electron) — skip ESC/POS, use system print API directly
-        if (isHardwareElectron && (window as any).electronAPI) {
-            try {
-                const html = getReceiptHTML();
-                const r = await (window as any).electronAPI.printReceiptHTML(html, {
-                    printerName: defaultPrinter || undefined,
-                    paperSize
-                });
-                if (r.success) { toast.success('Printed via system!'); return; }
-            } catch {}
-        }
-
-        // Mobile — try hardware printer (network/BLE/USB) via ESC/POS
-        if (!isHardwareElectron && (networkPrinter || bluetoothPrinter || defaultPrinter)) {
-            toast.loading('Printing receipt...', { id: 'print-toast' });
-            try {
-                const result = await printReceipt(receiptData);
-                if (result.success) {
-                    toast.success('Printed successfully!', { id: 'print-toast' });
+            // Desktop (Electron) — instant path via warm worker window (see electron/main.cjs)
+            const eApi = (window as any).electronAPI;
+            if (eApi?.printReceiptHTML) {
+                try {
+                    const html = getReceiptHTML();
+                    const r = await eApi.printReceiptHTML(html, {
+                        printerName: defaultPrinter || undefined,
+                        paperSize
+                    });
+                    if (r.success) {
+                        toast.success(`Printed ${r.printer ? 'on ' + r.printer : 'successfully'}`, { id: 'receipt-print' });
+                        return;
+                    }
+                    // Fast fail in main now returns error quickly (<7s) — show it instead of hanging a minute
+                    toast.error(r.error || 'Printer not responding', { id: 'receipt-print' });
+                    // Don't fallback to window.print on desktop — it opens system dialog and feels broken
                     return;
+                } catch (e: any) {
+                    toast.error(e?.message || 'Print failed', { id: 'receipt-print' });
+                    return;
+                } finally {
+                    setIsPrinting(false);
                 }
-                toast.error(result.error || 'Print failed', { id: 'print-toast' });
-            } catch {
-                toast.error('Print error', { id: 'print-toast' });
             }
-        }
 
-        if (isHardwareMobile) {
-            handleShare();
-        } else {
-            window.print();
+            // Mobile — try hardware printer (network/BLE/USB) via ESC/POS
+            if (!isElectronEnv && (networkPrinter || bluetoothPrinter || defaultPrinter)) {
+                try {
+                    const result = await printReceipt(receiptData);
+                    if (result.success) {
+                        toast.success('Printed successfully!', { id: 'receipt-print' });
+                        return;
+                    }
+                    toast.error(result.error || 'Print failed', { id: 'receipt-print' });
+                } catch {
+                    toast.error('Print error', { id: 'receipt-print' });
+                } finally {
+                    setIsPrinting(false);
+                }
+            }
+
+            // Fallback: only if not electron (web PWA) — use browser print
+            if (isHardwareMobile) {
+                toast.dismiss('receipt-print');
+                setIsPrinting(false);
+                handleShare();
+            } else if (!isElectronEnv) {
+                toast.dismiss('receipt-print');
+                setIsPrinting(false);
+                window.print();
+            } else {
+                setIsPrinting(false);
+            }
+        } catch (err: any) {
+            toast.error(err?.message || 'Print error', { id: 'receipt-print' });
+            setIsPrinting(false);
         }
-    };
+    }, [isPrinting, companyName, sale, defaultPrinter, paperSize, getReceiptHTML, isElectronEnv, isHardwareMobile, networkPrinter, bluetoothPrinter, printReceipt]);
 
 
     const handleEmailReceipt = async () => {
@@ -454,8 +487,8 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
     };
 
     return (
-        <div className="fixed inset-0 bg-background/90 backdrop-blur-xl flex items-center justify-center z-[200] p-4 animate-in fade-in duration-300">
-            <div className="glass-card max-w-md w-full p-8 shadow-2xl border-white/10 relative overflow-hidden">
+        <div className="fixed inset-0 bg-background/90 backdrop-blur-md flex items-center justify-center z-[200] p-3 sm:p-4 animate-in fade-in duration-300 overflow-y-auto">
+            <div className="glass-card max-w-md w-full p-4 sm:p-6 lg:p-8 shadow-2xl border-white/10 relative overflow-hidden my-4 max-h-[92dvh] overflow-y-auto scrollbar-hide">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl" />
                 
                 <div className="flex items-center justify-between mb-8 relative z-10">
@@ -471,7 +504,7 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
                     <button onClick={onClose} className="p-3 hover:bg-secondary/50 rounded-2xl transition-all"><X className="w-5 h-5" /></button>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-inner border border-black/5 dark:border-white/5 mb-8 font-mono">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 shadow-inner border border-black/5 dark:border-white/5 mb-6 sm:mb-8 font-mono overflow-hidden">
                     <div className="text-center mb-6 space-y-1">
                         <p className="text-xs font-black uppercase tracking-[0.2em] text-foreground">{companyName}</p>
                         {sale?.user && (
@@ -567,19 +600,20 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
                     <button 
                         onClick={handlePrint} 
-                        className="h-14 bg-secondary/50 text-foreground hover:bg-primary/20 hover:text-primary rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all"
+                        disabled={isPrinting}
+                        className="h-12 sm:h-14 bg-secondary/50 text-foreground hover:bg-primary/20 hover:text-primary rounded-xl sm:rounded-2xl flex items-center justify-center gap-2 sm:gap-3 text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
                     >
-                        {isMobile ? <Share2 className="w-5 h-5" /> : <Printer className="w-5 h-5" />}
-                        {isHardwareElectron ? 'Direct Print' : (isMobile ? 'Share/Print' : 'System Print')}
+                        {isPrinting ? <Loader2 className="w-5 h-5 animate-spin" /> : (isMobile ? <Share2 className="w-5 h-5" /> : <Printer className="w-5 h-5" />)}
+                        <span className="truncate">{isPrinting ? 'Printing…' : (isElectronEnv ? 'Direct Print' : (isMobile ? 'Share/Print' : 'System Print'))}</span>
                     </button>
                     <button 
                         onClick={handleDownload} 
-                        className="h-14 bg-foreground text-background hover:bg-foreground/90 rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-[1.02] active:scale-95 transition-all"
+                        className="h-12 sm:h-14 bg-foreground text-background hover:bg-foreground/90 rounded-xl sm:rounded-2xl flex items-center justify-center gap-2 sm:gap-3 text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all min-h-[48px]"
                     >
-                        <Download className="w-5 h-5" /> Generate PDF Receipt
+                        <Download className="w-5 h-5 shrink-0" /> <span className="truncate">PDF Receipt</span>
                     </button>
                 </div>
             </div>

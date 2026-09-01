@@ -638,9 +638,9 @@ export default function POSPage() {
     };
 
     return (
-        <div className="h-full bg-background flex flex-col overflow-hidden font-body transition-colors duration-500">
-            {/* Action Bar - Secondary Header */}
-            <div className="flex-none bg-card/40 backdrop-blur-md border-b border-border/50 px-4 lg:px-8 py-2 flex items-center justify-between z-30">
+        <div className="h-full bg-background flex flex-col overflow-hidden font-body transition-colors duration-500 max-w-full">
+            {/* Action Bar - Secondary Header — compact for 320px */}
+            <div className="flex-none bg-card/60 backdrop-blur-md border-b border-border/50 px-3 sm:px-4 lg:px-8 py-2 flex items-center justify-between z-30 gap-2">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${isOnline ? (isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500') : 'bg-destructive'}`} />
@@ -699,23 +699,23 @@ export default function POSPage() {
             </div>
 
             {/* Main Content Area: Responsive Grid */}
-            <div className="flex-1 flex overflow-hidden relative">
+            <div className="flex-1 flex overflow-hidden relative min-w-0">
                 {/* Left Side: Products and Search */}
-                <div className={`flex-1 flex flex-col min-w-0 bg-secondary/5 border-r border-border ${showCartMobile ? 'hidden lg:flex' : 'flex'}`}>
-                    <div className="p-3 lg:p-6 space-y-4 lg:space-y-6">
-                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 lg:p-3 bg-primary/10 rounded-xl lg:rounded-2xl border border-primary/20">
+                <div className={`flex-1 flex flex-col min-w-0 bg-secondary/5 border-r border-border overflow-hidden ${showCartMobile ? 'hidden lg:flex' : 'flex'}`}>
+                    <div className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
+                            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                                <div className="p-2 sm:p-2 lg:p-3 bg-primary/10 rounded-xl lg:rounded-2xl border border-primary/20 shrink-0">
                                     <ShoppingBag className="w-5 h-5 lg:w-6 lg:h-6 text-primary" />
                                 </div>
-                                <h2 className="text-lg lg:text-2xl font-black text-foreground tracking-tighter uppercase italic">Store<span className="text-primary not-italic">Front</span></h2>
+                                <h2 className="text-base sm:text-lg lg:text-2xl font-black text-foreground tracking-tighter uppercase italic truncate">Store<span className="text-primary not-italic">Front</span></h2>
                             </div>
-                            <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
+                            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0 snap-x">
                                 {['All', ...categories].map(cat => (
                                     <button
                                         key={cat}
                                         onClick={() => setSelectedCategory(cat)}
-                                        className={`px-3 py-1.5 lg:px-5 lg:py-2.5 rounded-lg lg:rounded-xl text-[10px] lg:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedCategory === cat
+                                        className={`px-3 py-1.5 sm:px-4 lg:px-5 lg:py-2.5 rounded-lg lg:rounded-xl text-[10px] lg:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap snap-start shrink-0 min-h-[32px] ${selectedCategory === cat
                                             ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
                                             : 'bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground border border-border'
                                             }`}
@@ -727,28 +727,29 @@ export default function POSPage() {
                         </div>
 
                         <div className="relative group">
-                            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
+                            <div className="absolute inset-y-0 left-3 sm:left-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
                                 <Search className="w-4 h-4 lg:w-5 lg:h-5" />
                             </div>
                             <input
                                 id="pos-search-input"
                                 type="text"
-                                placeholder="Search by name, brand, category, or scan..."
-                                className="w-full h-12 lg:h-16 bg-card border-2 border-border rounded-xl lg:rounded-2xl pl-12 pr-12 lg:pl-14 lg:pr-14 text-sm lg:text-lg font-bold placeholder:text-muted-foreground/30 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-sm"
+                                placeholder="Search or scan..."
+                                className="w-full h-12 lg:h-16 bg-card border-2 border-border rounded-xl lg:rounded-2xl pl-10 sm:pl-12 pr-12 lg:pl-14 lg:pr-14 text-sm lg:text-lg font-bold placeholder:text-muted-foreground/30 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-sm"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                             <button 
                                 onClick={() => setShowScanner(true)}
-                                className="absolute inset-y-0 right-4 flex items-center text-muted-foreground hover:text-primary transition-colors"
+                                aria-label="Open barcode scanner"
+                                className="absolute inset-y-0 right-2 sm:right-4 flex items-center justify-center min-w-[44px] min-h-[44px] text-muted-foreground hover:text-primary transition-colors"
                             >
                                 <Maximize className="w-5 h-5 lg:w-6 lg:h-6" />
                             </button>
                         </div>
                     </div>
 
-                    {/* Products Grid - Highly Responsive */}
-                    <div className="flex-1 overflow-y-auto p-3 lg:p-6 pt-0">
+                    {/* Products Grid - 2 cols even on 320px, tighter gap on tiny */}
+                    <div className="flex-1 overflow-y-auto p-2 sm:p-3 lg:p-6 pt-0 overflow-x-hidden">
                         {loading ? (
                             <div className="h-full flex flex-col items-center justify-center gap-4 animate-in fade-in">
                                 <div className="w-10 h-10 lg:w-12 lg:h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -763,12 +764,12 @@ export default function POSPage() {
                                 <p className="text-xs lg:text-sm text-muted-foreground mt-2 font-bold max-w-xs">Try adjusting your search filters or scan another barcode.</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 lg:gap-6">
+                            <div className="grid grid-cols-2 min-[380px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-3 lg:gap-6">
                                 {filteredProducts.map(product => (
                                     <button
                                         key={product.id}
                                         onClick={() => addToCart(product)}
-                                        className="group bg-card hover:bg-secondary/10 border border-border rounded-xl lg:rounded-2xl p-3 lg:p-5 text-left transition-all hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] relative overflow-hidden"
+                                        className="group bg-card hover:bg-secondary/10 border border-border rounded-xl lg:rounded-2xl p-2.5 sm:p-3 lg:p-5 text-left transition-all hover:shadow-lg active:scale-[0.98] relative overflow-hidden min-w-0"
                                     >
                                         <div className="absolute top-2 right-2 flex flex-col gap-1 items-end z-10">
                                             {product.stockQty <= 5 && (
@@ -801,10 +802,10 @@ export default function POSPage() {
                     </div>
                 </div>
 
-                {/* Right Side: Cart - Responsive */}
-                <div className={`${showCartMobile ? 'flex fixed inset-0 z-[100]' : 'hidden lg:flex'} lg:relative w-full lg:w-[380px] xl:w-[420px] flex-col bg-card shadow-2xl shrink-0 border-l border-border/50 animate-in slide-in-from-right duration-300`}>
-                    <div className="lg:hidden absolute top-4 right-4 z-[110]">
-                        <button onClick={() => setShowCartMobile(false)} className="p-2 bg-secondary rounded-full shadow-lg">
+                {/* Right Side: Cart - Responsive, safe-area aware */}
+                <div className={`${showCartMobile ? 'flex fixed inset-0 z-[100]' : 'hidden lg:flex'} lg:relative w-full lg:w-[380px] xl:w-[420px] flex-col bg-card shadow-2xl shrink-0 border-l border-border/50 animate-in slide-in-from-right duration-300 overflow-hidden`}>
+                    <div className="lg:hidden absolute top-[max(1rem,env(safe-area-inset-top))] right-4 z-[110]">
+                        <button onClick={() => setShowCartMobile(false)} aria-label="Close cart" className="p-2.5 bg-secondary rounded-full shadow-lg min-h-[44px] min-w-[44px] flex items-center justify-center">
                             <X className="w-6 h-6" />
                         </button>
                     </div>
@@ -841,11 +842,12 @@ export default function POSPage() {
                 </div>
             </div>
 
-            {/* Mobile Cart Floating Button */}
+            {/* Mobile Cart Floating Button — offset for safe area */}
             {!showCartMobile && cart.length > 0 && (
                 <button
                     onClick={() => setShowCartMobile(true)}
-                    className="lg:hidden fixed bottom-6 right-6 w-16 h-16 bg-primary text-primary-foreground rounded-full shadow-2xl shadow-primary/40 flex items-center justify-center z-50 animate-bounce active:scale-95"
+                    aria-label="View cart"
+                    className="lg:hidden fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-4 sm:right-6 w-14 h-14 sm:w-16 sm:h-16 bg-primary text-primary-foreground rounded-full shadow-2xl shadow-primary/40 flex items-center justify-center z-50 active:scale-95 min-h-[56px] min-w-[56px]"
                 >
                     <div className="relative">
                         <ShoppingBag className="w-7 h-7" />

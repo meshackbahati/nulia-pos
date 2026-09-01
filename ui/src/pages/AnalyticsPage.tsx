@@ -163,8 +163,8 @@ export default function AnalyticsPage() {
 
     return (
         <div className="min-h-screen bg-background flex flex-col font-body transition-colors duration-500 overflow-x-hidden">
-            <header className="bg-background/60 backdrop-blur-xl border-b border-white/5 px-8 py-6 sticky top-0 z-[100]">
-                <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row items-center justify-between gap-8">
+            <header className="bg-background/60 backdrop-blur-xl border-b border-white/5 px-3 sm:px-8 py-4 sm:py-6 sticky top-0 z-[100]">
+                <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row items-center justify-between gap-4 sm:gap-8">
                     <div className="flex items-center gap-6 w-full lg:w-auto">
                         <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-2xl shadow-primary/30 border border-white/20">
                             <Activity className="w-7 h-7" />
@@ -179,13 +179,13 @@ export default function AnalyticsPage() {
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto justify-end">
-                        <div className="flex p-1.5 bg-secondary/30 rounded-2xl border border-white/5">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full lg:w-auto justify-start lg:justify-end">
+                        <div className="flex p-1 sm:p-1.5 bg-secondary/30 rounded-xl sm:rounded-2xl border border-white/5">
                             {(['overview', 'ledger', 'leaderboard'] as const).map(v => (
                                 <button
                                     key={v}
                                     onClick={() => setView(v)}
-                                    className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${view === v ? 'bg-primary text-primary-foreground shadow-lg' : 'text-muted-foreground hover:text-foreground'}`}
+                                    className={`px-3 sm:px-6 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[10px] font-black uppercase tracking-widest transition-all min-h-[36px] ${view === v ? 'bg-primary text-primary-foreground shadow-lg' : 'text-muted-foreground hover:text-foreground'}`}
                                 >
                                     {v}
                                 </button>
@@ -194,12 +194,12 @@ export default function AnalyticsPage() {
 
                         <div className="h-10 w-px bg-white/10 hidden xl:block" />
 
-                        <div className="flex p-1.5 bg-secondary/30 rounded-2xl border border-white/5">
+                        <div className="flex p-1 sm:p-1.5 bg-secondary/30 rounded-xl sm:rounded-2xl border border-white/5">
                             {(['week', 'month', 'year'] as const).map(p => (
                                 <button
                                     key={p}
                                     onClick={() => setPeriod(p)}
-                                    className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${period === p ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                                    className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[10px] font-black uppercase tracking-widest transition-all min-h-[36px] ${period === p ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                                 >
                                     {p}
                                 </button>
@@ -208,16 +208,16 @@ export default function AnalyticsPage() {
 
                         <button
                             onClick={handleExportPDF}
-                            className="h-14 px-8 bg-foreground text-background rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3 shadow-xl"
+                            className="h-11 sm:h-14 px-4 sm:px-8 bg-foreground text-background rounded-xl sm:rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all flex items-center justify-center gap-2 sm:gap-3 shadow-xl flex-1 sm:flex-none min-h-[44px]"
                         >
-                            <Download className="w-5 h-5" />
-                            Secure Export
+                            <Download className="w-4 h-4 sm:w-5 sm:h-5" />
+                            Export
                         </button>
                     </div>
                 </div>
             </header>
 
-            <main className="max-w-[1600px] mx-auto w-full px-8 py-12 space-y-12 animate-in fade-in duration-700">
+            <main className="max-w-[1600px] mx-auto w-full px-3 sm:px-8 py-6 sm:py-12 space-y-8 sm:space-y-12 animate-in fade-in duration-700 overflow-x-hidden">
                 {view === 'overview' && (
                     <>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
