@@ -38,48 +38,40 @@ export default function AnalyticsPage() {
     const fetchAnalytics = async () => {
         try {
             setLoading(true);
-            const scopeParam = isAllBranches ? { period: effectivePeriod, scope: 'all', ...dateParams } : { period: effectivePeriod, ...dateParams };
-            const topParams = isAllBranches ? { period: effectivePeriod, scope: 'all', limit: 10, ...dateParams } : { period: effectivePeriod, limit: 10, ...dateParams };
-            const trendsParams = isAllBranches ? { period: effectivePeriod, scope: 'all', ...dateParams } : { period: effectivePeriod, ...dateParams };
-            // Named fetches — no fragile index; admin all-branches gets aggregate
-            const summaryP = api.getAnalyticsSummary(scopeParam);
-            const topP = api.getTopProducts(effectivePeriod, 10);
-            const topAllP = isAllBranches ? api.get('/analytics/top-products', topParams).catch(()=> topP) : null;
-            const trendsP = api.getTrends(effectivePeriod);
-            const trendsAllP = isAllBranches ? api.get('/analytics/trends', trendsParams).catch(()=> null) : null;
-            const leaderboardP = (view === 'leaderboard' || view === 'overview') ? api.getLeaderboard(effectivePeriod) : null;
-            const leaderboardAllP = (view === 'leaderboard' || view === 'overview') && isAllBranches ? api.get('/analytics/leaderboard', { period: effectivePeriod, scope: 'all', global: 'true', ...dateParams }).catch(()=> null) : null;
+            // Single source for top/trends/leaderboard — respect isAllBranches
+            const summaryP = isAllBranches ? api.getAnalyticsSummary({ period: effectivePeriod, scope: 'all', ...dateParams }) : api.getAnalyticsSummary({ period: effectivePeriod, ...dateParams });
+            const topP = isAllBranches ? api.get('/analytics/top-products', { period: effectivePeriod, scope: 'all', limit: 10, ...dateParams }) : api.getTopProducts(effectivePeriod, 10);
+            const trendsP = isAllBranches ? api.get('/analytics/trends', { period: effectivePeriod, scope: 'all', ...dateParams }) : api.getTrends(effectivePeriod);
+            const leaderboardP = (view === 'leaderboard' || view === 'overview') ? (isAllBranches ? api.get('/analytics/leaderboard', { period: effectivePeriod, scope: 'all', global: 'true', ...dateParams }) : api.getLeaderboard(effectivePeriod)) : null;
             const branchLeaderP = ((view === 'leaderboard' || view === 'overview') && isAllBranches) ? api.getBranchLeaderboard({ period: effectivePeriod, ...dateParams }) : null;
             const salesP = view === 'ledger' ? api.get('/sales/list', { limit: 100, ...(isAllBranches ? { scope: 'all', ...dateParams } : dateParams) }) : null;
-            const allBranchesP = isAllBranches ? api.getBranches({ includeInactive: false }).catch(()=> null) : null;
             const branchP = api.get('/branches/me').catch(()=> null);
+            const allBranchesP = isAllBranches ? api.getBranches({ includeInactive: false }).catch(()=> null) : null;
 
-            const [summaryR, topR, trendsR, leaderboardR, branchLeaderR, salesR, branchR, topAllR, trendsAllR, leaderboardAllR, allBranchesR] = await Promise.all([
-                summaryP, topP, trendsP, leaderboardP || Promise.resolve(null), branchLeaderP || Promise.resolve(null), salesP || Promise.resolve(null), branchP,
-                topAllP || Promise.resolve(null), trendsAllP || Promise.resolve(null), leaderboardAllP || Promise.resolve(null), allBranchesP || Promise.resolve(null)
+            const results = await Promise.allSettled([
+                summaryP.catch(()=> null),
+                topP.catch(()=> null),
+                trendsP.catch(()=> null),
+                leaderboardP ? leaderboardP.catch(()=> null) : Promise.resolve(null),
+                branchLeaderP ? branchLeaderP.catch(e=> { console.warn('branchLeaderboard', e?.response?.status); return null; }) : Promise.resolve(null),
+                salesP ? salesP.catch(()=> null) : Promise.resolve(null),
+                branchP,
+                allBranchesP || Promise.resolve(null),
             ]);
+            const getVal = (i:number) => results[i].status==='fulfilled' ? (results[i] as any).value : null;
+            const summaryR = getVal(0), topR = getVal(1), trendsR = getVal(2), leaderboardR = getVal(3), branchLeaderR = getVal(4), salesR = getVal(5), branchR = getVal(6), allBranchesR = getVal(7);
 
-            // Prefer all-branches data for admin overview/leaderboard
-            const effectiveTop = (isAllBranches && topAllR?.data?.topProducts) ? topAllR.data.topProducts : topR.data.topProducts;
-            const effectiveTrends = (isAllBranches && trendsAllR?.data) ? trendsAllR.data : trendsR.data;
-            const effectiveLeader = (isAllBranches && leaderboardAllR?.data?.leaderboard) ? leaderboardAllR.data.leaderboard : (leaderboardR?.data?.leaderboard || []);
-
-            setStats(summaryR.data);
-            setTopProducts(effectiveTop || []);
-            setTrendData(effectiveTrends?.revenueTrend || trendsR.data.revenueTrend || []);
-            setPaymentData(effectiveTrends?.paymentMethods || trendsR.data.paymentMethods || []);
-            if (effectiveLeader.length) setLeaderboard(effectiveLeader);
-            else if (leaderboardR) setLeaderboard(leaderboardR.data.leaderboard || []);
-            if (branchLeaderR) setBranchStats(branchLeaderR.data.leaderboard || []);
-            if (salesR) setSales(salesR.data.sales || []);
+            if (summaryR?.data) setStats(summaryR.data); else toast.error('Summary failed — showing partial data');
+            setTopProducts(topR?.data?.topProducts || []);
+            setTrendData(trendsR?.data?.revenueTrend || []);
+            setPaymentData(trendsR?.data?.paymentMethods || []);
+            if (leaderboardR?.data?.leaderboard) setLeaderboard(leaderboardR.data.leaderboard);
+            else setLeaderboard([]);
+            if (branchLeaderR?.data?.leaderboard) setBranchStats(branchLeaderR.data.leaderboard);
+            else setBranchStats([]);
+            if (salesR?.data?.sales) setSales(salesR.data.sales); else if (view==='ledger') setSales([]);
             if (branchR?.data?.branch) setBranch(branchR.data.branch);
-            // For admin all-branches, keep branch as null to signal aggregate
-            if (isAllBranches && allBranchesR?.data?.branches) {
-                // stash all branches for PDF per-branch breakdown
-                (stats as any)?.allBranches || null;
-                // store in separate state via branchStats already, plus keep list
-                (window as any).__allBranches = allBranchesR.data.branches;
-            }
+            if (isAllBranches && allBranchesR?.data?.branches) (window as any).__allBranches = allBranchesR.data.branches;
         } catch (error) {
             console.error('Error fetching analytics:', error);
             toast.error('Failed to sync intelligence data');
@@ -171,34 +163,66 @@ export default function AnalyticsPage() {
             doc.setTextColor(15,23,42);
         }
 
-        // Top products
+        // Top products — detailed, no dashes, respects period
         if (y > 250) { doc.addPage(); y=14; }
-        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.text('Top Products — by quantity sold', 10, y); y+=4;
+        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.text(`Top Products — ${periodLabel} by quantity sold`, 10, y); y+=4;
         if (topProducts.length) {
             autoTable(doc, {
                 startY: y,
                 head: [['#','Product','SKU','Qty Sold','Revenue']],
-                body: topProducts.slice(0,10).map((p:any,i:number)=> [String(i+1), String(p.product?.name || p.product?.name || '—').slice(0,24), p.product?.sku || '-', String(p.quantitySold ?? p.totalQty ?? 0), formatPrice(p.revenue ?? p.totalRevenue ?? 0)]),
+                body: topProducts.slice(0,10).map((p:any,i:number)=> [String(i+1), String(p.product?.name || 'Unknown').slice(0,24), p.product?.sku || 'N/A', String(p.quantitySold ?? p.totalQty ?? 0), formatPrice(p.revenue ?? p.totalRevenue ?? 0)]),
                 theme: 'grid',
                 headStyles: { fillColor: [245,158,11], fontSize: 7 },
                 bodyStyles: { fontSize: 7 },
                 styles: { cellPadding: 2 }
             });
             y = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 6 : y + 20;
+            // Add note about period
+            doc.setFontSize(6); doc.setFont('helvetica','italic'); doc.setTextColor(100,116,139);
+            doc.text(`Showing top ${Math.min(10, topProducts.length)} products for ${periodLabel} • ${dateRange}`, 10, y); y+=4;
+            doc.setTextColor(15,23,42);
         } else {
             doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(100,116,139);
-            doc.text('No product sales in this period', 10, y); y+=8;
+            doc.text(`No product sales for ${periodLabel} — try ${period==='all' ? 'a different filter' : 'All Time or Custom'}`, 10, y); y+=8;
             doc.setTextColor(15,23,42);
         }
 
-        // Payment methods
+        // Revenue chart — draw simple line graph in PDF (no dashes)
+        if (trendData.length > 1) {
+            if (y > 220) { doc.addPage(); y=14; }
+            doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(15,23,42);
+            doc.text('Revenue Chart', 10, y); y+=2;
+            const chartX = 10, chartY = y, chartW = 190, chartH = 28;
+            doc.setDrawColor(226,232,240); doc.setLineWidth(0.2);
+            doc.rect(chartX, chartY, chartW, chartH);
+            // grid lines
+            for (let i=1;i<4;i++) { doc.setDrawColor(241,245,249); doc.line(chartX, chartY + (chartH/4)*i, chartX+chartW, chartY + (chartH/4)*i); }
+            const maxRev = Math.max(...trendData.map((t:any)=> t.revenue), 1);
+            const stepX = chartW / Math.max(trendData.length - 1, 1);
+            doc.setDrawColor(16,185,129); doc.setLineWidth(0.6);
+            let prevX=0, prevY=0;
+            trendData.forEach((t:any, idx:number) => {
+                const x = chartX + idx * stepX;
+                const yPos = chartY + chartH - (t.revenue / maxRev) * (chartH - 4) - 2;
+                if (idx>0) doc.line(prevX, prevY, x, yPos);
+                doc.setFillColor(16,185,129); doc.circle(x, yPos, 1, 'F');
+                prevX=x; prevY=yPos;
+            });
+            doc.setFontSize(5); doc.setTextColor(100,116,139);
+            trendData.forEach((t:any, idx:number) => {
+                if (idx % Math.ceil(trendData.length/7) === 0) doc.text(String(t.day).slice(0,3), chartX + idx*stepX - 3, chartY + chartH + 4);
+            });
+            y = chartY + chartH + 8;
+        }
+
+        // Payment methods — no dashes
         if (y > 250) { doc.addPage(); y=14; }
-        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.text('Payment Method Breakdown', 10, y); y+=4;
+        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(15,23,42); doc.text('Payment Method Breakdown', 10, y); y+=4;
         if (paymentData.length) {
             autoTable(doc, {
                 startY: y,
                 head: [['Method','Share (value)']],
-                body: paymentData.map((p:any)=> [String(p.name||'unknown').toUpperCase(), formatPrice(p.value)]),
+                body: paymentData.map((p:any)=> [String(p.name||'Unknown').toUpperCase(), formatPrice(p.value)]),
                 theme: 'striped',
                 headStyles: { fillColor: [59,130,246], fontSize: 7 },
                 bodyStyles: { fontSize: 7 },
@@ -207,18 +231,41 @@ export default function AnalyticsPage() {
             y = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 6 : y + 20;
         } else {
             doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(100,116,139);
-            doc.text('No payment data', 10, y); y+=8;
+            doc.text('No payment data for this period', 10, y); y+=8;
             doc.setTextColor(15,23,42);
         }
 
-        // Branch leaderboard (admin)
-        if (branchStats.length) {
+        // Branch performance — detailed per branch when All Branches
+        if (isAll && branchStats.length) {
+            if (y > 230) { doc.addPage(); y=14; }
+            doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(15,23,42); doc.text(`Branch Performance — ${periodLabel} (All Branches Detailed)`, 10, y); y+=4;
+            // Summary for each branch
+            autoTable(doc, {
+                startY: y,
+                head: [['Rank','Branch','Location','Orders','Revenue','Avg Order']],
+                body: branchStats.map((b:any,i:number)=> {
+                    const avg = b.count ? (b.revenue / b.count) : 0;
+                    return [String(i+1), String(b.name).slice(0,18), String(b.location || 'N/A').slice(0,14), String(b.count), formatPrice(b.revenue), formatPrice(avg)];
+                }),
+                theme: 'grid',
+                headStyles: { fillColor: [16,185,129], fontSize: 7 },
+                bodyStyles: { fontSize: 7 },
+                styles: { cellPadding: 2 }
+            });
+            y = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 6 : y + 20;
+            // Add per-branch insight: top branch highlight
+            if (branchStats[0]) {
+                doc.setFontSize(7); doc.setFont('helvetica','italic'); doc.setTextColor(100,116,139);
+                doc.text(`Top performer: ${branchStats[0].name} with ${formatPrice(branchStats[0].revenue)} across ${branchStats[0].count} orders`, 10, y); y+=6;
+                doc.setTextColor(15,23,42);
+            }
+        } else if (branchStats.length) {
             if (y > 230) { doc.addPage(); y=14; }
             doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.text('Branch Performance — ' + periodLabel, 10, y); y+=4;
             autoTable(doc, {
                 startY: y,
                 head: [['Rank','Branch','Location','Orders','Revenue']],
-                body: branchStats.slice(0,10).map((b:any,i:number)=> [String(i+1), String(b.name).slice(0,20), String(b.location || '-').slice(0,15), String(b.count), formatPrice(b.revenue)]),
+                body: branchStats.slice(0,10).map((b:any,i:number)=> [String(i+1), String(b.name).slice(0,20), String(b.location || 'N/A').slice(0,15), String(b.count), formatPrice(b.revenue)]),
                 theme: 'grid',
                 headStyles: { fillColor: [16,185,129], fontSize: 7 },
                 bodyStyles: { fontSize: 7 },
@@ -227,40 +274,49 @@ export default function AnalyticsPage() {
             y = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 6 : y + 20;
         }
 
-        // Personnel leaderboard
+        // Personnel — detailed, no dashes, show all contributors
         if (y > 230) { doc.addPage(); y=14; }
-        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.text('Personnel Efficiency — ' + periodLabel, 10, y); y+=4;
+        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(15,23,42); doc.text(`Personnel Efficiency — ${periodLabel} (All Contributors)`, 10, y); y+=4;
         if (leaderboard.length) {
+            // Sort by revenue desc already, show top 20 with contribution %
+            const totalRev = leaderboard.reduce((s:any, l:any)=> s + (l.revenue||0), 0) || 1;
             autoTable(doc, {
                 startY: y,
-                head: [['Rank','Name','Branch','Role','Orders','Revenue']],
-                body: leaderboard.slice(0,15).map((l:any)=> [String(l.rank), String(l.name).slice(0,18), String(l.branch).slice(0,12), String(l.role||'').toUpperCase().slice(0,10), String(l.count), formatPrice(l.revenue)]),
+                head: [['Rank','Name','Branch','Role','Orders','Revenue','Share']],
+                body: leaderboard.slice(0,20).map((l:any)=> {
+                    const share = ((l.revenue/totalRev)*100).toFixed(1)+'%';
+                    return [String(l.rank), String(l.name).slice(0,16), String(l.branch||'Unknown').slice(0,12), String(l.role||'staff').toUpperCase().slice(0,10), String(l.count), formatPrice(l.revenue), share];
+                }),
                 theme: 'grid',
-                headStyles: { fillColor: [124,58,237], fontSize: 7 },
-                bodyStyles: { fontSize: 7 },
-                styles: { cellPadding: 2 }
+                headStyles: { fillColor: [124,58,237], fontSize: 6 },
+                bodyStyles: { fontSize: 6 },
+                styles: { cellPadding: 1.5 },
+                columnStyles: { 5: { halign: 'right' }, 6: { halign: 'right' } }
             });
             y = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 6 : y + 20;
+            doc.setFontSize(6); doc.setFont('helvetica','italic'); doc.setTextColor(100,116,139);
+            doc.text(`Total contributors: ${leaderboard.length} users • Combined revenue: ${formatPrice(totalRev)}`, 10, y); y+=5;
+            doc.setTextColor(15,23,42);
         } else {
             doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(100,116,139);
-            doc.text('No personnel data for this period', 10, y); y+=8;
+            doc.text('No personnel sales for this period — check branch activity', 10, y); y+=8;
             doc.setTextColor(15,23,42);
         }
 
-        // Recent sales ledger — always show something, even if empty, so PDF never blank
-        if (y > 220) { doc.addPage(); y=14; }
-        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.text('Recent Transactions — Ledger Sample', 10, y); y+=4;
-        const ledgerSales = sales.length ? sales.slice(0,30) : [];
+        // Detailed ledger — per branch when All, no dashes, full info
+        if (y > 200) { doc.addPage(); y=14; }
+        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(15,23,42); doc.text(`Detailed Transactions — ${isAll ? 'All Branches' : branchName} • ${periodLabel}`, 10, y); y+=4;
+        const ledgerSales = sales.length ? sales.slice(0,40) : [];
         if (ledgerSales.length) {
             autoTable(doc, {
                 startY: y,
                 head: [['Receipt','Date','Cashier','Branch','Method','Total']],
                 body: ledgerSales.map((s:any)=> [
-                    String(s.receiptId||'—').slice(0,14),
-                    s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '-',
-                    `${s.user?.firstName || ''} ${s.user?.lastName || ''}`.trim().slice(0,16) || '—',
+                    String(s.receiptId||'N/A').slice(0,14),
+                    s.createdAt ? new Date(s.createdAt).toLocaleDateString() : 'N/A',
+                    `${s.user?.firstName || ''} ${s.user?.lastName || ''}`.trim().slice(0,16) || 'Unknown',
                     String(s.branch?.name || branchName).slice(0,14),
-                    String(s.paymentMethod||'').toUpperCase().slice(0,10),
+                    String(s.paymentMethod||'cash').toUpperCase().slice(0,10),
                     formatPrice(s.totalAmount)
                 ]),
                 theme: 'striped',
@@ -270,11 +326,16 @@ export default function AnalyticsPage() {
                 columnStyles: { 0: { cellWidth: 28 }, 5: { halign: 'right' } }
             });
             y = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 6 : y + 20;
+            if (sales.length > 40) {
+                doc.setFontSize(6); doc.setFont('helvetica','italic'); doc.setTextColor(100,116,139);
+                doc.text(`Showing 40 of ${sales.length} transactions for ${periodLabel} — export CSV for full ledger`, 10, y); y+=6;
+                doc.setTextColor(15,23,42);
+            }
         } else {
             autoTable(doc, {
                 startY: y,
                 head: [['Receipt','Date','Cashier','Branch','Method','Total']],
-                body: [['—','—','—','—','—','No transactions in this period']],
+                body: [['No data','No data','No data','No data','No data','No transactions in this period — try All Time or Custom']],
                 theme: 'striped',
                 headStyles: { fillColor: [71,149,88], fontSize: 6 },
                 bodyStyles: { fontSize: 6, halign: 'center' },
@@ -420,18 +481,18 @@ export default function AnalyticsPage() {
 
                         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 sm:gap-12">
                             <div className="xl:col-span-8 space-y-6 sm:space-y-12">
-                                <div className="clay-card p-6 sm:p-10 relative overflow-hidden">
+                                <div className="clay-card p-6 sm:p-10 relative overflow-hidden min-w-0">
                                     <div className="flex items-center justify-between mb-8 sm:mb-12">
                                         <div className="text-left">
                                             <h3 className="text-base sm:text-lg font-black text-foreground uppercase tracking-tight">Revenue Trajectory</h3>
                                             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Real-time data flow analysis — {period}</p>
                                         </div>
-                                        <div className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 border-emerald-500/20">
+                                        <div className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 border-emerald-500/20 shrink-0">
                                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live
                                         </div>
                                     </div>
-                                    <div className="h-[300px] sm:h-[400px] w-full">
-                                        <ResponsiveContainer width="100%" height="100%">
+                                    <div className="h-[300px] sm:h-[400px] w-full min-w-0" style={{ minWidth: 0 }}>
+                                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                             <AreaChart data={trendData}>
                                                 <defs>
                                                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -486,10 +547,10 @@ export default function AnalyticsPage() {
                                     </div>
                                 </div>
                                 
-                                <div className="clay-card p-6 sm:p-8 text-left">
+                                <div className="clay-card p-6 sm:p-8 text-left min-w-0">
                                     <h3 className="text-xs font-black text-foreground uppercase tracking-[0.2em] mb-6 sm:mb-8 border-l-4 border-sky-500 pl-4">Method Distribution</h3>
-                                    <div className="h-[180px] sm:h-[200px]">
-                                        <ResponsiveContainer width="100%" height="100%">
+                                    <div className="h-[180px] sm:h-[200px] w-full min-w-0" style={{ minWidth: 0 }}>
+                                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                             <PieChart>
                                                 <Pie data={paymentData} cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={8} dataKey="value" stroke="none">
                                                     {paymentData.map((_, index) => <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />)}

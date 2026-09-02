@@ -415,14 +415,16 @@ router.get('/branch-leaderboard', authenticate, authorize('admin'), async (req, 
     try {
         const { period = 'week' } = req.query;
         const dateRange = getDateRange(period);
+        const hasDate = dateRange && dateRange[Op.gte];
+        const dateFilter = hasDate ? ` AND sales."createdAt" >= '${dateRange[Op.gte].toISOString()}'` : '';
 
         const branches = await models.Branch.findAll({
             where: { isActive: true },
             attributes: [
                 'id', 'name',
                 [sequelize.col('address'), 'location'],
-                [sequelize.literal('(SELECT COUNT(*) FROM sales WHERE sales."branchId" = "Branch".id AND sales."createdAt" >= \'' + dateRange[Op.gte].toISOString() + '\')'), 'salesCount'],
-                [sequelize.literal('(SELECT SUM("totalAmount") FROM sales WHERE sales."branchId" = "Branch".id AND sales."createdAt" >= \'' + dateRange[Op.gte].toISOString() + '\')'), 'revenue']
+                [sequelize.literal(`(SELECT COUNT(*) FROM sales WHERE sales."branchId" = "Branch".id${dateFilter})`), 'salesCount'],
+                [sequelize.literal(`(SELECT SUM("totalAmount") FROM sales WHERE sales."branchId" = "Branch".id${dateFilter})`), 'revenue']
             ],
             order: [[sequelize.literal('revenue'), 'DESC']]
         });
