@@ -119,7 +119,7 @@ router.get('/summary', authenticate, async (req, res) => {
         if (from && to) dateRange = { [Op.between]: [new Date(from), new Date(to)] };
         else if (period !== 'custom') dateRange = getDateRange(period);
         const where = {};
-        if (dateRange) (where as any).createdAt = dateRange;
+        if (dateRange) where.createdAt = dateRange;
 
         // Admin: use active branch unless scope=all
         if (req.user.role === 'admin') {
@@ -190,7 +190,7 @@ router.get('/leaderboard', authenticate, async (req, res) => {
         let dateRange = null;
         if (from && to) dateRange = { [Op.between]: [new Date(from), new Date(to)] };
         else if (period !== 'custom') dateRange = getDateRange(period);
-        const where: any = {};
+        const where = {};
         if (dateRange) where.createdAt = dateRange;
 
         // 1. Determine Scope for Sales Data
@@ -296,9 +296,12 @@ router.get('/leaderboard', authenticate, async (req, res) => {
 // Top Products (Detailed)
 router.get('/top-products', authenticate, async (req, res) => {
     try {
-        const { period = 'week', limit = 10 } = req.query;
-        const dateRange = getDateRange(period);
-        const where = { createdAt: dateRange };
+        const { period = 'week', limit = 10, from, to } = req.query;
+        let dateRange = null;
+        if (from && to) dateRange = { [Op.between]: [new Date(from), new Date(to)] };
+        else if (period !== 'custom') dateRange = getDateRange(period);
+        const where = {};
+        if (dateRange) where.createdAt = dateRange;
 
         // Admin: use active branch unless scope=all
         if (req.user.role === 'admin') {
@@ -455,9 +458,12 @@ router.get('/branch-leaderboard', authenticate, authorize('admin'), async (req, 
 // Trends
 router.get('/trends', authenticate, async (req, res) => {
     try {
-        const { period = 'week' } = req.query;
-        const dateRange = getDateRange(period);
-        const where = { createdAt: dateRange };
+        const { period = 'week', from, to } = req.query;
+        let dateRange = null;
+        if (from && to) dateRange = { [Op.between]: [new Date(from), new Date(to)] };
+        else if (period !== 'custom') dateRange = getDateRange(period);
+        const where = {};
+        if (dateRange) where.createdAt = dateRange;
 
         // Admin: use active branch unless scope=all
         if (req.user.role === 'admin') {
