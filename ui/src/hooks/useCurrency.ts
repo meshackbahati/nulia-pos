@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
+import { Decimal } from 'decimal.js';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../lib/api-client';
 
@@ -80,11 +81,10 @@ export const useCurrency = (customBranch?: any) => {
         const currencyToUse = forceCurrency || targetCurrency;
         const rate = forceCurrency ? getRate(baseCurrency, forceCurrency) : currentRate;
         
-        const convertedAmount = (amount || 0) * rate;
+        // Use Decimal to avoid 5000 -> 4999.98 floating drift
+        const convertedAmount = new Decimal(amount || 0).times(rate).toDecimalPlaces(2).toNumber();
         
-        // Find symbol for currencyToUse
         let symbol = getCurrencySymbol(currencyToUse);
-
         const separator = symbol.length > 1 ? ' ' : '';
         
         return `${symbol}${separator}${convertedAmount.toLocaleString(undefined, {
@@ -94,7 +94,7 @@ export const useCurrency = (customBranch?: any) => {
     };
 
     const convertPrice = (amount: number) => {
-        return amount * currentRate;
+        return new Decimal(amount).times(currentRate).toDecimalPlaces(2).toNumber();
     };
 
     return {

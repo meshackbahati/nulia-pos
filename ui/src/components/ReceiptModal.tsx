@@ -145,20 +145,19 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
         y += 4;
         doc.setFont('helvetica', 'normal');
 
-        // Items
+        // Items — Decimal rounded
         sale.items.forEach(item => {
             const displayName = item.productName || item.name || 'Unknown Item';
             const nameLimit = width === 58 ? 18 : 25;
             const name = displayName.length > nameLimit ? displayName.substring(0, nameLimit - 3) + '...' : displayName;
-            const itemPrice = item.price || item.unitPrice || 0;
+            const itemPrice = new Decimal(item.price || item.unitPrice || 0).toDecimalPlaces(2).toNumber();
             doc.text(`${item.quantity}${item.baseUnit || ''}x ${name}`, margin, y);
-            doc.text(formatPrice(new Decimal(itemPrice).times(item.quantity).toNumber()), rightAlign, y, { align: 'right' });
+            doc.text(formatPrice(new Decimal(itemPrice).times(item.quantity).toDecimalPlaces(2).toNumber()), rightAlign, y, { align: 'right' });
             y += 3;
 
-            // Show unit price and potential bargain
             let detailStr = `@ ${formatPrice(itemPrice)}`;
             if (item.catalogPrice && Number(item.catalogPrice) !== Number(itemPrice)) {
-                detailStr += ` (Was ${formatPrice(item.catalogPrice)})`;
+                detailStr += ` (Was ${formatPrice(new Decimal(item.catalogPrice).toDecimalPlaces(2).toNumber())})`;
             }
             doc.setFontSize(width === 58 ? 5 : 6);
             doc.text(detailStr, margin, y);
@@ -273,18 +272,18 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
         const { fontSize, smallFont, titleFont, maxNameLen, viewW, bodyW } = paperOpts;
 
         const itemsHtml = sale.items.map(item => {
-            const itemPrice = item.price || item.unitPrice || 0;
+            const itemPrice = new Decimal(item.price || item.unitPrice || 0).toDecimalPlaces(2).toNumber();
             const displayName = item.productName || item.name || 'Unknown Item';
             const shortName = displayName.length > maxNameLen ? displayName.substring(0, maxNameLen - 3) + '...' : displayName;
             return `
                 <div style="margin-bottom: 3pt;">
                     <div style="display: flex; justify-content: space-between; font-size: ${fontSize}pt; font-weight: 700; line-height: 1.3;">
                         <span style="text-transform: uppercase;">${shortName}</span>
-                        <span style="white-space: nowrap;">${formatPrice(new Decimal(item.quantity).times(itemPrice).toNumber())}</span>
+                        <span style="white-space: nowrap;">${formatPrice(new Decimal(item.quantity).times(itemPrice).toDecimalPlaces(2).toNumber())}</span>
                     </div>
                     <div style="font-size: ${smallFont - 2}pt; color: #555; line-height: 1.2;">
                         ${item.quantity}${item.baseUnit || ''} x ${formatPrice(itemPrice)}
-                        ${item.catalogPrice && Number(item.catalogPrice) !== Number(itemPrice) ? `<span style="text-decoration: line-through; opacity: 0.5; margin-left: 4px;">(${formatPrice(item.catalogPrice)})</span>` : ''}
+                        ${item.catalogPrice && Number(item.catalogPrice) !== Number(itemPrice) ? `<span style="text-decoration: line-through; opacity: 0.5; margin-left: 4px;">(${formatPrice(new Decimal(item.catalogPrice).toDecimalPlaces(2).toNumber())})</span>` : ''}
                     </div>
                 </div>
             `;
@@ -526,13 +525,13 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
                                     <div className="min-w-0 pr-4">
                                         <p className="font-bold text-foreground uppercase">{displayName.substring(0, 20)}</p>
                                         <div className="flex items-center gap-1">
-                                            <p className="text-[8px] text-muted-foreground">{item.quantity}{item.baseUnit || ''} @ {formatPrice(itemPrice)}</p>
+                                            <p className="text-[8px] text-muted-foreground">{item.quantity}{item.baseUnit || ''} @ {formatPrice(new Decimal(itemPrice).toDecimalPlaces(2).toNumber())}</p>
                                             {item.catalogPrice && Number(item.catalogPrice) !== Number(itemPrice) && (
-                                                <p className="text-[7px] text-muted-foreground/50 line-through italic">({formatPrice(item.catalogPrice)})</p>
+                                                <p className="text-[7px] text-muted-foreground/50 line-through italic">({formatPrice(new Decimal(item.catalogPrice).toDecimalPlaces(2).toNumber())})</p>
                                             )}
                                         </div>
                                     </div>
-                                    <span className="font-bold text-foreground">{formatPrice(new Decimal(item.quantity).times(itemPrice).toNumber())}</span>
+                                    <span className="font-bold text-foreground">{formatPrice(new Decimal(item.quantity).times(itemPrice).toDecimalPlaces(2).toNumber())}</span>
                                 </div>
                             );
                         })}

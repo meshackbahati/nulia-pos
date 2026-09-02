@@ -65,4 +65,45 @@ router.post('/update', authenticate, authorize('manager'), async (req, res) => {
     }
 });
 
+/**
+ * Edit a rate — creates a new version (rates are append-only for audit)
+ */
+router.put('/:id', authenticate, authorize('manager'), async (req, res) => {
+    try {
+        const { rate } = req.body;
+        if (!rate) return res.status(400).json({ error: 'rate is required' });
+        const existing = await models.ExchangeRate.findByPk(req.params.id);
+        if (!existing) return res.status(404).json({ error: 'Rate not found' });
+        // Create a new rate entry (history preserved), deactivate old
+        await existing.update({ isActive: false });
+        const updated = await models.ExchangeRate.create({
+            fromCurrency: existing.fromCurrency,
+            toCurrency: existing.toCurrency,
+            rate: parseFloat(rate),
+            branchId: existing.branchId,
+            date: new Date().toISOString().split('T')[0],
+            isActive: true
+        });
+        res.json({ success: true, rate: updated });
+    } catch (error) {
+        console.error('Error editing rate:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * Delete (deactivate) a rate
+ */
+router.delete('/:id', authenticate, authorize('manager'), async (req, res) => {
+    try {
+        const existing = await models.ExchangeRate.findByPk(req.params.id);
+        if (!existing) return res.status(404).json({ error: 'Rate not found' });
+        await existing.update({ isActive: false });
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting rate:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;

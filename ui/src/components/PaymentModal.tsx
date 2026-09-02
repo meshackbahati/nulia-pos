@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Decimal } from 'decimal.js';
 import { X, CreditCard, DollarSign, Smartphone, ShieldCheck, Plus, Trash2, Calculator } from 'lucide-react';
 import usePaystack from '../hooks/usePaystack';
 import { useCurrency } from '../hooks/useCurrency';
@@ -95,8 +96,8 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
             return;
         }
 
-        const rate = getRate(currentCurrency, branchConfig?.currency || 'KES');
-        const amountInBase = amt / rate;
+        const rate = new Decimal(getRate(currentCurrency, branchConfig?.currency || 'KES'));
+        const amountInBase = new Decimal(amt).div(rate).toDecimalPlaces(2).toNumber();
 
         const newEntry: PaymentEntry = {
             id: Math.random().toString(36).substr(2, 9),
@@ -104,7 +105,7 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
             currency: currentCurrency,
             amount: amt,
             amountInBase: amountInBase,
-            exchangeRate: rate,
+            exchangeRate: rate.toNumber(),
             details: (['mpesa', 'airtel', 'mtn', 'mobile_money'].includes(currentMethod)) ? { customerPhone } : {}
         };
 

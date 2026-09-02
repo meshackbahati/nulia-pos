@@ -77,7 +77,10 @@ router.get('/dashboard', authenticate, async (req, res) => {
                     as: 'product',
                     attributes: ['name']
                 }],
-                where: { createdAt: { [Op.gte]: today } },
+                where: {
+                    createdAt: { [Op.gte]: today },
+                    ...(branchId ? { branchId } : {})
+                },
                 group: ['productId', 'product.id'],
                 order: [[sequelize.literal('"quantity"'), 'DESC']],
                 limit: 5
@@ -153,7 +156,10 @@ router.get('/summary', authenticate, async (req, res) => {
                     as: 'product',
                     attributes: ['name']
                 }],
-                where: { createdAt: dateRange },
+                where: {
+                    createdAt: dateRange,
+                    ...(where.branchId ? { branchId: where.branchId } : {})
+                },
                 group: ['productId', 'product.id'],
                 order: [[sequelize.literal('"totalQty"'), 'DESC']],
                 limit: 5

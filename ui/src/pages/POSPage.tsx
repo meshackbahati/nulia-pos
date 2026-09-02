@@ -178,7 +178,7 @@ function CartContent({ cart, setCart, updateQuantity, resetPrice, formatPrice, s
                             </div>
                             <div className="text-right flex flex-col justify-end">
                                 <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">{item.quantity} {item.baseUnit}</p>
-                                <p className="text-sm font-black text-foreground tracking-tighter">{formatPrice(item.price * item.quantity)}</p>
+                                <p className="text-sm font-black text-foreground tracking-tighter">{formatPrice(new Decimal(item.price).times(item.quantity).toDecimalPlaces(2).toNumber())}</p>
                             </div>
                         </div>
                     ))
@@ -446,8 +446,8 @@ export default function POSPage() {
     };
 
     const subtotal = cart.reduce((acc, item) =>
-        new Decimal(acc).plus(new Decimal(item.price).times(item.quantity)).toNumber(), 0);
-    const total = subtotal;
+        new Decimal(acc).plus(new Decimal(item.price).times(item.quantity)).toDecimalPlaces(2).toNumber(), 0);
+    const total = new Decimal(subtotal).toDecimalPlaces(2).toNumber();
 
     const onPaymentComplete = async (payments: any[]) => {
         const rateToSave = currentRate;
@@ -493,16 +493,16 @@ export default function POSPage() {
             
             checkPendingSync();
             
-            // Mock a successful UI state for the cashier
+            // Mock a successful UI state for the cashier — Decimal rounded
             const mockSale = {
                 ...saleData,
-                subtotal: subtotal,
+                subtotal: new Decimal(subtotal).toDecimalPlaces(2).toNumber(),
                 tax: (branchData?.taxRate || 0) > 0
-                    ? new Decimal(subtotal).times(branchData.taxRate).div(100).toNumber()
+                    ? new Decimal(subtotal).times(branchData.taxRate).div(100).toDecimalPlaces(2).toNumber()
                     : 0,
                 total: (branchData?.taxRate || 0) > 0
-                    ? new Decimal(total).plus(new Decimal(subtotal).times(branchData.taxRate).div(100)).toNumber()
-                    : total,
+                    ? new Decimal(total).plus(new Decimal(subtotal).times(branchData.taxRate).div(100)).toDecimalPlaces(2).toNumber()
+                    : new Decimal(total).toDecimalPlaces(2).toNumber(),
                 paymentMethod: payments.map(p => p.method).join(' + '),
                 receiptId: 'OFFLINE-' + Date.now().toString().slice(-6),
                 createdAt: new Date().toISOString()

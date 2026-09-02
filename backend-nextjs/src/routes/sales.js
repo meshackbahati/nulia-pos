@@ -244,9 +244,9 @@ router.post('/create', authenticate, async (req, res) => {
         const discountAmount = discountAmountDecimal.toDecimalPlaces(2).toNumber();
         const finalTotal = subtotalDecimal.plus(taxAmountDecimal).toDecimalPlaces(2).toNumber();
 
-        // Verify total payment matches total due (with 0.01 tolerance)
-        const totalPaidInBase = payments.reduce((acc, p) => acc + (Number(p.amount) / Number(p.exchangeRate || 1)), 0);
-        if (totalPaidInBase < finalTotal - 0.05) {
+        // Verify total payment matches total due (Decimal, 0.01 tolerance)
+        const totalPaidInBase = payments.reduce((acc, p) => acc.plus(new Decimal(p.amount).div(p.exchangeRate || 1)), new Decimal(0)).toDecimalPlaces(2).toNumber();
+        if (new Decimal(totalPaidInBase).lt(new Decimal(finalTotal).minus(0.01))) {
             await transaction.rollback();
             return res.status(400).json({ error: `Payment mismatch. Due: ${finalTotal}, Paid (in base): ${totalPaidInBase}` });
         }
@@ -313,17 +313,18 @@ router.post('/create', authenticate, async (req, res) => {
             }
         }
 
-        // 5. Create payment records
+        // 5. Create payment records — Decimal for exact 2dp
         for (const p of payments) {
+            const baseAmt = new Decimal(p.amount).div(p.exchangeRate || 1).toDecimalPlaces(2).toNumber();
             await models.Payment.create({
                 branchId,
                 saleId: sale.id,
-                amount: Number(p.amount) / Number(p.exchangeRate || 1), // Base amount
-                currency: branch.currency, // Branch base currency
+                amount: baseAmt,
+                currency: branch.currency,
                 paidAmount: p.amount,
                 paidCurrency: p.currency,
                 exchangeRate: p.exchangeRate,
-                baseCurrencyAmount: Number(p.amount) / Number(p.exchangeRate || 1),
+                baseCurrencyAmount: baseAmt,
                 method: p.method === 'mpesa' ? 'mpesa_stk' : p.method,
                 status: 'completed',
                 reference: models.Payment.generateReference(),

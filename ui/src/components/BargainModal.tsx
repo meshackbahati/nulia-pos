@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Decimal } from 'decimal.js';
 import { X, Check, ArrowLeftRight } from 'lucide-react';
 import { useCurrency } from '../hooks/useCurrency';
 import { useAuth } from '../contexts/AuthContext';
@@ -72,11 +73,10 @@ export default function BargainModal({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const parsed = parseFloat(price);
-        if (!isNaN(parsed) && parsed >= 0) {
-            // Convert display currency price back to base currency for storage
-            const rate = getRate(baseCurrency, displayCurrency);
-            const basePrice = parsed / rate;
+        const parsed = new Decimal(price || '0');
+        if (!parsed.isNaN() && parsed.gte(0)) {
+            const rate = new Decimal(getRate(baseCurrency, displayCurrency));
+            const basePrice = parsed.div(rate).toDecimalPlaces(4).toNumber();
             onConfirm(basePrice);
             onClose();
         }
@@ -84,18 +84,17 @@ export default function BargainModal({
 
     const handleCurrencySwitch = (newCurrency: string) => {
         if (newCurrency === displayCurrency) return;
-        const curRate = getRate(baseCurrency, displayCurrency);
-        const newRate = getRate(baseCurrency, newCurrency);
-        // Guard: if rates missing (return 1) still convert, but avoid NaN
-        const currentBasePrice = curRate ? parseFloat(price || '0') / curRate : parseFloat(price || '0');
-        const newPrice = (currentBasePrice * newRate).toFixed(2);
+        const curRate = new Decimal(getRate(baseCurrency, displayCurrency));
+        const newRate = new Decimal(getRate(baseCurrency, newCurrency));
+        const currentBasePrice = new Decimal(price || '0').div(curRate);
+        const newPrice = currentBasePrice.times(newRate).toDecimalPlaces(2).toFixed(2);
         setDisplayCurrency(newCurrency);
         setPrice(newPrice);
     };
 
     const formatDisplayPrice = (amount: number) => {
-        const rate = getRate(baseCurrency, displayCurrency);
-        const converted = amount * rate;
+        const rate = new Decimal(getRate(baseCurrency, displayCurrency));
+        const converted = new Decimal(amount).times(rate).toDecimalPlaces(2).toNumber();
         const sym = hookCurrency.getCurrencySymbol(displayCurrency);
         const sep = sym.length > 1 ? ' ' : '';
         return `${sym}${sep}${converted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

@@ -55,6 +55,8 @@ export default function SettingsPage() {
     const [activeGateway, setActiveGateway] = useState<'mpesa' | 'paystack' | 'none'>('none');
     const [exchangeRates, setExchangeRates] = useState<any[]>([]);
     const [newRate, setNewRate] = useState({ from: 'USD', to: 'KES', rate: '' });
+    const [editingRateId, setEditingRateId] = useState<string | null>(null);
+    const [editRateValue, setEditRateValue] = useState('');
     const [showPrinterModal, setShowPrinterModal] = useState(false);
     const { 
         handheldMode, 
@@ -94,13 +96,29 @@ export default function SettingsPage() {
         }
     });
 
+    const [handleEditRateSafe, isEditingRate] = useLock(async (id: string) => {
+        if (!editRateValue) return;
+        try {
+            await api.put(`/exchange-rates/${id}`, { rate: editRateValue });
+            toast.success('Rate edited');
+            setEditingRateId(null);
+            fetchRates();
+        } catch { toast.error('Failed to edit'); }
+    });
+    const [handleDeleteRateSafe, isDeletingRate] = useLock(async (id: string) => {
+        try {
+            await api.delete(`/exchange-rates/${id}`);
+            toast.success('Rate deleted');
+            fetchRates();
+        } catch { toast.error('Failed to delete'); }
+    });
+
     const fetchSettings = async () => {
         try {
             const response = await api.getSettings();
             const s = response.data.settings || settings;
             setSettings(s);
             setActiveGateway(s.gateway?.preferred || 'none');
-            // Cache for other components (like useCurrency)
             localStorage.setItem('globalSettings', JSON.stringify(s));
         } catch (error) {
             console.error('Error fetching settings:', error);
@@ -109,25 +127,38 @@ export default function SettingsPage() {
         }
     };
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSave = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
         setSaving(true);
-
         try {
-            const payload = {
-                ...settings,
-                gateway: {
-                    preferred: activeGateway,
-                    enabled: activeGateway !== 'none'
-                }
-            };
+            const payload = { ...settings, gateway: { preferred: activeGateway, enabled: activeGateway !== 'none' } };
             await api.updateSettings(payload);
-            toast.success('Settings synchronized');
-        } catch (error) {
-            toast.error('Failed to update settings');
-        } finally {
-            setSaving(false);
-        }
+            toast.success('All settings synchronized');
+        } catch { toast.error('Failed to update settings'); } finally { setSaving(false); }
+    };
+
+    // Per-section saves — keep general Save but allow sectional
+    const handleSaveCompany = async () => {
+        setSaving(true);
+        try { await api.updateSettings({ company: settings.company }); toast.success('Organization saved'); } catch { toast.error('Failed'); } finally { setSaving(false); }
+    };
+    const handleSaveCurrency = async () => {
+        setSaving(true);
+        try { await api.updateSettings({ currency: settings.currency }); toast.success('Currency base saved'); } catch { toast.error('Failed'); } finally { setSaving(false); }
+    };
+    const handleSaveHardware = async () => {
+        // Hardware is localStorage only, just toast
+        toast.success('Hardware settings saved locally');
+    };
+    const handleSaveGateway = async () => {
+        setSaving(true);
+        try {
+            const payload: any = { gateway: { preferred: activeGateway, enabled: activeGateway !== 'none' } };
+            if (activeGateway === 'mpesa') payload.mpesa = settings.mpesa;
+            if (activeGateway === 'paystack') payload.paystack = settings.paystack;
+            await api.updateSettings(payload);
+            toast.success('Payment gateway saved');
+        } catch { toast.error('Failed'); } finally { setSaving(false); }
     };
 
     const [handleClearSalesSafe, _isClearingSales] = useLock(async () => {
@@ -195,11 +226,12 @@ export default function SettingsPage() {
                     
                     {/* Organization Identity */}
                     <section className="space-y-6">
-                        <div className="flex items-center gap-3 border-l-4 border-primary pl-4">
+                        <div className="flex items-center justify-between border-l-4 border-primary pl-4">
                             <div>
                                 <h2 className="text-sm font-black text-foreground uppercase tracking-wider">Organization Identity</h2>
                                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Branch Profile & Public Info</p>
                             </div>
+                            <button type="button" onClick={handleSaveCompany} disabled={saving} className="px-4 py-1.5 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-full text-[10px] font-black uppercase hover:border-primary/50 flex items-center gap-1"> <Save className="w-3 h-3" /> Save Section</button>
                         </div>
                         <div className="glass-card p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-2">
@@ -224,11 +256,12 @@ export default function SettingsPage() {
                     {/* Currency & Exchange Rates */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <section className="lg:col-span-1 space-y-6">
-                            <div className="flex items-center gap-3 border-l-4 border-emerald-500 pl-4">
+                            <div className="flex items-center justify-between border-l-4 border-emerald-500 pl-4">
                                 <div>
                                     <h2 className="text-sm font-black text-foreground uppercase tracking-wider">Currency Base</h2>
                                     <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Primary Ledger Settings</p>
                                 </div>
+                                <button type="button" onClick={handleSaveCurrency} className="p-1.5 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-full hover:border-emerald-400"><Save className="w-3 h-3" /></button>
                             </div>
                             <div className="glass-card p-6 space-y-6">
                                 <div className="space-y-2">
@@ -295,14 +328,29 @@ export default function SettingsPage() {
                                     )}
                                 </div>
 
-                                <div className="space-y-2 max-h-[150px] overflow-y-auto scrollbar-hide pr-2">
-                                    {exchangeRates.map((r, i) => (
-                                        <div key={i} className="flex items-center justify-between p-3 bg-background/50 border border-border rounded-xl">
-                                            <span className="text-xs font-bold uppercase">{r.fromCurrency} → {r.toCurrency}</span>
-                                            <span className="text-xs font-black text-primary">{r.rate}</span>
-                                            <span className="text-[8px] text-muted-foreground font-bold">{new Date(r.date).toLocaleDateString()}</span>
+                                <div className="space-y-2 max-h-[180px] overflow-y-auto scrollbar-hide pr-2">
+                                    {exchangeRates.map((r: any) => (
+                                        <div key={r.id || `${r.fromCurrency}-${r.toCurrency}-${r.date}`} className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl gap-2">
+                                            <span className="text-xs font-black uppercase tracking-widest">{r.fromCurrency} → {r.toCurrency}</span>
+                                            {editingRateId === r.id ? (
+                                                <div className="flex items-center gap-2 flex-1 justify-end">
+                                                    <input value={editRateValue} onChange={e=> setEditRateValue(e.target.value)} type="number" step="0.0001" className="w-24 h-8 rounded-lg border-2 border-violet-400 px-2 text-xs font-bold focus:ring-2 focus:ring-violet-400/20 outline-none" />
+                                                    <button onClick={()=> handleEditRateSafe(r.id)} disabled={isEditingRate} className="px-2 py-1 bg-emerald-500 text-white rounded-lg text-[10px] font-black disabled:opacity-50">Save</button>
+                                                    <button onClick={()=> setEditingRateId(null)} className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-black">Cancel</button>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <span className="text-xs font-black text-violet-600">{r.rate}</span>
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-[8px] text-muted-foreground font-bold hidden sm:inline">{new Date(r.date).toLocaleDateString()}</span>
+                                                        <button onClick={()=> { setEditingRateId(r.id); setEditRateValue(String(r.rate)); }} className="p-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 rounded-lg border border-amber-500/20" title="Edit"><Plus className="w-3 h-3 rotate-45" /></button>
+                                                        <button onClick={()=> handleDeleteRateSafe(r.id)} disabled={isDeletingRate} className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg border border-red-500/20" title="Delete"><Trash2 className="w-3 h-3" /></button>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
                                     ))}
+                                    {exchangeRates.length===0 && <p className="text-[10px] text-muted-foreground text-center py-4">No rates — add one above</p>}
                                 </div>
                             </div>
                         </section>
@@ -310,11 +358,12 @@ export default function SettingsPage() {
 
                     {/* Hardware & Printers */}
                     <section className="space-y-6">
-                        <div className="flex items-center gap-3 border-l-4 border-amber-500 pl-4">
+                        <div className="flex items-center justify-between border-l-4 border-amber-500 pl-4">
                             <div>
                                 <h2 className="text-sm font-black text-foreground uppercase tracking-wider">Hardware & Peripherals</h2>
                                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Device Nodes & External Links</p>
                             </div>
+                            <button type="button" onClick={handleSaveHardware} className="p-1.5 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-full hover:border-amber-400"><Save className="w-3 h-3" /></button>
                         </div>
                         <div className="glass-card p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-6">
@@ -368,11 +417,12 @@ export default function SettingsPage() {
 
                     {/* Payment Gateways */}
                     <section className="space-y-6">
-                        <div className="flex items-center gap-3 border-l-4 border-purple-500 pl-4">
+                        <div className="flex items-center justify-between border-l-4 border-purple-500 pl-4">
                             <div>
                                 <h2 className="text-sm font-black text-foreground uppercase tracking-wider">Payment Gateways</h2>
                                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Financial Integration Nodes</p>
                             </div>
+                            <button type="button" onClick={handleSaveGateway} className="p-1.5 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-full hover:border-purple-400"><Save className="w-3 h-3" /></button>
                         </div>
                         
                         <div className="flex gap-4 p-2 bg-muted/30 rounded-2xl w-fit border border-border mb-6">
