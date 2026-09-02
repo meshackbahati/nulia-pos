@@ -23,7 +23,7 @@ export default function BargainModal({
     onConfirm,
     catalogPrice,
     productName,
-    formatPrice,
+    formatPrice: _formatPrice,
     measurementType,
     baseUnit,
     currentCurrency,

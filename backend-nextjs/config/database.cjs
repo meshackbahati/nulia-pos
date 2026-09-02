@@ -1,4 +1,5 @@
 require('dotenv').config({ override: true });
+require('dotenv').config({ path: require('path').resolve(__dirname, '..', '.env.local'), override: true });
 const path = require('path');
 
 const databaseUrl = process.env.***REMOVED***;
