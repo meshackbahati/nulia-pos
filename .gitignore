@@ -44,3 +44,4 @@ tmp/
 # Ignore test coverage
 coverage/
 .nyc_output/
+ui/android/retailpro-release.jks
