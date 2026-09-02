@@ -59,67 +59,69 @@ export default function AnalyticsPage() {
     };
 
     const handleExportPDF = () => {
-        const doc = new jsPDF('p', 'mm', 'a4');
-        const timestamp = new Date().toLocaleString();
-        const periodLabel = period.toUpperCase();
-        const branchName = branch?.name || user?.branch?.name || (user?.role === 'admin' ? 'All Branches' : 'Branch');
-        const dateRange = (() => {
-            const end = new Date();
-            const start = new Date();
-            if (period === 'week') start.setDate(end.getDate() - 7);
-            else if (period === 'month') start.setMonth(end.getMonth() - 1);
-            else start.setFullYear(end.getFullYear() - 1);
-            return `${start.toLocaleDateString()} — ${end.toLocaleDateString()}`;
-        })();
+        try {
+            if (!stats) { toast.error('No data to export — wait for load'); return; }
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const timestamp = new Date().toLocaleString();
+            const periodLabel = period.toUpperCase();
+            const rawBranchName = branch?.name || user?.branch?.name || (user?.role === 'admin' ? 'All Branches' : 'Branch');
+            const branchName = rawBranchName.replace(/[^a-zA-Z0-9 _-]/g,'').slice(0,40) || 'Branch';
+            const dateRange = (() => {
+                const end = new Date();
+                const start = new Date();
+                if (period === 'week') start.setDate(end.getDate() - 7);
+                else if (period === 'month') start.setMonth(end.getMonth() - 1);
+                else start.setFullYear(end.getFullYear() - 1);
+                return `${start.toLocaleDateString()} — ${end.toLocaleDateString()}`;
+            })();
 
-        // Brand header — clay-inspired
-        doc.setFillColor(124, 58, 237); // violet
-        doc.rect(0, 0, 210, 22, 'F');
-        doc.setTextColor(255,255,255);
-        doc.setFontSize(13);
-        doc.setFont('helvetica','bold');
-        doc.text('RETAILPRO  •  BRANCH INTELLIGENCE REPORT', 10, 10);
-        doc.setFontSize(7);
-        doc.setFont('helvetica','normal');
-        doc.text(`${branchName}  •  ${periodLabel}  •  ${dateRange}`, 10, 16);
-        doc.text(`Generated ${timestamp}  •  ${user?.firstName || ''} ${user?.lastName || ''}`.trim(), 210-10, 16, {align:'right'});
+            // Brand header — clay-inspired
+            doc.setFillColor(124, 58, 237);
+            doc.rect(0, 0, 210, 22, 'F');
+            doc.setTextColor(255,255,255);
+            doc.setFontSize(13);
+            doc.setFont('helvetica','bold');
+            doc.text('RETAILPRO  •  BRANCH INTELLIGENCE REPORT', 10, 10);
+            doc.setFontSize(7);
+            doc.setFont('helvetica','normal');
+            doc.text(`${branchName}  •  ${periodLabel}  •  ${dateRange}`, 10, 16);
+            doc.text(`Generated ${timestamp}  •  ${user?.firstName || ''} ${user?.lastName || ''}`.trim(), 210-10, 16, {align:'right'});
 
-        // Subheader strip
-        doc.setFillColor(255, 247, 237); // warm paper
-        doc.rect(0, 22, 210, 10, 'F');
-        doc.setTextColor(100,116,139);
-        doc.setFontSize(6);
-        doc.text(`Branch: ${branchName}  |  Currency: ${branch?.currency || 'KES'}${branch?.secondaryCurrency ? ' / '+branch.secondaryCurrency : ''}  |  View: ${view}  |  Records: ${stats?.salesCount || 0} sales`, 10, 28);
-        if (branch?.address) doc.text(branch.address.slice(0,80), 10, 31);
+            // Subheader strip
+            doc.setFillColor(255, 247, 237);
+            doc.rect(0, 22, 210, 10, 'F');
+            doc.setTextColor(100,116,139);
+            doc.setFontSize(6);
+            doc.text(`Branch: ${branchName}  |  Currency: ${branch?.currency || 'KES'}${branch?.secondaryCurrency ? ' / '+branch.secondaryCurrency : ''}  |  View: ${view}  |  Records: ${stats?.salesCount || 0} sales`, 10, 28);
+            if (branch?.address) doc.text(String(branch.address).slice(0,80), 10, 31);
 
-        let y = 36;
+            let y = 36;
 
-        // Executive summary — 4 KPIs as table (not cards, for PDF)
-        doc.setTextColor(15,23,42);
-        doc.setFontSize(9);
-        doc.setFont('helvetica','bold');
-        doc.text('Executive Summary', 10, y); y+=4;
-        autoTable(doc, {
-            startY: y,
-            head: [['Metric', 'Value', 'Note']],
-            body: [
-                ['Gross Revenue', formatPrice(stats?.revenue || 0), periodLabel + ' total'],
-                ['Sales Count', String(stats?.salesCount || 0), 'Transactions'],
-                ['Total Stock Qty', String(stats?.totalStock || 0), 'Across inventory'],
-                ['Active Branches', String(stats?.branchCount || 1), user?.role==='admin' ? 'Network' : 'This hub'],
-            ],
-            theme: 'grid',
-            headStyles: { fillColor: [124,58,237], textColor: 255, fontSize: 7 },
-            bodyStyles: { fontSize: 7 },
-            styles: { cellPadding: 2 },
-            columnStyles: { 1: { fontStyle: 'bold' } }
-        });
-        // @ts-ignore
-        y = (doc as any).lastAutoTable.finalY + 6;
+            // Executive summary
+            doc.setTextColor(15,23,42);
+            doc.setFontSize(9);
+            doc.setFont('helvetica','bold');
+            doc.text('Executive Summary', 10, y); y+=4;
+            autoTable(doc, {
+                startY: y,
+                head: [['Metric', 'Value', 'Note']],
+                body: [
+                    ['Gross Revenue', formatPrice(stats?.revenue || 0), periodLabel + ' total'],
+                    ['Sales Count', String(stats?.salesCount || 0), 'Transactions'],
+                    ['Total Stock Qty', String(stats?.totalStock || 0), 'Across inventory'],
+                    ['Active Branches', String(stats?.branchCount || 1), user?.role==='admin' ? 'Network' : 'This hub'],
+                ],
+                theme: 'grid',
+                headStyles: { fillColor: [124,58,237], textColor: 255, fontSize: 7 },
+                bodyStyles: { fontSize: 7 },
+                styles: { cellPadding: 2 },
+                columnStyles: { 1: { fontStyle: 'bold' } }
+            });
+            y = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 6 : y + 30;
 
-        // Revenue trend
+        // Revenue trend — show even if empty (with placeholder)
+        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.text('Revenue Trajectory — ' + periodLabel, 10, y); y+=4;
         if (trendData.length) {
-            doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.text('Revenue Trajectory — ' + periodLabel, 10, y); y+=4;
             autoTable(doc, {
                 startY: y,
                 head: [['Period', 'Revenue', 'Orders']],
@@ -129,42 +131,51 @@ export default function AnalyticsPage() {
                 bodyStyles: { fontSize: 7 },
                 styles: { cellPadding: 2 }
             });
-            // @ts-ignore
-            y = (doc as any).lastAutoTable.finalY + 6;
+            y = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 6 : y + 20;
+        } else {
+            doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(100,116,139);
+            doc.text('No trend data for this period — try a longer range or check sales', 10, y); y+=8;
+            doc.setTextColor(15,23,42);
         }
 
         // Top products
+        if (y > 250) { doc.addPage(); y=14; }
+        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.text('Top Products — by quantity sold', 10, y); y+=4;
         if (topProducts.length) {
-            if (y > 250) { doc.addPage(); y=14; }
-            doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.text('Top Products — by quantity sold', 10, y); y+=4;
             autoTable(doc, {
                 startY: y,
                 head: [['#','Product','SKU','Qty Sold','Revenue']],
-                body: topProducts.slice(0,10).map((p:any,i:number)=> [String(i+1), p.product.name, p.product.sku || '-', String(p.quantitySold ?? p.totalQty), formatPrice(p.revenue ?? p.totalRevenue)]),
+                body: topProducts.slice(0,10).map((p:any,i:number)=> [String(i+1), String(p.product?.name || p.product?.name || '—').slice(0,24), p.product?.sku || '-', String(p.quantitySold ?? p.totalQty ?? 0), formatPrice(p.revenue ?? p.totalRevenue ?? 0)]),
                 theme: 'grid',
                 headStyles: { fillColor: [245,158,11], fontSize: 7 },
                 bodyStyles: { fontSize: 7 },
                 styles: { cellPadding: 2 }
             });
-            // @ts-ignore
-            y = (doc as any).lastAutoTable.finalY + 6;
+            y = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 6 : y + 20;
+        } else {
+            doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(100,116,139);
+            doc.text('No product sales in this period', 10, y); y+=8;
+            doc.setTextColor(15,23,42);
         }
 
         // Payment methods
+        if (y > 250) { doc.addPage(); y=14; }
+        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.text('Payment Method Breakdown', 10, y); y+=4;
         if (paymentData.length) {
-            if (y > 250) { doc.addPage(); y=14; }
-            doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.text('Payment Method Breakdown', 10, y); y+=4;
             autoTable(doc, {
                 startY: y,
                 head: [['Method','Share (value)']],
-                body: paymentData.map((p:any)=> [p.name.toUpperCase(), formatPrice(p.value)]),
+                body: paymentData.map((p:any)=> [String(p.name||'unknown').toUpperCase(), formatPrice(p.value)]),
                 theme: 'striped',
                 headStyles: { fillColor: [59,130,246], fontSize: 7 },
                 bodyStyles: { fontSize: 7 },
                 styles: { cellPadding: 2 }
             });
-            // @ts-ignore
-            y = (doc as any).lastAutoTable.finalY + 6;
+            y = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 6 : y + 20;
+        } else {
+            doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(100,116,139);
+            doc.text('No payment data', 10, y); y+=8;
+            doc.setTextColor(15,23,42);
         }
 
         // Branch leaderboard (admin)
@@ -174,47 +185,49 @@ export default function AnalyticsPage() {
             autoTable(doc, {
                 startY: y,
                 head: [['Rank','Branch','Location','Orders','Revenue']],
-                body: branchStats.slice(0,10).map((b:any,i:number)=> [String(i+1), b.name, b.location || '-', String(b.count), formatPrice(b.revenue)]),
+                body: branchStats.slice(0,10).map((b:any,i:number)=> [String(i+1), String(b.name).slice(0,20), String(b.location || '-').slice(0,15), String(b.count), formatPrice(b.revenue)]),
                 theme: 'grid',
                 headStyles: { fillColor: [16,185,129], fontSize: 7 },
                 bodyStyles: { fontSize: 7 },
                 styles: { cellPadding: 2 }
             });
-            // @ts-ignore
-            y = (doc as any).lastAutoTable.finalY + 6;
+            y = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 6 : y + 20;
         }
 
         // Personnel leaderboard
+        if (y > 230) { doc.addPage(); y=14; }
+        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.text('Personnel Efficiency — ' + periodLabel, 10, y); y+=4;
         if (leaderboard.length) {
-            if (y > 230) { doc.addPage(); y=14; }
-            doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.text('Personnel Efficiency — ' + periodLabel, 10, y); y+=4;
             autoTable(doc, {
                 startY: y,
                 head: [['Rank','Name','Branch','Role','Orders','Revenue']],
-                body: leaderboard.slice(0,15).map((l:any)=> [String(l.rank), l.name, l.branch, l.role.toUpperCase(), String(l.count), formatPrice(l.revenue)]),
+                body: leaderboard.slice(0,15).map((l:any)=> [String(l.rank), String(l.name).slice(0,18), String(l.branch).slice(0,12), String(l.role||'').toUpperCase().slice(0,10), String(l.count), formatPrice(l.revenue)]),
                 theme: 'grid',
                 headStyles: { fillColor: [124,58,237], fontSize: 7 },
                 bodyStyles: { fontSize: 7 },
                 styles: { cellPadding: 2 }
             });
-            // @ts-ignore
-            y = (doc as any).lastAutoTable.finalY + 6;
+            y = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 6 : y + 20;
+        } else {
+            doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(100,116,139);
+            doc.text('No personnel data for this period', 10, y); y+=8;
+            doc.setTextColor(15,23,42);
         }
 
-        // Recent sales ledger (overview includes sample)
+        // Recent sales ledger — always show something, even if empty, so PDF never blank
+        if (y > 220) { doc.addPage(); y=14; }
+        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.text('Recent Transactions — Ledger Sample', 10, y); y+=4;
         const ledgerSales = sales.length ? sales.slice(0,30) : [];
         if (ledgerSales.length) {
-            if (y > 220) { doc.addPage(); y=14; }
-            doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.text('Recent Transactions — Ledger Sample (30)', 10, y); y+=4;
             autoTable(doc, {
                 startY: y,
                 head: [['Receipt','Date','Cashier','Branch','Method','Total']],
                 body: ledgerSales.map((s:any)=> [
-                    s.receiptId,
-                    new Date(s.createdAt).toLocaleDateString(),
-                    `${s.user?.firstName || ''} ${s.user?.lastName || ''}`.trim() || '—',
-                    s.branch?.name || branchName,
-                    (s.paymentMethod||'').toUpperCase(),
+                    String(s.receiptId||'—').slice(0,14),
+                    s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '-',
+                    `${s.user?.firstName || ''} ${s.user?.lastName || ''}`.trim().slice(0,16) || '—',
+                    String(s.branch?.name || branchName).slice(0,14),
+                    String(s.paymentMethod||'').toUpperCase().slice(0,10),
                     formatPrice(s.totalAmount)
                 ]),
                 theme: 'striped',
@@ -223,21 +236,21 @@ export default function AnalyticsPage() {
                 styles: { cellPadding: 1.5 },
                 columnStyles: { 0: { cellWidth: 28 }, 5: { halign: 'right' } }
             });
-            // @ts-ignore
-            y = (doc as any).lastAutoTable.finalY + 6;
+            y = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 6 : y + 20;
+        } else {
+            autoTable(doc, {
+                startY: y,
+                head: [['Receipt','Date','Cashier','Branch','Method','Total']],
+                body: [['—','—','—','—','—','No transactions in this period']],
+                theme: 'striped',
+                headStyles: { fillColor: [71,149,88], fontSize: 6 },
+                bodyStyles: { fontSize: 6, halign: 'center' },
+                styles: { cellPadding: 2 }
+            });
+            y = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 6 : y + 20;
         }
 
-        // If view-specific, also add view table (keep legacy)
-        if (view === 'ledger' && !ledgerSales.length && sales.length) {
-            if (y > 230) { doc.addPage(); y=14; }
-            doc.setFontSize(8); doc.text('Ledger — all filtered sales', 10, y); y+=4;
-            autoTable(doc, { startY: y, head: [['Receipt','Date','Cashier','Branch','Method','Total']], body: sales.slice(0,50).map((s:any)=> [s.receiptId, new Date(s.createdAt).toLocaleDateString(), `${s.user.firstName} ${s.user.lastName}`, s.branch.name, s.paymentMethod.toUpperCase(), formatPrice(s.totalAmount)]), theme:'striped', headStyles:{fillColor:[71,149,88]}, styles:{fontSize:6} });
-        }
-        if (view === 'leaderboard' && leaderboard.length && y < 250) {
-            // already included
-        }
-
-        // Footer page numbers + note
+        // Footer page numbers + note — ensure visible on every page
         const pages = (doc as any).internal.getNumberOfPages();
         for (let i=1;i<=pages;i++) {
             doc.setPage(i);
@@ -246,8 +259,13 @@ export default function AnalyticsPage() {
             doc.text('Confidential — internal use', 200, 292, {align:'right'});
         }
 
-        doc.save(`RetailPro-${branchName.replace(/\s+/g,'_')}-${period}-${new Date().toISOString().slice(0,10)}.pdf`);
-        toast.success('Branch report exported');
+        const safeBranch = branchName.replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,30) || 'Branch';
+        doc.save(`RetailPro-${safeBranch}-${period}-${new Date().toISOString().slice(0,10)}.pdf`);
+        toast.success('Branch report exported — check downloads');
+        } catch (err:any) {
+            console.error('PDF export failed', err);
+            toast.error('Export failed: ' + (err?.message || 'unknown'));
+        }
     };
 
     if (loading || !stats) {
