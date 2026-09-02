@@ -88,18 +88,20 @@ export default function SerialsPage() {
                 </button>
             </div>
 
-            <div className="flex gap-2 items-center">
-                <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-2 sm:items-center">
+                <div className="relative flex-1 max-w-sm w-full">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400 pointer-events-none" />
                     <input value={search} onChange={e => setSearch(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-secondary/30 rounded-xl border border-white/10 text-sm focus:outline-none focus:border-primary" placeholder="Search serial or batch..." />
+                        className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium shadow-sm placeholder:text-slate-400 focus:outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-400/20" placeholder="Search serial or batch..." />
                 </div>
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 sm:pb-0 -mx-3 px-3 sm:mx-0 sm:px-0">
                 {['', 'in_stock', 'sold', 'returned', 'voided'].map(s => (
                     <button key={s} onClick={() => setStatusFilter(s)}
-                        className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider ${statusFilter === s ? 'bg-primary text-primary-foreground' : 'bg-secondary/30 text-muted-foreground'}`}>
+                        className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider whitespace-nowrap shrink-0 border-2 transition-all ${statusFilter === s ? 'bg-violet-500 text-white border-violet-600 shadow-md' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-muted-foreground hover:border-violet-400'}`}>
                         {s || 'All'}
                     </button>
                 ))}
+                </div>
             </div>
 
             {loading ? (
@@ -111,28 +113,53 @@ export default function SerialsPage() {
                     <p className="text-sm text-muted-foreground">Register serial numbers for tracked products</p>
                 </div>
             ) : (
-                <div className="space-y-2">
-                    <div className="grid grid-cols-7 gap-3 px-4 py-2 text-[9px] font-black uppercase tracking-wider text-muted-foreground">
-                        <span>Serial #</span><span>Product</span><span>Batch</span><span>Status</span><span>Expiry</span><span>Price</span><span></span>
-                    </div>
-                    {serials.map((s: any) => (
-                        <div key={s.id} className="glass-card rounded-xl px-4 py-3 grid grid-cols-7 gap-3 items-center">
-                            <span className="font-mono text-xs font-bold">{s.serialNumber}</span>
-                            <span className="text-xs">{s.product?.name || 'Unknown'}</span>
-                            <span className="text-[10px] text-muted-foreground">{s.batchNumber || '-'}</span>
-                            <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase font-black w-fit ${statusBadge(s.status)}`}>{s.status}</span>
-                            <span className="text-[10px] text-muted-foreground">{s.expiryDate ? new Date(s.expiryDate).toLocaleDateString() : '-'}</span>
-                            <span className="text-xs">{s.costPrice ? `KES ${parseFloat(s.costPrice).toLocaleString()}` : '-'}</span>
-                            <div className="flex justify-end">
-                                {s.status !== 'sold' && (
-                                    <button onClick={() => setConfirmDelete(s.id)} className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all" title="Delete">
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                )}
+                <>
+                {/* Desktop: scrollable table */}
+                <div className="hidden sm:block overflow-x-auto rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
+                    <div className="min-w-[640px]">
+                        <div className="grid grid-cols-7 gap-3 px-4 py-3 text-[9px] font-black uppercase tracking-widest text-muted-foreground bg-slate-50 dark:bg-slate-800/50 border-b-2 border-slate-200 dark:border-slate-700">
+                            <span>Serial #</span><span>Product</span><span>Batch</span><span>Status</span><span>Expiry</span><span>Price</span><span></span>
+                        </div>
+                        {serials.map((s: any) => (
+                            <div key={s.id} className="grid grid-cols-7 gap-3 items-center px-4 py-3 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                <span className="font-mono text-xs font-bold truncate">{s.serialNumber}</span>
+                                <span className="text-xs truncate">{s.product?.name || 'Unknown'}</span>
+                                <span className="text-[10px] text-muted-foreground truncate">{s.batchNumber || '-'}</span>
+                                <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase font-black w-fit border ${statusBadge(s.status)} border-current/20`}>{s.status}</span>
+                                <span className="text-[10px] text-muted-foreground">{s.expiryDate ? new Date(s.expiryDate).toLocaleDateString() : '-'}</span>
+                                <span className="text-xs font-bold">{s.costPrice ? `KES ${parseFloat(s.costPrice).toLocaleString()}` : '-'}</span>
+                                <div className="flex justify-end">
+                                    {s.status !== 'sold' && (
+                                        <button onClick={() => setConfirmDelete(s.id)} className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all border border-red-500/20" title="Delete">
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
+                        ))}
+                    </div>
+                </div>
+                {/* Mobile: cards */}
+                <div className="sm:hidden space-y-3">
+                    {serials.map((s: any) => (
+                        <div key={s.id} className="clay-card p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="font-mono text-xs font-black">{s.serialNumber}</span>
+                                <span className={`text-[9px] px-2 py-1 rounded-full uppercase font-black border ${statusBadge(s.status)} border-current/20`}>{s.status}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div><p className="text-[9px] font-black uppercase text-muted-foreground">Product</p><p className="font-bold truncate">{s.product?.name || 'Unknown'}</p></div>
+                                <div><p className="text-[9px] font-black uppercase text-muted-foreground">Batch</p><p className="text-muted-foreground">{s.batchNumber || '-'}</p></div>
+                                <div><p className="text-[9px] font-black uppercase text-muted-foreground">Expiry</p><p>{s.expiryDate ? new Date(s.expiryDate).toLocaleDateString() : '-'}</p></div>
+                                <div><p className="text-[9px] font-black uppercase text-muted-foreground">Price</p><p className="font-bold">{s.costPrice ? `KES ${parseFloat(s.costPrice).toLocaleString()}` : '-'}</p></div>
+                            </div>
+                            {s.status !== 'sold' && (
+                                <button onClick={() => setConfirmDelete(s.id)} className="w-full py-2 rounded-xl bg-red-500/10 text-red-500 border-2 border-red-500/20 text-[10px] font-black uppercase flex items-center justify-center gap-2"><Trash2 className="w-4 h-4" /> Delete</button>
+                            )}
                         </div>
                     ))}
                 </div>
+                </>
             )}
 
             {/* Delete Confirmation */}

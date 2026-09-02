@@ -63,8 +63,11 @@ interface HardwareContextType {
 
 const HardwareContext = createContext<HardwareContextType | undefined>(undefined);
 
-function generateEscPosBytes(receiptData: ReceiptData, _paperSize: PaperSize): Uint8Array {
+function generateEscPosBytes(receiptData: ReceiptData, paperSize: PaperSize): Uint8Array {
     const encoder = new EscPosEncoder();
+    const chars = paperSizeChars(paperSize);
+    const lineSep = '-'.repeat(chars);
+    const nameLimit = chars === 32 ? 16 : chars === 44 ? 24 : 28;
 
     encoder.initialize();
     encoder.align('center');
@@ -95,26 +98,26 @@ function generateEscPosBytes(receiptData: ReceiptData, _paperSize: PaperSize): U
     encoder.newline();
 
     encoder.bold(true);
-    encoder.text('--------------------------------');
+    encoder.text(lineSep);
     encoder.newline();
     encoder.text('DESCRIPTION');
     encoder.text('        TOTAL');
     encoder.newline();
-    encoder.text('--------------------------------');
+    encoder.text(lineSep);
     encoder.newline();
     encoder.bold(false);
 
     for (const item of receiptData.items) {
-        const name = item.name.length > 22 ? item.name.substring(0, 19) + '...' : item.name;
+        const name = item.name.length > nameLimit ? item.name.substring(0, nameLimit - 3) + '...' : item.name;
         const line = `${item.quantity}x ${name}`;
         const priceStr = `${item.total.toFixed(2)}`;
-        const padding = Math.max(1, 32 - line.length - priceStr.length);
+        const padding = Math.max(1, chars - line.length - priceStr.length);
         encoder.text(line + ' '.repeat(padding) + priceStr);
         encoder.newline();
     }
 
     encoder.newline();
-    encoder.text('--------------------------------');
+    encoder.text(lineSep);
     encoder.newline();
 
     encoder.align('right');

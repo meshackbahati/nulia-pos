@@ -37,6 +37,15 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
     const [currentMethod, setCurrentMethod] = useState<'cash' | 'card' | 'mpesa' | 'mobile_money' | 'airtel' | 'mtn'>('cash');
     const [currentCurrency, setCurrentCurrency] = useState(branchConfig?.currency || 'KES');
 
+    // Branch payment awareness — show what's actually configured
+    const branchPayments = (() => {
+        const hasMpesa = !!(branchConfig?.mpesaShortcode || branchConfig?.mpesaConsumerKey);
+        const hasPaystack = !!(branchConfig?.paystackPublicKey || branchConfig?.paystackSecretKey);
+        const enabled = branchConfig?.gatewayEnabled ?? true;
+        const preferred = branchConfig?.preferredGateway || 'none';
+        return { hasMpesa, hasPaystack, enabled, preferred };
+    })();
+
     useEffect(() => {
         setTargetCurrency(currentCurrency);
     }, [currentCurrency, setTargetCurrency]);
@@ -227,28 +236,43 @@ export default function PaymentModal({ total, cart, branchConfig, onClose, onCom
 
                 {/* Right Side: Add Payment */}
                 <div className="w-full md:w-80 space-y-6 bg-muted/20 p-6 rounded-2xl border border-border">
+                    {/* Branch payment status — discoverability */}
+                    <div className="p-3 rounded-xl border-2 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 space-y-2">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Branch: {branchConfig?.name || 'Current Hub'} • {branchConfig?.currency || 'KES'}</p>
+                        <div className="flex flex-wrap gap-1.5">
+                            <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase border ${branchPayments.hasMpesa ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-slate-100 dark:bg-slate-800 text-muted-foreground border-slate-200'}`}>M-Pesa {branchPayments.hasMpesa ? '✓' : '—'}</span>
+                            <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase border ${branchPayments.hasPaystack ? 'bg-sky-500 text-white border-sky-600' : 'bg-slate-100 dark:bg-slate-800 text-muted-foreground border-slate-200'}`}>Paystack {branchPayments.hasPaystack ? '✓' : '—'}</span>
+                            <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase border ${branchPayments.enabled ? 'bg-violet-500 text-white border-violet-600' : 'bg-amber-100 text-amber-800 border-amber-200'}`}>{branchPayments.preferred} {branchPayments.enabled ? '• on' : '• off'}</span>
+                        </div>
+                        {(!branchPayments.hasMpesa && !branchPayments.hasPaystack) && <p className="text-[9px] text-amber-700 dark:text-amber-300">No gateway configured — cash only. Set in Branches → Edit → Branch Payments.</p>}
+                    </div>
                     <div className="space-y-4">
                         <h3 className="text-xs font-bold text-foreground uppercase">Add Entry</h3>
 
-                        {/* Method Toggle */}
+                        {/* Method Toggle — disabled if not configured, but cash always */}
                         <div className="grid grid-cols-3 gap-2">
                             {[
-                                { id: 'cash', icon: <DollarSign className="w-4 h-4" /> },
-                                { id: 'card', icon: <CreditCard className="w-4 h-4" /> },
-                                { id: 'mpesa', icon: <Smartphone className="w-4 h-4" /> },
-                                { id: 'airtel', icon: <Smartphone className="w-4 h-4 text-red-500" /> },
-                                { id: 'mtn', icon: <Smartphone className="w-4 h-4 text-yellow-500" /> },
-                                { id: 'mobile_money', icon: <Smartphone className="w-4 h-4" /> }
-                            ].map(m => (
+                                { id: 'cash', icon: <DollarSign className="w-4 h-4" />, need: 'always' },
+                                { id: 'card', icon: <CreditCard className="w-4 h-4" />, need: 'paystack' },
+                                { id: 'mpesa', icon: <Smartphone className="w-4 h-4" />, need: 'mpesa' },
+                                { id: 'airtel', icon: <Smartphone className="w-4 h-4 text-red-500" />, need: 'paystack' },
+                                { id: 'mtn', icon: <Smartphone className="w-4 h-4 text-yellow-500" />, need: 'paystack' },
+                                { id: 'mobile_money', icon: <Smartphone className="w-4 h-4" />, need: 'paystack' }
+                            ].map(m => {
+                                const disabled = m.need !== 'always' && ((m.need === 'mpesa' && !branchPayments.hasMpesa) || (m.need === 'paystack' && !branchPayments.hasPaystack));
+                                return (
                                 <button
                                     key={m.id}
-                                    onClick={() => setCurrentMethod(m.id as any)}
-                                    className={`p-3 rounded-xl border flex flex-col items-center gap-1 transition-all ${currentMethod === m.id ? 'bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20' : 'bg-background border-border text-muted-foreground hover:border-primary/50'}`}
+                                    disabled={disabled}
+                                    onClick={() => !disabled && setCurrentMethod(m.id as any)}
+                                    title={disabled ? `${m.id} not configured for this branch` : m.id}
+                                    className={`p-3 rounded-xl border flex flex-col items-center gap-1 transition-all ${currentMethod === m.id ? 'bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20' : disabled ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-muted-foreground/40 cursor-not-allowed' : 'bg-background border-border text-muted-foreground hover:border-primary/50'}`}
                                 >
                                     {m.icon}
                                     <span className="text-[7px] font-black uppercase">{m.id.replace('_', ' ')}</span>
                                 </button>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         {/* Currency Select */}

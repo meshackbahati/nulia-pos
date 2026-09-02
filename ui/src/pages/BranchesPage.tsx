@@ -288,19 +288,28 @@ export default function BranchesPage() {
                                     </div>
                                 </div>
 
-                                <div className="mt-auto bg-muted/30 p-4 rounded-xl flex items-center justify-between border border-border/20">
-                                    <div className="space-y-1">
-                                        <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Base Protocol</p>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xs font-black text-primary">{branch.currency} ({branch.currencySymbol})</span>
-                                        </div>
+                                <div className="mt-auto space-y-3">
+                                    <div className="flex flex-wrap gap-1.5">
+                                        <span className={`px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ${ (branch as any).gatewayEnabled ? 'bg-violet-500 text-white border-violet-600' : 'bg-slate-100 dark:bg-slate-800 text-muted-foreground border-slate-200'}`}>{(branch as any).preferredGateway || 'none'} {(branch as any).gatewayEnabled ? '• on' : '• off'}</span>
+                                        {(branch as any).mpesaShortcode && <span className="px-2 py-1 rounded-full text-[8px] font-black uppercase bg-emerald-500 text-white border border-emerald-600">M-Pesa ✓</span>}
+                                        {(branch as any).paystackPublicKey && <span className="px-2 py-1 rounded-full text-[8px] font-black uppercase bg-sky-500 text-white border border-sky-600">Paystack ✓</span>}
+                                        {!((branch as any).mpesaShortcode || (branch as any).paystackPublicKey) && <span className="px-2 py-1 rounded-full text-[8px] font-black uppercase bg-amber-100 text-amber-800 border border-amber-200">Cash only</span>}
                                     </div>
-                                    {branch.taxRate > 0 && (
-                                        <div className="text-right">
-                                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Tax logic</p>
-                                            <span className="text-xs font-black text-foreground">{branch.taxRate}%</span>
+                                    <div className="bg-muted/30 p-3 rounded-xl flex items-center justify-between border border-border/20">
+                                        <div className="space-y-1">
+                                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Base Protocol</p>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-black text-primary">{branch.currency} ({branch.currencySymbol})</span>
+                                                {branch.secondaryCurrency && <span className="text-[9px] font-bold text-muted-foreground">→ {branch.secondaryCurrency}</span>}
+                                            </div>
                                         </div>
-                                    )}
+                                        {branch.taxRate > 0 && (
+                                            <div className="text-right">
+                                                <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Tax logic</p>
+                                                <span className="text-xs font-black text-foreground">{branch.taxRate}%</span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ))}

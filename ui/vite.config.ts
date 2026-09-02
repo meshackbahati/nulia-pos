@@ -36,7 +36,7 @@ export default defineConfig({
               cacheName: 'api-cache',
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 // 24 hours
+                maxAgeSeconds: 60 * 5 // 5 min — sales/inventory must not stay stale 24h
               },
               networkTimeoutSeconds: 10
             }

@@ -353,25 +353,40 @@
       0 2px 6px hsl(var(--primary) / 0.2);
   }
 
-  /* Warm paper for receipts — always light, readable */
+  /* Warm paper for receipts — WHITE in both light and dark (thermal paper) */
   .receipt-paper {
-    background: #fefcf7;
-    color: #1e293b;
+    background: #ffffff;
+    color: #0f172a;
     border: 3px solid #e7e5e4;
     border-radius: 1.25rem;
     box-shadow:
-      inset 0 1px 3px rgba(255,255,255,0.9),
-      inset 0 -4px 12px rgba(0,0,0,0.04),
+      inset 0 1px 3px rgba(255,255,255,1),
+      inset 0 -4px 12px rgba(0,0,0,0.03),
       0 12px 28px rgba(0,0,0,0.08);
   }
   .dark .receipt-paper {
-    background: #1e293b;
-    color: #f1f5f9;
-    border-color: hsl(var(--border));
+    background: #ffffff;
+    color: #0f172a;
+    border-color: #e7e5e4;
     box-shadow:
-      inset 0 1px 2px rgba(255,255,255,0.06),
-      inset 0 -4px 12px rgba(0,0,0,0.3),
-      0 12px 28px rgba(0,0,0,0.4);
+      inset 0 1px 3px rgba(255,255,255,1),
+      inset 0 -4px 12px rgba(0,0,0,0.03),
+      0 12px 28px rgba(0,0,0,0.18);
+  }
+  .receipt-paper * {
+    color: inherit;
+  }
+  .receipt-paper .text-muted-foreground {
+    color: #64748b !important;
+  }
+  .receipt-paper .text-primary {
+    color: #7c3aed !important;
+  }
+  .receipt-paper .border-black\/5 {
+    border-color: rgba(0,0,0,0.06) !important;
+  }
+  .receipt-paper .border-black\/10 {
+    border-color: rgba(0,0,0,0.08) !important;
   }
 
   .scrollbar-hide::-webkit-scrollbar {

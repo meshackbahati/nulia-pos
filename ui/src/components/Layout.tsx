@@ -24,7 +24,8 @@ import {
     Trash2,
     QrCode,
     Warehouse,
-    UserCircle
+    UserCircle,
+    BookOpen
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ThemeToggle from './ThemeToggle';
@@ -68,6 +69,7 @@ export default function Layout({ children, noScroll = false }: LayoutProps) {
         { label: 'Warehouses', icon: Warehouse, path: '/warehouses' },
         { label: 'Integrations', icon: Plug, path: '/integrations' },
         { label: 'Settings', icon: Settings, path: '/manager/settings' },
+        { label: 'Help Guide', icon: BookOpen, path: '/help' },
     ];
 
     const handleLogout = () => {
@@ -78,6 +80,7 @@ export default function Layout({ children, noScroll = false }: LayoutProps) {
     const filteredMenu = menuItems.filter(item => {
         if (!user) return false;
         const role = user.role;
+        if (item.label === 'Help Guide') return true;
         if (role === 'salesperson') return ['Dashboard', 'POS Terminal', 'Sales History', 'Products', 'Customers'].includes(item.label);
         if (role === 'head_of_sales') return !['Settings', 'Branches', 'Integrations', 'Cash Mgmt'].includes(item.label);
         if (role === 'manager') return item.label !== 'Branches';

@@ -84,7 +84,7 @@ class Sale extends Model {
                     allowNull: true,
                 },
                 paymentMethod: {
-                    type: DataTypes.ENUM('cash', 'mpesa', 'card'),
+                    type: DataTypes.ENUM('cash', 'mpesa', 'card', 'paystack', 'airtel', 'mtn', 'mobile_money', 'mixed'),
                     allowNull: false,
                 },
                 paymentStatus: {

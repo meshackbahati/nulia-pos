@@ -35,6 +35,7 @@ import ExpensesPage from './pages/ExpensesPage';
 import WastePage from './pages/WastePage';
 import WarehousesPage from './pages/WarehousesPage';
 import SerialsPage from './pages/SerialsPage';
+import HelpPage from './pages/HelpPage';
 
 function RootRedirect({ needsSetup }: { needsSetup: boolean }) {
   const { user, isLoading } = useAuth();
@@ -225,6 +226,11 @@ function App() {
               <Route path="/integrations" element={
                 <ProtectedRoute allowedRoles={['admin', 'manager']}>
                   <Layout><IntegrationsPage /></Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/help" element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'head_of_sales', 'salesperson']}>
+                  <Layout><HelpPage /></Layout>
                 </ProtectedRoute>
               } />
 
