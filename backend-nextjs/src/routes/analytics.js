@@ -114,9 +114,12 @@ router.get('/dashboard', authenticate, async (req, res) => {
 // Global Summary Stats (Admin/Manager)
 router.get('/summary', authenticate, async (req, res) => {
     try {
-        const { period = 'today' } = req.query;
-        const dateRange = getDateRange(period);
-        const where = { createdAt: dateRange };
+        const { period = 'today', from, to } = req.query;
+        let dateRange = null;
+        if (from && to) dateRange = { [Op.between]: [new Date(from), new Date(to)] };
+        else if (period !== 'custom') dateRange = getDateRange(period);
+        const where = {};
+        if (dateRange) (where as any).createdAt = dateRange;
 
         // Admin: use active branch unless scope=all
         if (req.user.role === 'admin') {
@@ -183,9 +186,12 @@ router.get('/summary', authenticate, async (req, res) => {
 // Salesperson Leaderboard
 router.get('/leaderboard', authenticate, async (req, res) => {
     try {
-        const { period = 'today', global = 'false' } = req.query;
-        const dateRange = getDateRange(period);
-        const where = { createdAt: dateRange };
+        const { period = 'today', global = 'false', from, to } = req.query;
+        let dateRange = null;
+        if (from && to) dateRange = { [Op.between]: [new Date(from), new Date(to)] };
+        else if (period !== 'custom') dateRange = getDateRange(period);
+        const where: any = {};
+        if (dateRange) where.createdAt = dateRange;
 
         // 1. Determine Scope for Sales Data
         if (global === 'true' && req.user.role === 'admin') {
