@@ -11,7 +11,10 @@ import toast from 'react-hot-toast';
 
 export default function AnalyticsPage() {
     const { user } = useAuth();
-    const [period, setPeriod] = useState<'week' | 'month' | 'year'>('week');
+    const [period, setPeriod] = useState<'week' | 'month' | 'year' | 'all' | 'custom'>('week');
+    const [customFrom, setCustomFrom] = useState('');
+    const [customTo, setCustomTo] = useState('');
+    const [scope, setScope] = useState<'my' | 'all'>(user?.role === 'admin' ? 'all' : 'my');
     const [view, setView] = useState<'overview' | 'ledger' | 'leaderboard'>('overview');
     const [stats, setStats] = useState<any>(null);
     const [topProducts, setTopProducts] = useState<any[]>([]);
@@ -26,32 +29,57 @@ export default function AnalyticsPage() {
     const { theme } = useTheme();
     const { formatPrice } = useCurrency();
 
-    useEffect(() => { fetchAnalytics(); }, [period, view]);
+    useEffect(() => { fetchAnalytics(); }, [period, view, scope, customFrom, customTo]);
+
+    const isAllBranches = user?.role === 'admin' && scope === 'all';
+    const dateParams = period === 'custom' && customFrom && customTo ? { from: customFrom, to: customTo } : {};
+    const effectivePeriod = period === 'custom' ? 'all' : period;
 
     const fetchAnalytics = async () => {
         try {
             setLoading(true);
-            // Named fetches — no fragile index
-            const summaryP = api.getAnalyticsSummary({ period });
-            const topP = api.getTopProducts(period, 10);
-            const trendsP = api.getTrends(period);
-            const leaderboardP = (view === 'leaderboard' || view === 'overview') ? api.getLeaderboard(period) : null;
-            const branchLeaderP = ( (view === 'leaderboard' || view === 'overview') && user?.role === 'admin') ? api.getBranchLeaderboard({ period }) : null;
-            const salesP = view === 'ledger' ? api.get('/sales/list', { limit: 100 }) : null;
+            const scopeParam = isAllBranches ? { period: effectivePeriod, scope: 'all', ...dateParams } : { period: effectivePeriod, ...dateParams };
+            const topParams = isAllBranches ? { period: effectivePeriod, scope: 'all', limit: 10, ...dateParams } : { period: effectivePeriod, limit: 10, ...dateParams };
+            const trendsParams = isAllBranches ? { period: effectivePeriod, scope: 'all', ...dateParams } : { period: effectivePeriod, ...dateParams };
+            // Named fetches — no fragile index; admin all-branches gets aggregate
+            const summaryP = api.getAnalyticsSummary(scopeParam);
+            const topP = api.getTopProducts(effectivePeriod, 10);
+            const topAllP = isAllBranches ? api.get('/analytics/top-products', topParams).catch(()=> topP) : null;
+            const trendsP = api.getTrends(effectivePeriod);
+            const trendsAllP = isAllBranches ? api.get('/analytics/trends', trendsParams).catch(()=> null) : null;
+            const leaderboardP = (view === 'leaderboard' || view === 'overview') ? api.getLeaderboard(effectivePeriod) : null;
+            const leaderboardAllP = (view === 'leaderboard' || view === 'overview') && isAllBranches ? api.get('/analytics/leaderboard', { period: effectivePeriod, scope: 'all', global: 'true', ...dateParams }).catch(()=> null) : null;
+            const branchLeaderP = ((view === 'leaderboard' || view === 'overview') && isAllBranches) ? api.getBranchLeaderboard({ period: effectivePeriod, ...dateParams }) : null;
+            const salesP = view === 'ledger' ? api.get('/sales/list', { limit: 100, ...(isAllBranches ? { scope: 'all', ...dateParams } : dateParams) }) : null;
+            const allBranchesP = isAllBranches ? api.getBranches({ includeInactive: false }).catch(()=> null) : null;
             const branchP = api.get('/branches/me').catch(()=> null);
 
-            const [summaryR, topR, trendsR, leaderboardR, branchLeaderR, salesR, branchR] = await Promise.all([
-                summaryP, topP, trendsP, leaderboardP || Promise.resolve(null), branchLeaderP || Promise.resolve(null), salesP || Promise.resolve(null), branchP
+            const [summaryR, topR, trendsR, leaderboardR, branchLeaderR, salesR, branchR, topAllR, trendsAllR, leaderboardAllR, allBranchesR] = await Promise.all([
+                summaryP, topP, trendsP, leaderboardP || Promise.resolve(null), branchLeaderP || Promise.resolve(null), salesP || Promise.resolve(null), branchP,
+                topAllP || Promise.resolve(null), trendsAllP || Promise.resolve(null), leaderboardAllP || Promise.resolve(null), allBranchesP || Promise.resolve(null)
             ]);
 
+            // Prefer all-branches data for admin overview/leaderboard
+            const effectiveTop = (isAllBranches && topAllR?.data?.topProducts) ? topAllR.data.topProducts : topR.data.topProducts;
+            const effectiveTrends = (isAllBranches && trendsAllR?.data) ? trendsAllR.data : trendsR.data;
+            const effectiveLeader = (isAllBranches && leaderboardAllR?.data?.leaderboard) ? leaderboardAllR.data.leaderboard : (leaderboardR?.data?.leaderboard || []);
+
             setStats(summaryR.data);
-            setTopProducts(topR.data.topProducts || []);
-            setTrendData(trendsR.data.revenueTrend || []);
-            setPaymentData(trendsR.data.paymentMethods || []);
-            if (leaderboardR) setLeaderboard(leaderboardR.data.leaderboard || []);
+            setTopProducts(effectiveTop || []);
+            setTrendData(effectiveTrends?.revenueTrend || trendsR.data.revenueTrend || []);
+            setPaymentData(effectiveTrends?.paymentMethods || trendsR.data.paymentMethods || []);
+            if (effectiveLeader.length) setLeaderboard(effectiveLeader);
+            else if (leaderboardR) setLeaderboard(leaderboardR.data.leaderboard || []);
             if (branchLeaderR) setBranchStats(branchLeaderR.data.leaderboard || []);
             if (salesR) setSales(salesR.data.sales || []);
             if (branchR?.data?.branch) setBranch(branchR.data.branch);
+            // For admin all-branches, keep branch as null to signal aggregate
+            if (isAllBranches && allBranchesR?.data?.branches) {
+                // stash all branches for PDF per-branch breakdown
+                (stats as any)?.allBranches || null;
+                // store in separate state via branchStats already, plus keep list
+                (window as any).__allBranches = allBranchesR.data.branches;
+            }
         } catch (error) {
             console.error('Error fetching analytics:', error);
             toast.error('Failed to sync intelligence data');
@@ -61,12 +89,16 @@ export default function AnalyticsPage() {
     const handleExportPDF = () => {
         try {
             if (!stats) { toast.error('No data to export — wait for load'); return; }
+            if (period === 'custom' && (!customFrom || !customTo)) { toast.error('Pick From and To dates for custom export'); return; }
             const doc = new jsPDF('p', 'mm', 'a4');
             const timestamp = new Date().toLocaleString();
             const periodLabel = period.toUpperCase();
-            const rawBranchName = branch?.name || user?.branch?.name || (user?.role === 'admin' ? 'All Branches' : 'Branch');
+            const isAll = user?.role === 'admin' && scope === 'all';
+            const rawBranchName = isAll ? 'All Branches (Network)' : (branch?.name || user?.branch?.name || 'Branch');
             const branchName = rawBranchName.replace(/[^a-zA-Z0-9 _-]/g,'').slice(0,40) || 'Branch';
             const dateRange = (() => {
+                if (period === 'custom' && customFrom && customTo) return `${new Date(customFrom).toLocaleDateString()} — ${new Date(customTo).toLocaleDateString()}`;
+                if (period === 'all') return `All time — ${new Date().toLocaleDateString()}`;
                 const end = new Date();
                 const start = new Date();
                 if (period === 'week') start.setDate(end.getDate() - 7);
@@ -87,13 +119,14 @@ export default function AnalyticsPage() {
             doc.text(`${branchName}  •  ${periodLabel}  •  ${dateRange}`, 10, 16);
             doc.text(`Generated ${timestamp}  •  ${user?.firstName || ''} ${user?.lastName || ''}`.trim(), 210-10, 16, {align:'right'});
 
-            // Subheader strip
+            // Subheader strip — shows scope + date
             doc.setFillColor(255, 247, 237);
             doc.rect(0, 22, 210, 10, 'F');
             doc.setTextColor(100,116,139);
             doc.setFontSize(6);
-            doc.text(`Branch: ${branchName}  |  Currency: ${branch?.currency || 'KES'}${branch?.secondaryCurrency ? ' / '+branch.secondaryCurrency : ''}  |  View: ${view}  |  Records: ${stats?.salesCount || 0} sales`, 10, 28);
-            if (branch?.address) doc.text(String(branch.address).slice(0,80), 10, 31);
+            const scopeLabel = isAll ? 'Scope: ALL BRANCHES' : `Scope: ${branchName}`;
+            doc.text(`${scopeLabel}  |  Currency: ${branch?.currency || 'KES'}${branch?.secondaryCurrency ? ' / '+branch.secondaryCurrency : ''}  |  View: ${view}  |  Period: ${periodLabel}  |  Range: ${dateRange}  |  Records: ${stats?.salesCount || 0} sales`, 10, 28);
+            if (!isAll && branch?.address) doc.text(String(branch.address).slice(0,80), 10, 31);
 
             let y = 36;
 
@@ -259,9 +292,10 @@ export default function AnalyticsPage() {
             doc.text('Confidential — internal use', 200, 292, {align:'right'});
         }
 
-        const safeBranch = branchName.replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,30) || 'Branch';
-        doc.save(`RetailPro-${safeBranch}-${period}-${new Date().toISOString().slice(0,10)}.pdf`);
-        toast.success('Branch report exported — check downloads');
+        const safeBranch = (isAll ? 'ALL_BRANCHES' : branchName).replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,30) || 'Branch';
+        const safePeriod = period === 'custom' ? `custom_${customFrom}_to_${customTo}` : period;
+        doc.save(`RetailPro-${safeBranch}-${safePeriod}-${new Date().toISOString().slice(0,10)}.pdf`);
+        toast.success(`${isAll ? 'Network' : 'Branch'} report exported — ${periodLabel} • ${dateRange} — check downloads`);
         } catch (err:any) {
             console.error('PDF export failed', err);
             toast.error('Export failed: ' + (err?.message || 'unknown'));
@@ -297,12 +331,20 @@ export default function AnalyticsPage() {
                                 Intelligence <span className="text-violet-600 italic">Node</span>
                             </h1>
                             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-1">
-                                {branch?.name ? `${branch.name} • ${branch.currency}` : (user?.role === 'admin' ? 'Cross-Branch Performance Ledger' : 'Branch Performance Ledger')}
+                                {isAllBranches ? `Network • All Branches • ${period.toUpperCase()} • ${period==='custom' && customFrom && customTo ? `${customFrom} → ${customTo}` : period==='all' ? 'All Time' : period}` : (branch?.name ? `${branch.name} • ${branch.currency} • ${period.toUpperCase()}` : (user?.role === 'admin' ? 'Cross-Branch Performance Ledger' : 'Branch Performance Ledger'))}
                             </p>
                         </div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full lg:w-auto justify-start lg:justify-end">
+                        {/* Scope — admin: My Branch vs All Branches */}
+                        {user?.role === 'admin' && (
+                            <div className="flex p-1 bg-white dark:bg-slate-800 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-sm">
+                                {(['my','all'] as const).map(s => (
+                                    <button key={s} onClick={()=> setScope(s)} className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest min-h-[32px] ${scope===s ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'text-muted-foreground'}`}>{s==='all' ? 'All Branches' : 'My Branch'}</button>
+                                ))}
+                            </div>
+                        )}
                         <div className="flex p-1 sm:p-1.5 bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-sm">
                             {(['overview', 'ledger', 'leaderboard'] as const).map(v => (
                                 <button
@@ -317,17 +359,24 @@ export default function AnalyticsPage() {
 
                         <div className="h-10 w-px bg-slate-200 dark:bg-slate-700 hidden xl:block" />
 
-                        <div className="flex p-1 sm:p-1.5 bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-sm">
-                            {(['week', 'month', 'year'] as const).map(p => (
+                        <div className="flex flex-wrap items-center gap-1 p-1 sm:p-1.5 bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-sm">
+                            {(['week','month','year','all','custom'] as const).map(p => (
                                 <button
                                     key={p}
                                     onClick={() => setPeriod(p)}
-                                    className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[10px] font-black uppercase tracking-widest transition-all min-h-[36px] ${period === p ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                                    className={`px-2 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[10px] font-black uppercase tracking-widest transition-all min-h-[36px] ${period === p ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                                 >
                                     {p}
                                 </button>
                             ))}
                         </div>
+                        {period==='custom' && (
+                            <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded-xl border-2 border-slate-200 dark:border-slate-700">
+                                <input type="date" value={customFrom} onChange={e=> setCustomFrom(e.target.value)} className="h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs" />
+                                <span className="text-[10px] font-black">—</span>
+                                <input type="date" value={customTo} onChange={e=> setCustomTo(e.target.value)} className="h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs" />
+                            </div>
+                        )}
 
                         <button
                             onClick={handleExportPDF}
