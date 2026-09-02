@@ -52,23 +52,21 @@ export default function BargainModal({
         return Array.from(currencies);
     }, [user]);
 
-    // Convert catalog price (base currency) to display currency
-    const convertedCatalogPrice = useMemo(() => {
-        const rate = getRate(baseCurrency, displayCurrency);
+    // Convert catalog price (base currency) to display currency — stable, not tied to displayCurrency state to avoid loop
+    const getConvertedCatalogPrice = (curr: string) => {
+        const rate = getRate(baseCurrency, curr);
         return (catalogPrice * rate).toFixed(2);
-    }, [catalogPrice, displayCurrency, baseCurrency, getRate]);
+    };
 
+    // Only initialize on open — do not react to displayCurrency changes or rate churn
     useEffect(() => {
         if (isOpen) {
-            setDisplayCurrency(targetCurrency);
-            setPrice(convertedCatalogPrice);
+            const initCurr = targetCurrency;
+            setDisplayCurrency(initCurr);
+            setPrice(getConvertedCatalogPrice(initCurr));
         }
-    }, [isOpen, convertedCatalogPrice, targetCurrency]);
-
-    // Sync display currency when target changes
-    useEffect(() => {
-        setDisplayCurrency(targetCurrency);
-    }, [targetCurrency]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -86,12 +84,21 @@ export default function BargainModal({
 
     const handleCurrencySwitch = (newCurrency: string) => {
         if (newCurrency === displayCurrency) return;
-        // Convert current price to new currency
-        const currentBasePrice = parseFloat(price) / getRate(baseCurrency, displayCurrency);
+        const curRate = getRate(baseCurrency, displayCurrency);
         const newRate = getRate(baseCurrency, newCurrency);
+        // Guard: if rates missing (return 1) still convert, but avoid NaN
+        const currentBasePrice = curRate ? parseFloat(price || '0') / curRate : parseFloat(price || '0');
         const newPrice = (currentBasePrice * newRate).toFixed(2);
         setDisplayCurrency(newCurrency);
         setPrice(newPrice);
+    };
+
+    const formatDisplayPrice = (amount: number) => {
+        const rate = getRate(baseCurrency, displayCurrency);
+        const converted = amount * rate;
+        const sym = hookCurrency.getCurrencySymbol(displayCurrency);
+        const sep = sym.length > 1 ? ' ' : '';
+        return `${sym}${sep}${converted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     };
 
     return (
@@ -115,7 +122,7 @@ export default function BargainModal({
                         <div className="space-y-4">
                             <div className="flex justify-between items-center p-4 bg-secondary/30 rounded-2xl border border-border/50">
                                 <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Catalog Price {measurementType === 'measurable' ? `per ${baseUnit}` : ''}</span>
-                                <span className="text-sm font-black text-foreground">{formatPrice(catalogPrice)}</span>
+                                <span className="text-sm font-black text-foreground">{formatDisplayPrice(catalogPrice)} <span className="text-[9px] text-muted-foreground">({displayCurrency})</span></span>
                             </div>
 
                             <div className="space-y-2">

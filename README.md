@@ -22,10 +22,10 @@ RetailPro is a high-performance, resilient, and multi-platform Point of Sale (PO
 
 ## 🏗️ Technical Architecture
 
-*   **Frontend:** React 19, Vite, Tailwind CSS (Natural Glassmorphism UI).
-*   **Backend:** Node.js, Express, Sequelize ORM (PostgreSQL).
+*   **Frontend:** React 19, Vite, Tailwind CSS (Clay Design — warm paper, soft extrusion, mixed with flat for dense POS grid).
+*   **Backend:** Next.js 14 App Router (single API), Sequelize ORM (PostgreSQL) — Express bridge via `src/lib/express-bridge.js` for Vercel serverless.
 *   **Mobile:** Capacitor + MLKit Vision.
-*   **Desktop:** Electron + Native Printer Bridge.
+*   **Desktop:** Electron + Native Printer Bridge (warm worker, 7s cap).
 
 ## 🛠️ Getting Started.
 

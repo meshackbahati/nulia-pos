@@ -195,12 +195,13 @@ class NotificationService {
           }
         }
 
-        // Fetch weekly sales
+        // Fetch weekly sales — paymentStatus is the correct column (Sale model has no `status`)
         const sales = await models.Sale.findAll({
           where: {
             branchId: branch.id,
             createdAt: { [Op.gte]: weekAgo },
-            status: 'completed'
+            voidedAt: null,
+            paymentStatus: 'completed'
           }
         });
 

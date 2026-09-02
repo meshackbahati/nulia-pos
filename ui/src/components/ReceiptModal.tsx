@@ -487,9 +487,9 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
     };
 
     return (
-        <div className="fixed inset-0 bg-background/90 backdrop-blur-md flex items-center justify-center z-[200] p-3 sm:p-4 animate-in fade-in duration-300 overflow-y-auto">
-            <div className="glass-card max-w-md w-full p-4 sm:p-6 lg:p-8 shadow-2xl border-white/10 relative overflow-hidden my-4 max-h-[92dvh] overflow-y-auto scrollbar-hide">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl" />
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[200] p-3 sm:p-4 animate-in fade-in duration-300 overflow-y-auto">
+            <div className="clay-card max-w-md w-full p-4 sm:p-6 lg:p-8 relative overflow-hidden my-4 max-h-[92dvh] overflow-y-auto scrollbar-hide">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-2xl pointer-events-none" />
                 
                 <div className="flex items-center justify-between mb-8 relative z-10">
                     <div className="flex items-center gap-4">
@@ -504,7 +504,7 @@ export default function ReceiptModal({ sale, companyName, onClose, autoPrint = f
                     <button onClick={onClose} className="p-3 hover:bg-secondary/50 rounded-2xl transition-all"><X className="w-5 h-5" /></button>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 shadow-inner border border-black/5 dark:border-white/5 mb-6 sm:mb-8 font-mono overflow-hidden">
+                <div className="receipt-paper p-4 sm:p-6 mb-6 sm:mb-8 font-mono overflow-hidden">
                     <div className="text-center mb-6 space-y-1">
                         <p className="text-xs font-black uppercase tracking-[0.2em] text-foreground">{companyName}</p>
                         {sale?.user && (

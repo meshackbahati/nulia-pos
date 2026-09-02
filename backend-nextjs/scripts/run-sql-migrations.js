@@ -5,7 +5,9 @@ import pg from 'pg';
 import dotenv from 'dotenv';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const envLocalPath = resolve(__dirname, '..', '.env.local');
 const envPath = resolve(__dirname, '..', '.env');
+dotenv.config({ path: envLocalPath });
 dotenv.config({ path: envPath });
 
 const dbUrl = process.env.***REMOVED***;

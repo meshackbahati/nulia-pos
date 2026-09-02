@@ -2,27 +2,27 @@
 
 @layer base {
   :root {
-    /* Professional Design System - "RetailPro Vibrant" (Light Mode) */
-    --background: 220 33% 98%;
+    /* Clay Design System - warm paper + soft clay (light) */
+    --background: 35 30% 96%; /* warm clay paper */
     --foreground: 224 71% 4%;
-    --card: 0 0% 100%;
+    --card: 30 20% 99%; /* warm white */
     --card-foreground: 224 71% 4%;
-    --popover: 0 0% 100%;
+    --popover: 30 20% 99%;
     --popover-foreground: 224 71% 4%;
-    --primary: 262 83% 58%; /* Vibrant Purple */
+    --primary: 262 83% 58%; /* keep vibrant purple — clay accent */
     --primary-foreground: 210 20% 98%;
-    --secondary: 220 14% 96%;
+    --secondary: 35 15% 94%;
     --secondary-foreground: 224 71% 4%;
-    --muted: 220 14% 96%;
+    --muted: 35 15% 94%;
     --muted-foreground: 220 9% 46%;
-    --accent: 142 71% 45%; /* Vibrant Green Accent */
+    --accent: 24 94% 60%; /* warm clay orange */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 20% 98%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
+    --border: 30 12% 86%; /* clay edge — thicker visible */
+    --input: 30 12% 86%;
     --ring: 262 83% 58%;
-    --radius: 1rem;
+    --radius: 1.25rem; /* clay needs more round */
 
     /* Custom Chart Colors */
     --chart-1: 262 83% 58%;
@@ -119,7 +119,7 @@
   }
 }
 
-/* Utilities for Glassmorphism & Animations — mixed editorial + depth system */
+/* Utilities — CLAY design system (mixed with flat for dense lists) */
 @layer utilities {
   .font-display {
     font-family: 'Outfit', 'Inter', sans-serif;
@@ -129,7 +129,7 @@
     font-family: 'Inter', sans-serif;
   }
 
-  /* Elevation scale — replaces heavy blur with structured depth on mobile */
+  /* Elevation scale — flat fallback */
   .elevated-1 {
     background-color: hsl(var(--card));
     color: hsl(var(--card-foreground));
@@ -143,50 +143,202 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   }
 
-  /* Glass — toned down blur for mobile/Electron perf (xl → md) */
+  /* Clay — soft 3D inflated, thick border + inner highlight + outer puff */
+  .clay {
+    background-color: hsl(var(--card));
+    border: 3px solid hsl(var(--border));
+    border-radius: 1.25rem;
+    box-shadow:
+      inset 0 2px 3px rgba(255,255,255,0.85),
+      inset 0 -4px 8px rgba(0,0,0,0.06),
+      0 10px 24px rgba(0,0,0,0.07),
+      0 4px 8px rgba(0,0,0,0.04);
+    transition: all 0.2s ease;
+  }
+  .clay:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 2px 3px rgba(255,255,255,0.9),
+      inset 0 -4px 8px rgba(0,0,0,0.05),
+      0 14px 28px rgba(0,0,0,0.09),
+      0 6px 12px rgba(0,0,0,0.05);
+  }
+  .dark .clay {
+    border-color: hsl(var(--border));
+    box-shadow:
+      inset 0 1px 2px rgba(255,255,255,0.07),
+      inset 0 -4px 10px rgba(0,0,0,0.25),
+      0 12px 28px rgba(0,0,0,0.45),
+      0 4px 10px rgba(0,0,0,0.25);
+  }
+
+  .clay-card {
+    background-color: hsl(var(--card));
+    border: 3px solid hsl(var(--border));
+    border-radius: 1.5rem;
+    box-shadow:
+      inset 0 2px 4px rgba(255,255,255,0.9),
+      inset 0 -5px 10px rgba(0,0,0,0.05),
+      0 12px 28px rgba(0,0,0,0.08),
+      0 6px 12px rgba(0,0,0,0.04);
+    transition: all 0.25s ease;
+  }
+  .clay-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      inset 0 2px 4px rgba(255,255,255,0.95),
+      inset 0 -5px 10px rgba(0,0,0,0.04),
+      0 16px 32px rgba(0,0,0,0.10),
+      0 8px 16px rgba(0,0,0,0.05);
+  }
+  .dark .clay-card {
+    border-color: hsl(var(--border));
+    box-shadow:
+      inset 0 1px 2px rgba(255,255,255,0.06),
+      inset 0 -5px 12px rgba(0,0,0,0.3),
+      0 14px 32px rgba(0,0,0,0.5),
+      0 6px 14px rgba(0,0,0,0.3);
+  }
+
+  /* Legacy alias — glass now maps to clay for backward compat without breaking */
   .glass {
-    @apply bg-white/50 dark:bg-white/[0.06] backdrop-blur-md border border-white/20 dark:border-white/10 shadow-lg;
-    -webkit-backdrop-filter: blur(12px);
+    background-color: hsl(var(--card));
+    border: 3px solid hsl(var(--border));
+    border-radius: 1.25rem;
+    box-shadow:
+      inset 0 2px 3px rgba(255,255,255,0.85),
+      inset 0 -4px 8px rgba(0,0,0,0.06),
+      0 10px 24px rgba(0,0,0,0.07),
+      0 4px 8px rgba(0,0,0,0.04);
   }
-
   .glass-card {
-    @apply bg-white/60 dark:bg-white/[0.06] backdrop-blur-md border border-white/20 dark:border-white/10 shadow-lg rounded-2xl transition-all duration-300 hover:shadow-xl hover:bg-white/70 dark:hover:bg-white/[0.08];
-    -webkit-backdrop-filter: blur(12px);
+    background-color: hsl(var(--card));
+    border: 3px solid hsl(var(--border));
+    border-radius: 1.5rem;
+    box-shadow:
+      inset 0 2px 4px rgba(255,255,255,0.9),
+      inset 0 -5px 10px rgba(0,0,0,0.05),
+      0 12px 28px rgba(0,0,0,0.08),
+      0 6px 12px rgba(0,0,0,0.04);
+  }
+  .dark .glass,
+  .dark .glass-card {
+    border-color: hsl(var(--border));
+    box-shadow:
+      inset 0 1px 2px rgba(255,255,255,0.06),
+      inset 0 -5px 12px rgba(0,0,0,0.3),
+      0 14px 32px rgba(0,0,0,0.5),
+      0 6px 14px rgba(0,0,0,0.3);
   }
 
-  /* Solid fallback for dense lists (POS grid) — no blur = 60fps on low-end phones */
+  /* Solid fallback for dense POS grid — clay-flat, no hover lift for perf */
   .surface-card {
     background-color: hsl(var(--card));
     color: hsl(var(--card-foreground));
-    border: 1px solid hsl(var(--border) / 0.6);
+    border: 2px solid hsl(var(--border));
     border-radius: 1rem;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    box-shadow:
+      inset 0 1px 2px rgba(255,255,255,0.8),
+      0 4px 12px rgba(0,0,0,0.05);
     transition: all 0.2s ease;
   }
   .surface-card:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     border-color: hsl(var(--border));
+    box-shadow:
+      inset 0 1px 2px rgba(255,255,255,0.9),
+      0 6px 16px rgba(0,0,0,0.07);
+    transform: translateY(-1px);
   }
 
-  .glass-input {
-    background-color: hsl(0 0% 100% / 0.6);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    border: 1px solid hsl(var(--border) / 0.6);
-    border-radius: 0.75rem;
+  .clay-input {
+    background-color: hsl(var(--card));
+    border: 3px solid hsl(var(--border));
+    border-radius: 1rem;
+    box-shadow:
+      inset 0 2px 6px rgba(0,0,0,0.06),
+      inset 0 1px 2px rgba(255,255,255,0.9),
+      0 2px 4px rgba(0,0,0,0.03);
     transition: all 0.2s ease;
   }
-  .dark .glass-input {
-    background-color: hsl(0 0% 100% / 0.06);
-  }
-  .glass-input:focus {
-    background-color: hsl(0 0% 100% / 0.9);
-    border-color: hsl(var(--primary) / 0.4);
-    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.1);
+  .clay-input:focus {
+    background-color: hsl(var(--card));
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow:
+      inset 0 2px 6px rgba(0,0,0,0.04),
+      0 0 0 4px hsl(var(--primary) / 0.12),
+      0 4px 12px rgba(0,0,0,0.06);
     outline: none;
   }
-  .dark .glass-input:focus {
-    background-color: hsl(0 0% 100% / 0.08);
+  .dark .clay-input {
+    border-color: hsl(var(--border));
+    box-shadow:
+      inset 0 2px 8px rgba(0,0,0,0.25),
+      0 2px 6px rgba(0,0,0,0.2);
+  }
+
+  /* Keep old name working */
+  .glass-input {
+    background-color: hsl(var(--card));
+    border: 3px solid hsl(var(--border));
+    border-radius: 1rem;
+    box-shadow:
+      inset 0 2px 6px rgba(0,0,0,0.06),
+      inset 0 1px 2px rgba(255,255,255,0.9),
+      0 2px 4px rgba(0,0,0,0.03);
+  }
+  .glass-input:focus {
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.12);
+    outline: none;
+  }
+
+  /* Clay button — extruded */
+  .clay-button {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border: 3px solid hsl(var(--primary) / 0.9);
+    border-radius: 1rem;
+    box-shadow:
+      inset 0 2px 3px rgba(255,255,255,0.35),
+      inset 0 -4px 8px rgba(0,0,0,0.15),
+      0 6px 16px hsl(var(--primary) / 0.3),
+      0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.15s ease;
+  }
+  .clay-button:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 2px 3px rgba(255,255,255,0.4),
+      inset 0 -4px 8px rgba(0,0,0,0.12),
+      0 10px 20px hsl(var(--primary) / 0.35),
+      0 4px 8px rgba(0,0,0,0.12);
+  }
+  .clay-button:active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow:
+      inset 0 3px 8px rgba(0,0,0,0.2),
+      0 2px 6px hsl(var(--primary) / 0.2);
+  }
+
+  /* Warm paper for receipts — always light, readable */
+  .receipt-paper {
+    background: #fefcf7;
+    color: #1e293b;
+    border: 3px solid #e7e5e4;
+    border-radius: 1.25rem;
+    box-shadow:
+      inset 0 1px 3px rgba(255,255,255,0.9),
+      inset 0 -4px 12px rgba(0,0,0,0.04),
+      0 12px 28px rgba(0,0,0,0.08);
+  }
+  .dark .receipt-paper {
+    background: #1e293b;
+    color: #f1f5f9;
+    border-color: hsl(var(--border));
+    box-shadow:
+      inset 0 1px 2px rgba(255,255,255,0.06),
+      inset 0 -4px 12px rgba(0,0,0,0.3),
+      0 12px 28px rgba(0,0,0,0.4);
   }
 
   .scrollbar-hide::-webkit-scrollbar {

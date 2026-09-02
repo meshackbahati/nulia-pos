@@ -7,13 +7,14 @@ This guide covers the setup and build process for the RetailPro ecosystem.
 *   PostgreSQL
 *   Standard Build Tools (for Electron)
 
-## 2. Backend Setup
+## 2. Backend Setup (Next.js — single source)
 ```bash
-cd backend
+cd backend-nextjs
 npm install
-# Create .env based on the production database provided
+# Create .env.local from .env.example (***REMOVED***, ***REMOVED***, BREVO_*, etc)
 npm run db:migrate
-npm start
+npm run dev   # http://localhost:3000
+# Production (Vercel): vercel --prod  |  or Docker: docker compose up --build
 ```
 
 ## 3. Terminal (UI) Setup & Build

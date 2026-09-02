@@ -214,4 +214,115 @@ router.post('/adjust', authenticate, async (req, res) => {
     }
 });
 
+// Inventory transfer between branches
+router.post('/transfer', authenticate, async (req, res) => {
+    if (req.user.role === 'head_of_sales') {
+        if (!req.user.permissions?.canManageInventory) {
+            return res.status(403).json({ error: 'Head of Sales does not have inventory write access' });
+        }
+    } else if (!hasPermission(req.user.role, 'manager')) {
+        return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
+    const t = await sequelize.transaction();
+    try {
+        const { fromBranchId, toBranchId, items, reason } = req.body;
+        if (!fromBranchId || !toBranchId) {
+            await t.rollback();
+            return res.status(400).json({ error: 'fromBranchId and toBranchId are required' });
+        }
+        if (fromBranchId === toBranchId) {
+            await t.rollback();
+            return res.status(400).json({ error: 'Source and destination branches must differ' });
+        }
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            await t.rollback();
+            return res.status(400).json({ error: 'items array is required' });
+        }
+
+        const transfers = [];
+        for (const item of items) {
+            const qty = new Decimal(item.quantity || 0);
+            if (qty.lte(0)) {
+                await t.rollback();
+                return res.status(400).json({ error: `Invalid quantity for product ${item.productId}` });
+            }
+
+            // Source inventory
+            const sourceInv = await models.Inventory.findOne({
+                where: { branchId: fromBranchId, productId: item.productId, variantId: item.variantId || null },
+                transaction: t
+            });
+            const sourceQty = sourceInv ? Number(sourceInv.quantity) : 0;
+            if (!sourceInv || sourceQty < Number(qty.toString())) {
+                await t.rollback();
+                return res.status(400).json({ error: `Insufficient stock in source branch for product ${item.productId}. Available: ${sourceQty}` });
+            }
+
+            const newSourceQty = new Decimal(sourceQty).sub(qty).toNumber();
+            await sourceInv.update({ quantity: newSourceQty }, { transaction: t });
+
+            // Destination inventory
+            let destInv = await models.Inventory.findOne({
+                where: { branchId: toBranchId, productId: item.productId, variantId: item.variantId || null },
+                transaction: t
+            });
+            if (!destInv) {
+                destInv = await models.Inventory.create({
+                    branchId: toBranchId, productId: item.productId, variantId: item.variantId || null, quantity: 0
+                }, { transaction: t });
+            }
+            const destQty = Number(destInv.quantity);
+            const newDestQty = new Decimal(destQty).add(qty).toNumber();
+            await destInv.update({ quantity: newDestQty, lastRestockedAt: new Date() }, { transaction: t });
+
+            transfers.push({
+                productId: item.productId,
+                variantId: item.variantId || null,
+                quantity: Number(qty.toString()),
+                fromBranchId, toBranchId,
+                fromQtyBefore: sourceQty, fromQtyAfter: newSourceQty,
+                toQtyBefore: destQty, toQtyAfter: newDestQty
+            });
+
+            await createAuditLog({
+                action: AUDIT_ACTIONS.INVENTORY_ADJUSTMENT,
+                resource: AUDIT_RESOURCES.INVENTORY,
+                resourceId: sourceInv.id,
+                userId: req.user.userId, branchId: fromBranchId,
+                oldValues: { quantity: sourceQty },
+                newValues: { quantity: newSourceQty, transferTo: toBranchId, reason: reason || '' },
+                metadata: { productId: item.productId, variantId: item.variantId || null, quantity: Number(qty.toString()), type: 'transfer-out' }
+            }, req);
+            await createAuditLog({
+                action: AUDIT_ACTIONS.INVENTORY_ADJUSTMENT,
+                resource: AUDIT_RESOURCES.INVENTORY,
+                resourceId: destInv.id,
+                userId: req.user.userId, branchId: toBranchId,
+                oldValues: { quantity: destQty },
+                newValues: { quantity: newDestQty, transferFrom: fromBranchId, reason: reason || '' },
+                metadata: { productId: item.productId, variantId: item.variantId || null, quantity: Number(qty.toString()), type: 'transfer-in' }
+            }, req);
+        }
+
+        await t.commit();
+
+        const io = req.app.get('io');
+        if (io) {
+            await io.to(`branch-${fromBranchId}`).emit('inventory-update', { branchId: fromBranchId, type: 'transfer-out' });
+            await io.to(`branch-${toBranchId}`).emit('inventory-update', { branchId: toBranchId, type: 'transfer-in' });
+        }
+
+        await triggerWebhook(WEBHOOK_EVENTS.INVENTORY_ADJUSTED, {
+            fromBranchId, toBranchId, transfers, type: 'transfer', reason: reason || ''
+        }, fromBranchId, io);
+
+        res.json({ success: true, transfers });
+    } catch (error) {
+        try { if (t) await t.rollback(); } catch (rbErr) { console.error('[inventory/transfer] Rollback failed:', rbErr.message); }
+        console.error('Inventory transfer error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;
