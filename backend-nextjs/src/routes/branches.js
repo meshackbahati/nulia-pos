@@ -102,17 +102,26 @@ router.post('/update', authenticate, authorize('manager', true), async (req, res
             return res.status(403).json({ error: 'Unauthorized to update this branch' });
         }
 
-        // Handle M-Pesa credentials if present (model hooks handle encryption)
+        // Handle per-branch payment credentials — only overwrite if non-empty (encrypted fields never prefilled)
         if (updateData.mpesaConsumerKey) branch.mpesaConsumerKey = updateData.mpesaConsumerKey;
         if (updateData.mpesaConsumerSecret) branch.mpesaConsumerSecret = updateData.mpesaConsumerSecret;
         if (updateData.mpesaPasskey) branch.mpesaPasskey = updateData.mpesaPasskey;
         if (updateData.mpesaShortcode) branch.mpesaShortcode = updateData.mpesaShortcode;
+        if (updateData.paystackPublicKey) branch.paystackPublicKey = updateData.paystackPublicKey;
+        if (updateData.paystackSecretKey) branch.paystackSecretKey = updateData.paystackSecretKey;
+        // preferredGateway / gatewayEnabled can be empty/none — allow explicit set
+        if (updateData.preferredGateway !== undefined) branch.preferredGateway = updateData.preferredGateway;
+        if (updateData.gatewayEnabled !== undefined) branch.gatewayEnabled = updateData.gatewayEnabled;
 
-        // Remove from updateData to prevent double-assignment
+        // Remove payment fields from updateData to prevent double-assignment / empty overwrite
         delete updateData.mpesaConsumerKey;
         delete updateData.mpesaConsumerSecret;
         delete updateData.mpesaPasskey;
         delete updateData.mpesaShortcode;
+        delete updateData.paystackPublicKey;
+        delete updateData.paystackSecretKey;
+        delete updateData.preferredGateway;
+        delete updateData.gatewayEnabled;
 
         await branch.update(updateData);
         res.json({ success: true, branch });

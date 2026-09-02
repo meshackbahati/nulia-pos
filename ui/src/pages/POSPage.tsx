@@ -705,10 +705,10 @@ export default function POSPage() {
                     <div className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6">
                         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
                             <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                                <div className="p-2 sm:p-2 lg:p-3 bg-primary/10 rounded-xl lg:rounded-2xl border border-primary/20 shrink-0">
-                                    <ShoppingBag className="w-5 h-5 lg:w-6 lg:h-6 text-primary" />
+                                <div className="p-2 sm:p-2 lg:p-3 bg-emerald-500/10 rounded-xl lg:rounded-2xl border-2 border-emerald-500/20 shrink-0 shadow-sm">
+                                    <ShoppingBag className="w-5 h-5 lg:w-6 lg:h-6 text-emerald-600" />
                                 </div>
-                                <h2 className="text-base sm:text-lg lg:text-2xl font-black text-foreground tracking-tighter uppercase italic truncate">Store<span className="text-primary not-italic">Front</span></h2>
+                                <h2 className="text-base sm:text-lg lg:text-2xl font-black text-foreground tracking-tighter uppercase italic truncate">Store<span className="text-emerald-600 not-italic">Front</span></h2>
                             </div>
                             <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0 snap-x">
                                 {['All', ...categories].map(cat => (
@@ -726,24 +726,25 @@ export default function POSPage() {
                             </div>
                         </div>
 
-                        <div className="relative group">
-                            <div className="absolute inset-y-0 left-3 sm:left-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
-                                <Search className="w-4 h-4 lg:w-5 lg:h-5" />
+                        <div className="flex gap-2">
+                            <div className="relative group flex-1">
+                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-[18px] h-[18px] pointer-events-none group-focus-within:text-emerald-500 transition-colors" />
+                                <input
+                                    id="pos-search-input"
+                                    type="text"
+                                    placeholder="Search or scan..."
+                                    className="w-full h-12 lg:h-16 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl lg:rounded-2xl pl-10 pr-4 text-sm lg:text-lg font-bold placeholder:text-slate-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 transition-all shadow-sm"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
                             </div>
-                            <input
-                                id="pos-search-input"
-                                type="text"
-                                placeholder="Search or scan..."
-                                className="w-full h-12 lg:h-16 bg-card border-2 border-border rounded-xl lg:rounded-2xl pl-10 sm:pl-12 pr-12 lg:pl-14 lg:pr-14 text-sm lg:text-lg font-bold placeholder:text-muted-foreground/30 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-sm"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
                             <button 
                                 onClick={() => setShowScanner(true)}
                                 aria-label="Open barcode scanner"
-                                className="absolute inset-y-0 right-2 sm:right-4 flex items-center justify-center min-w-[44px] min-h-[44px] text-muted-foreground hover:text-primary transition-colors"
+                                className="h-12 lg:h-16 px-4 lg:px-5 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl lg:rounded-2xl flex items-center justify-center gap-2 shadow-sm hover:shadow-md active:scale-[0.98] transition-all shrink-0"
                             >
-                                <Maximize className="w-5 h-5 lg:w-6 lg:h-6" />
+                                <Maximize className="w-5 h-5 lg:w-6 lg:h-6 text-emerald-600" />
+                                <span className="hidden sm:inline text-xs font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Scan</span>
                             </button>
                         </div>
                     </div>

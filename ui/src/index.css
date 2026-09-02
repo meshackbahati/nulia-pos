@@ -2,34 +2,45 @@
 
 @layer base {
   :root {
-    /* Clay Design System - warm paper + soft clay (light) */
-    --background: 35 30% 96%; /* warm clay paper */
+    /* Clay Design System - warm paper + feature-rich */
+    --background: 35 28% 96%; /* warm clay paper */
     --foreground: 224 71% 4%;
-    --card: 30 20% 99%; /* warm white */
+    --card: 0 0% 100%; /* pure white for max contrast on inputs */
     --card-foreground: 224 71% 4%;
-    --popover: 30 20% 99%;
+    --popover: 0 0% 100%;
     --popover-foreground: 224 71% 4%;
-    --primary: 262 83% 58%; /* keep vibrant purple — clay accent */
+    --primary: 262 83% 58%; /* violet */
     --primary-foreground: 210 20% 98%;
-    --secondary: 35 15% 94%;
+    --secondary: 35 14% 94%;
     --secondary-foreground: 224 71% 4%;
-    --muted: 35 15% 94%;
+    --muted: 35 14% 94%;
     --muted-foreground: 220 9% 46%;
-    --accent: 24 94% 60%; /* warm clay orange */
+    --accent: 24 94% 60%; /* clay orange */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 20% 98%;
-    --border: 30 12% 86%; /* clay edge — thicker visible */
-    --input: 30 12% 86%;
+    --border: 30 10% 82%; /* more visible clay edge */
+    --input: 30 10% 82%;
     --ring: 262 83% 58%;
-    --radius: 1.25rem; /* clay needs more round */
+    --radius: 1.25rem;
 
-    /* Custom Chart Colors */
-    --chart-1: 262 83% 58%;
-    --chart-2: 142 71% 45%;
-    --chart-3: 199 89% 48%;
-    --chart-4: 47 95% 58%;
-    --chart-5: 340 75% 55%;
+    /* Feature-rich palette — mix & match, not just blue/white */
+    --feature-pos: 160 84% 39%; /* emerald — POS/Checkout */
+    --feature-products: 38 92% 50%; /* amber — Products */
+    --feature-customers: 346 77% 58%; /* rose — Customers */
+    --feature-analytics: 262 83% 58%; /* violet — Analytics */
+    --feature-finance: 173 80% 39%; /* teal — Cash/Expenses */
+    --feature-inventory: 45 93% 53%; /* golden — Inventory/Waste */
+    --feature-warehouses: 199 89% 48%; /* sky — Warehouses */
+    --feature-serials: 280 70% 60%; /* purple — Serials */
+
+    /* Chart Colors — expanded feature palette */
+    --chart-1: 262 83% 58%; /* violet */
+    --chart-2: 160 84% 39%; /* emerald */
+    --chart-3: 38 92% 50%; /* amber */
+    --chart-4: 346 77% 58%; /* rose */
+    --chart-5: 173 80% 39%; /* teal */
+    --chart-6: 45 93% 53%; /* gold */
   }
 
   .dark {
@@ -74,17 +85,19 @@
     font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
     font-family: 'Inter', sans-serif;
     background-image: 
-      radial-gradient(at 0% 0%, hsla(262, 83%, 58%, 0.06) 0px, transparent 52%),
-      radial-gradient(at 100% 0%, hsla(142, 71%, 45%, 0.06) 0px, transparent 52%),
-      radial-gradient(at 100% 100%, hsla(199, 89%, 48%, 0.04) 0px, transparent 52%),
-      radial-gradient(at 0% 100%, hsla(340, 75%, 55%, 0.04) 0px, transparent 52%);
+      radial-gradient(at 0% 0%, hsla(262, 83%, 58%, 0.07) 0px, transparent 55%),
+      radial-gradient(at 12% 20%, hsla(38, 92%, 50%, 0.05) 0px, transparent 45%),
+      radial-gradient(at 88% 8%, hsla(160, 84%, 39%, 0.06) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(199, 89%, 48%, 0.05) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(346, 77%, 58%, 0.04) 0px, transparent 55%),
+      radial-gradient(at 50% 50%, hsla(45, 93%, 53%, 0.03) 0px, transparent 60%);
     line-height: 1.6;
   }
 
   .dark body {
     background-image: 
-      radial-gradient(at 0% 0%, hsla(262, 83%, 58%, 0.04) 0px, transparent 52%),
-      radial-gradient(at 100% 0%, hsla(142, 71%, 45%, 0.04) 0px, transparent 52%);
+      radial-gradient(at 0% 0%, hsla(262, 83%, 58%, 0.05) 0px, transparent 55%),
+      radial-gradient(at 100% 0%, hsla(160, 84%, 39%, 0.04) 0px, transparent 50%);
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -251,45 +264,65 @@
   }
 
   .clay-input {
-    background-color: hsl(var(--card));
-    border: 3px solid hsl(var(--border));
+    background-color: white;
+    border: 2px solid hsl(220 13% 88%);
     border-radius: 1rem;
     box-shadow:
-      inset 0 2px 6px rgba(0,0,0,0.06),
-      inset 0 1px 2px rgba(255,255,255,0.9),
-      0 2px 4px rgba(0,0,0,0.03);
+      inset 0 1px 3px rgba(0,0,0,0.06),
+      0 1px 2px rgba(0,0,0,0.04);
     transition: all 0.2s ease;
+    color: hsl(var(--foreground));
+  }
+  .clay-input::placeholder {
+    color: hsl(220 9% 58%);
   }
   .clay-input:focus {
-    background-color: hsl(var(--card));
-    border-color: hsl(var(--primary) / 0.5);
+    background-color: white;
+    border-color: hsl(var(--primary));
     box-shadow:
-      inset 0 2px 6px rgba(0,0,0,0.04),
-      0 0 0 4px hsl(var(--primary) / 0.12),
-      0 4px 12px rgba(0,0,0,0.06);
+      0 0 0 4px hsl(var(--primary) / 0.14),
+      0 4px 12px rgba(0,0,0,0.08);
     outline: none;
   }
   .dark .clay-input {
+    background-color: hsl(224 71% 9%);
     border-color: hsl(var(--border));
+    border-width: 2px;
+    color: hsl(var(--foreground));
     box-shadow:
-      inset 0 2px 8px rgba(0,0,0,0.25),
+      inset 0 2px 8px rgba(0,0,0,0.3),
       0 2px 6px rgba(0,0,0,0.2);
   }
+  .dark .clay-input::placeholder {
+    color: hsl(217 10% 60%);
+  }
+  .dark .clay-input:focus {
+    border-color: hsl(var(--primary));
+    background-color: hsl(224 71% 9%);
+  }
 
-  /* Keep old name working */
+  /* Keep old name working — now high-contrast in light mode */
   .glass-input {
-    background-color: hsl(var(--card));
-    border: 3px solid hsl(var(--border));
+    background-color: white;
+    border: 2px solid hsl(220 13% 88%);
     border-radius: 1rem;
     box-shadow:
-      inset 0 2px 6px rgba(0,0,0,0.06),
-      inset 0 1px 2px rgba(255,255,255,0.9),
-      0 2px 4px rgba(0,0,0,0.03);
+      inset 0 1px 3px rgba(0,0,0,0.06),
+      0 1px 2px rgba(0,0,0,0.04);
+    color: hsl(var(--foreground));
+  }
+  .glass-input::placeholder {
+    color: hsl(220 9% 58%);
   }
   .glass-input:focus {
-    border-color: hsl(var(--primary) / 0.5);
-    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.12);
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.14);
     outline: none;
+  }
+  .dark .glass-input {
+    background-color: hsl(224 71% 9%);
+    border-color: hsl(var(--border));
+    color: hsl(var(--foreground));
   }
 
   /* Clay button — extruded */

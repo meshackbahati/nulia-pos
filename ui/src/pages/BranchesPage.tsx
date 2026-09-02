@@ -45,6 +45,14 @@ export default function BranchesPage() {
         vatNumber: '',
         timezone: 'UTC',
         isActive: true,
+        preferredGateway: 'none' as 'mpesa' | 'paystack' | 'none',
+        gatewayEnabled: false,
+        mpesaConsumerKey: '',
+        mpesaConsumerSecret: '',
+        mpesaPasskey: '',
+        mpesaShortcode: '',
+        paystackPublicKey: '',
+        paystackSecretKey: '',
     });
 
     useEffect(() => {
@@ -64,7 +72,7 @@ export default function BranchesPage() {
         }
     };
 
-    const handleOpenModal = (branch?: Branch) => {
+    const handleOpenModal = (branch?: any) => {
         if (branch) {
             setEditingBranch(branch);
             setFormData({
@@ -80,6 +88,14 @@ export default function BranchesPage() {
                 vatNumber: branch.vatNumber || '',
                 timezone: branch.timezone || 'UTC',
                 isActive: branch.isActive,
+                preferredGateway: branch.preferredGateway || 'none',
+                gatewayEnabled: branch.gatewayEnabled || false,
+                mpesaConsumerKey: '', // never prefill encrypted
+                mpesaConsumerSecret: '',
+                mpesaPasskey: '',
+                mpesaShortcode: branch.mpesaShortcode || '',
+                paystackPublicKey: branch.paystackPublicKey || '',
+                paystackSecretKey: '',
             });
         } else {
             setEditingBranch(null);
@@ -96,6 +112,14 @@ export default function BranchesPage() {
                 vatNumber: '',
                 timezone: 'UTC',
                 isActive: true,
+                preferredGateway: 'none',
+                gatewayEnabled: false,
+                mpesaConsumerKey: '',
+                mpesaConsumerSecret: '',
+                mpesaPasskey: '',
+                mpesaShortcode: '',
+                paystackPublicKey: '',
+                paystackSecretKey: '',
             });
         }
         setShowModal(true);
@@ -314,7 +338,7 @@ export default function BranchesPage() {
                                             type="text"
                                             required
                                             placeholder="e.g. Nairobi Central Hub"
-                                            className="w-full h-12 rounded-xl border border-input bg-background px-4 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                            className="w-full h-12 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-bold focus:outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-400/20 transition-all shadow-sm"
                                             value={formData.name}
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         />
@@ -325,7 +349,7 @@ export default function BranchesPage() {
                                         <textarea
                                             required
                                             placeholder="Full physical location details..."
-                                            className="w-full min-h-[100px] rounded-xl border border-input bg-background px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none"
+                                            className="w-full min-h-[100px] rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-medium focus:outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-400/20 transition-all resize-none shadow-sm"
                                             value={formData.address}
                                             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                         />
@@ -338,7 +362,7 @@ export default function BranchesPage() {
                                                 type="tel"
                                                 required
                                                 placeholder="+254..."
-                                                className="w-full h-12 rounded-xl border border-input bg-background px-4 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                                className="w-full h-12 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-bold focus:outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-400/20 transition-all shadow-sm"
                                                 value={formData.phone}
                                                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                             />
@@ -349,7 +373,7 @@ export default function BranchesPage() {
                                                 type="email"
                                                 required
                                                 placeholder="hub@retailpro.com"
-                                                className="w-full h-12 rounded-xl border border-input bg-background px-4 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                                className="w-full h-12 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-bold focus:outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-400/20 transition-all shadow-sm"
                                                 value={formData.email}
                                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                             />
@@ -444,7 +468,7 @@ export default function BranchesPage() {
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-bold text-muted-foreground uppercase">Secondary Node</label>
                                         <select
-                                            className="w-full h-11 rounded-lg border border-input bg-background px-3 py-2 text-xs font-black focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                            className="w-full h-11 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-black focus:outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-400/20"
                                             value={formData.secondaryCurrency || ''}
                                             onChange={(e) => setFormData({ ...formData, secondaryCurrency: e.target.value })}
                                         >
@@ -461,13 +485,47 @@ export default function BranchesPage() {
                                             <input
                                                 type="number"
                                                 step="0.0001"
-                                                className="w-full h-11 rounded-lg border border-input bg-background px-3 py-2 text-xs font-black focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                                className="w-full h-11 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-black focus:outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-400/20"
                                                 value={formData.exchangeRate}
                                                 onChange={(e) => setFormData({ ...formData, exchangeRate: parseFloat(e.target.value) })}
                                             />
                                         </div>
                                     )}
                                 </div>
+                            </div>
+
+                            {/* Per-Branch Payment Gateway — high visibility, feature colors */}
+                            <div className="clay-card p-6 space-y-5 border-amber-200/50 dark:border-amber-800/30">
+                                <div className="flex items-center justify-between">
+                                    <p className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> Branch Payments <span className="text-muted-foreground font-bold normal-case">— per hub, not global</span></p>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <span className="text-[10px] font-black uppercase">Enabled</span>
+                                        <button type="button" onClick={() => setFormData({ ...formData, gatewayEnabled: !formData.gatewayEnabled })} className={`w-11 h-6 rounded-full p-1 transition-all ${formData.gatewayEnabled ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                                            <span className={`block w-4 h-4 rounded-full bg-white shadow transition-transform ${formData.gatewayEnabled ? 'translate-x-5' : ''}`}></span>
+                                        </button>
+                                    </label>
+                                </div>
+                                <div className="flex gap-2 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit">
+                                    {(['none','mpesa','paystack'] as const).map(g => (
+                                        <button key={g} type="button" onClick={() => setFormData({ ...formData, preferredGateway: g })} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${formData.preferredGateway===g ? 'bg-white dark:bg-slate-700 shadow text-foreground border-2 border-slate-200 dark:border-slate-600' : 'text-muted-foreground hover:text-foreground'}`}>{g}</button>
+                                    ))}
+                                </div>
+                                {formData.preferredGateway==='mpesa' && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl border-2 border-emerald-200 dark:border-emerald-800/30">
+                                        <input placeholder="M-Pesa Consumer Key" value={formData.mpesaConsumerKey} onChange={e=>setFormData({...formData, mpesaConsumerKey:e.target.value})} className="h-11 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-medium focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 outline-none col-span-2" />
+                                        <input placeholder="Consumer Secret" type="password" value={formData.mpesaConsumerSecret} onChange={e=>setFormData({...formData, mpesaConsumerSecret:e.target.value})} className="h-11 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-medium focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 outline-none" />
+                                        <input placeholder="Passkey" type="password" value={formData.mpesaPasskey} onChange={e=>setFormData({...formData, mpesaPasskey:e.target.value})} className="h-11 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-medium focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 outline-none" />
+                                        <input placeholder="Shortcode" value={formData.mpesaShortcode} onChange={e=>setFormData({...formData, mpesaShortcode:e.target.value})} className="h-11 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-medium focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 outline-none sm:col-span-2" />
+                                        <p className="text-[9px] text-muted-foreground col-span-2">Per-branch Daraja. Leave blank to use global Settings. Callback auto: /api/mpesa/callback/:branchId</p>
+                                    </div>
+                                )}
+                                {formData.preferredGateway==='paystack' && (
+                                    <div className="grid grid-cols-1 gap-4 p-4 bg-sky-50 dark:bg-sky-950/20 rounded-xl border-2 border-sky-200 dark:border-sky-800/30">
+                                        <input placeholder="Paystack Public Key" value={formData.paystackPublicKey} onChange={e=>setFormData({...formData, paystackPublicKey:e.target.value})} className="h-11 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-medium focus:border-sky-400 focus:ring-4 focus:ring-sky-400/20 outline-none" />
+                                        <input placeholder="Paystack Secret Key" type="password" value={formData.paystackSecretKey} onChange={e=>setFormData({...formData, paystackSecretKey:e.target.value})} className="h-11 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-medium focus:border-sky-400 focus:ring-4 focus:ring-sky-400/20 outline-none" />
+                                        <p className="text-[9px] text-muted-foreground">Per-branch. Leave blank to use global.</p>
+                                    </div>
+                                )}
                             </div>
 
                             <button

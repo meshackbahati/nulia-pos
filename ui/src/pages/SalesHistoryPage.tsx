@@ -154,11 +154,11 @@ export default function SalesHistoryPage() {
             <div className="bg-card/60 backdrop-blur-md border-b border-border/50 px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
                 <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/20">
+                        <div className="w-12 h-12 bg-teal-500/10 rounded-2xl flex items-center justify-center text-teal-600 border-2 border-teal-500/20 shadow-sm">
                             <FileText className="w-6 h-6" />
                         </div>
                         <div>
-                            <h1 className="text-xl lg:text-2xl font-black text-foreground uppercase tracking-tight">Sales History</h1>
+                            <h1 className="text-xl lg:text-2xl font-black text-foreground uppercase tracking-tight">Sales <span className="text-teal-600">History</span></h1>
                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{total} transactions found</p>
                         </div>
                     </div>
