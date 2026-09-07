@@ -1,36 +1,67 @@
-# RetailPro POS
+# Nulia POS - Open Source Edition
 
-RetailPro is a high-performance, resilient, and multi-platform Point of Sale (POS) ecosystem designed for cross-border trade and modern retail environments. Built with a local-first philosophy, it ensures your business stays operational even in zero-connectivity environments.
+Nulia is a high-performance, resilient, multi-platform POS for modern retail and cross-border trade. Offline-first, split-currency, and built for zero-connectivity operation. This repository is the **open-source, single-tenant, self-hosted** edition (MIT). The proprietary multi-tenant cloud edition lives on the `proprietary` branch in the private repo.
+
+![Nulia Logo](ui/public/logo.svg)
+
+## What is Nulia?
+
+Sell smarter. One stack for **Web, Android, and Desktop**. Every sale is currency-aware (KES/USD/UGX/TZS), every receipt is printable, every inventory move is audited.
+
+- **Mobile (Android):** Capacitor + MLKit Vision barcode scanning.
+- **Desktop (Windows/Linux):** Electron + silent thermal printing + HID scanner isolation. Linux fix for Wayland fontconfig included.
+- **Web:** Fully responsive PWA (React 19 + Vite + Tailwind Clay Design).
 
 ## Key Features
 
-*   **Multi-Platform Native Support:**
-    *   **Mobile (Android):** High-performance Capacitor-based app with native MLKit barcode scanning.
-    *   **Desktop (Windows/Linux):** Electron-based terminal with silent thermal printing and HID scanner isolation.
-    *   **Web:** Fully responsive PWA (Progressive Web App).
-*   **Offline-First Architecture:**
-    *   Full product catalog caching via IndexedDB (Dexie).
-    *   Sales queueing during network outages with automatic background synchronization.
-*   **Advanced Financial Engine:**
-    *   **Split-Currency Payments:** Accept multiple currencies in a single transaction (e.g., USD + KES + UGX).
-    *   **Daily Exchange Rates:** Real-time rate management with automatic whole-number rounding.
-    *   **Idempotent API:** Prevents duplicate sales or stock deductions during network retries.
-*   **Intelligence Node (The Ledger):**
-    *   Uneditable transaction history for Admins and Managers.
-    *   Personnel efficiency leaderboards and branch performance rankings.
-    *   Professional PDF Intelligence Report generation.
+- **Offline-First:** IndexedDB (Dexie) catalog cache, sales queue + background sync.
+- **Split-Currency:** Multiple currencies per sale, daily exchange rates, whole-number rounding.
+- **Idempotent API:** `Idempotency-Key` header prevents duplicate sales/stock deductions.
+- **Ledger:** Uneditable `audit_logs`, leaderboards, branch rankings, PDF Intelligence Reports.
+- **Integrations:** Jumia Vendor, Uber Direct, JumiaPay wallet, warehouses, serials, bundles.
 
-## 🏗️ Technical Architecture
+## Tech Stack
 
-*   **Frontend:** React 19, Vite, Tailwind CSS (Clay Design — warm paper, soft extrusion, mixed with flat for dense POS grid).
-*   **Backend:** Next.js 14 App Router (single API), Sequelize ORM (PostgreSQL) — Express bridge via `src/lib/express-bridge.js` for Vercel serverless.
-*   **Mobile:** Capacitor + MLKit Vision.
-*   **Desktop:** Electron + Native Printer Bridge (warm worker, 7s cap).
+- **Frontend:** React 19, Vite, Tailwind CSS, Dexie, Capacitor, Electron 41.
+- **Backend:** Next.js 14 App Router, Express bridge, Sequelize 6 ORM, PostgreSQL 16, `pg` driver.
+- **Infra:** Vercel (serverless, crons), Docker Compose, Cloudinary, Brevo.
 
-## 🛠️ Getting Started.
+## Getting Started (Local)
 
-Refer to [QUICKSTART.md](./QUICKSTART.md) for detailed installation and deployment instructions.
+1. **Clone:**
+```bash
+git clone https://github.com/meshackbahati/nulia-pos.git
+cd nulia-pos
+```
+2. **Backend:**
+```bash
+cd backend-nextjs
+npm install
+cp .env.example .env.local  # fill DATABASE_URL + JWT_SECRET + ENCRYPTION_KEY
+npm run db:migrate
+npm run build   # must pass - no JWT throw during build
+npm run dev     # http://localhost:3000
+```
+3. **Frontend:**
+```bash
+cd ../ui
+npm install
+npm run build
+npm run dev          # Vite
+npx cap sync android # Android
+npm run electron:build  # desktop - Windows .exe, Debian .deb, Arch .pkg.tar.zst, AppImage
+```
 
-## 📄 License.
+## Build Verification
 
-Proprietary Software - All Rights Reserved.
+Both builds must pass with no errors:
+```bash
+cd backend-nextjs && npm run build
+cd ui && npm run build
+```
+
+Linux desktop fix: Wayland color manager disabled, GPU fallback, NULIA_DISABLE_GPU=0 to re-enable. Fontconfig 2.15 warning is harmless.
+
+## License
+
+MIT - see `LICENSE`. Commercial warranty and multi-tenant cloud are proprietary.

@@ -1,13 +1,13 @@
 {
-    "name": "retailpro",
+    "name": "nulia",
     "private": true,
     "version": "1.12.0",
-    "description": "RetailPro POS System",
+    "description": "Nulia POS System - Open Source Edition",
     "author": {
         "name": "Meshack bahati",
         "email": "bahatikylemeshack@gmail.com"
     },
-    "homepage": "https://retailpro.com",
+    "homepage": "https://nulia.dev",
     "type": "module",
     "main": "electron/main.cjs",
     "scripts": {
@@ -21,8 +21,8 @@
         "cap:open:android": "npm run build && npx cap open android"
     },
     "build": {
-        "appId": "com.retailpro.pos",
-        "productName": "RetailPro",
+        "appId": "com.nulia.pos",
+        "productName": "Nulia",
         "directories": {
             "output": "dist-electron"
         },
@@ -45,13 +45,21 @@
         },
         "linux": {
             "target": [
+                "AppImage",
+                "deb",
                 "pacman"
             ],
             "icon": "public/logo.png",
             "category": "Office"
         },
         "pacman": {
-            "artifactName": "retailpro-${version}-${arch}.pkg.tar.zst"
+            "artifactName": "nulia-${version}-${arch}.pkg.tar.zst"
+        },
+        "deb": {
+            "artifactName": "nulia_${version}_${arch}.deb"
+        },
+        "appImage": {
+            "artifactName": "nulia-${version}-${arch}.AppImage"
         }
     },
     "dependencies": {
