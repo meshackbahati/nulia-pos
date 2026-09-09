@@ -1,6 +1,6 @@
-# BorderShop POS — Backend (Next.js / Vercel)
+# Nulia POS — Backend (Next.js / Vercel)
 
-Next.js port of the BorderShop POS Express backend, designed to run on **Vercel (serverless)**.
+Next.js port of the Nulia POS Express backend, designed to run on **Vercel (serverless)**.
 
 The entire Express app (`src/lib/app.js`) is bridged into a Next.js App Router catch-all route, so **every endpoint works exactly as before** — JSON bodies, urlencoded forms, and `multipart/form-data` file uploads (multer) are all supported. Existing cron jobs run as Vercel Cron triggers instead of `node-cron`.
 
@@ -9,7 +9,7 @@ The entire Express app (`src/lib/app.js`) is bridged into a Next.js App Router c
 ## 1. Architecture
 
 ```
-backend-nextjs/
+server/
 ├── src/
 │   ├── app/
 │   │   ├── [[...path]]/route.js            # Root catch-all: /, /health, /api-docs, non-/api paths
@@ -53,7 +53,7 @@ The schema is created via migrations — the migration files live in `../backend
 
 ### Option A — Use the existing production database
 
-Point `***REMOVED***` at your existing BorderShop PostgreSQL database. All tables already exist; nothing to migrate.
+Point `***REMOVED***` at your existing Nulia PostgreSQL database. All tables already exist; nothing to migrate.
 
 ### Option B — Provision a fresh database
 
@@ -93,14 +93,14 @@ Copy `.env.example` to `.env.local` for local dev, or set them in the Vercel pro
 
 | Variable | Required | Description |
 |---|---|---|
-| `***REMOVED***` | ✅ | PostgreSQL connection string, e.g. `***REMOVED_DB_URL***user:pass@host:5432/bordershop?sslmode=require` |
+| `***REMOVED***` | ✅ | PostgreSQL connection string, e.g. `***REMOVED_DB_URL***user:pass@host:5432/nulia?sslmode=require` |
 | `***REMOVED***` | ✅ | Secret for signing JWTs (generate a long random string) |
 | `JWT_EXPIRES_IN` | | JWT lifetime, default `7d` |
 | `***REMOVED***` | ✅ | Key used to decrypt stored secrets (Settings/Integrations). **Must be 32 chars** for AES-256; changing it breaks decryption of stored secrets |
 | `CRON_SECRET` | ✅ | Guards `/api/cron/*` endpoints. Vercel Cron sends it as `Authorization: Bearer <CRON_SECRET>` automatically |
 | `***REMOVED***` | | Brevo transactional email API key (falls back to DB settings) |
 | `BREVO_SENDER_EMAIL` | | From address for emails |
-| `BREVO_SENDER_NAME` | | From name for emails, default `BorderShop POS` |
+| `BREVO_SENDER_NAME` | | From name for emails, default `Nulia POS` |
 | `ENABLE_EMAILING` | | `true`/`false`, default `true` |
 | `FRONTEND_URL` | | Frontend URL used for password-reset links, e.g. `https://your-app.vercel.app` |
 | `CLOUDINARY_CLOUD_NAME` | | Cloudinary cloud name (product image uploads) |
@@ -134,7 +134,7 @@ Copy `.env.example` to `.env.local` for local dev, or set them in the Vercel pro
 ## 5. Local Development
 
 ```bash
-cd backend-nextjs
+cd server
 npm install
 cp .env.example .env.local     # set ***REMOVED***, ***REMOVED***, ***REMOVED***, CRON_SECRET
 npm run dev
@@ -162,9 +162,9 @@ Covers: root/health/install-check, JSON body parsing (login), auth guards, and m
 
 ### Via the Vercel Dashboard
 
-1. Push `backend-nextjs` to a git repo (or a subfolder of an existing repo).
+1. Push `server` to a git repo (or a subfolder of an existing repo).
 2. In Vercel → **Add New → Project** → import the repo.
-3. **Root Directory:** `backend-nextjs` (if it's a subfolder of a monorepo).
+3. **Root Directory:** `server` (if it's a subfolder of a monorepo).
 4. Framework preset: **Next.js** (auto-detected).
 5. Add the environment variables from [Section 4](#4-environment-variables) (at least `***REMOVED***`, `***REMOVED***`, `***REMOVED***`, `CRON_SECRET`).
 6. Deploy. Build command is `npm run build` (or `next build`).
@@ -172,7 +172,7 @@ Covers: root/health/install-check, JSON body parsing (login), auth guards, and m
 ### Via the Vercel CLI
 
 ```bash
-cd backend-nextjs
+cd server
 npm i -g vercel
 vercel login
 vercel                            # preview

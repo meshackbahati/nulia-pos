@@ -64,7 +64,7 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 # NEXT_PUBLIC_APP_URL="https://your-app.vercel.app"
 
 # Optional
-NEXT_PUBLIC_APP_NAME="BorderShop POS"
+NEXT_PUBLIC_APP_NAME="Nulia POS"
 DEFAULT_CURRENCY="KES"
 NODE_ENV="development"
 DEBUG_MODE="true"
@@ -246,4 +246,4 @@ Settings in database remain the same (no environment-specific configs needed).
 
 ---
 
-**See also**: [SETTINGS_AND_PAYMENTS.md](file:///home/bealthguy/Public/bordershop/SETTINGS_AND_PAYMENTS.md) for complete technical documentation.
+**See also**: [SETTINGS_AND_PAYMENTS.md](file:///home/bealthguy/Public/nulia/SETTINGS_AND_PAYMENTS.md) for complete technical documentation.

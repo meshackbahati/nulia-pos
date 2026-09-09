@@ -1,9 +1,9 @@
-# Next.js backend (formerly Express) — single source is backend-nextjs
+# Next.js backend (formerly Express) — single source is server
 FROM node:18-alpine
 WORKDIR /app
-COPY backend-nextjs/package*.json ./
+COPY server/package*.json ./
 RUN npm ci --omit=dev
-COPY backend-nextjs/ ./
+COPY server/ ./
 # Next.js needs build at image build time
 RUN npm run build
 ENV PORT=3000

@@ -2,7 +2,7 @@
 
 ## Overview
 
-BorderShop POS now manages integration credentials (M-Pesa, Brevo, Cloudinary) directly in the database through the admin/manager dashboard UI instead of environment variables.
+Nulia POS now manages integration credentials (M-Pesa, Brevo, Cloudinary) directly in the database through the admin/manager dashboard UI instead of environment variables.
 
 ---
 
@@ -395,14 +395,14 @@ const { consumerKey } = await getMpesaSettings(branchId);
 
 ## Files Created
 
-1. [`backend/migrations/20260203-create-settings.js`](file:///home/bealthguy/Public/bordershop/backend/migrations/20260203-create-settings.js)
-2. [`backend/migrations/20260203-create-payment-logs.js`](file:///home/bealthguy/Public/bordershop/backend/migrations/20260203-create-payment-logs.js)
-3. [`backend/models/Setting.ts`](file:///home/bealthguy/Public/bordershop/backend/models/Setting.ts)
-4. [`backend/models/PaymentLog.ts`](file:///home/bealthguy/Public/bordershop/backend/models/PaymentLog.ts)
-5. [`backend/services/settings-service.ts`](file:///home/bealthguy/Public/bordershop/backend/services/settings-service.ts)
-6. [`backend/functions/settings/manage.ts`](file:///home/bealthguy/Public/bordershop/backend/functions/settings/manage.ts)
-7. [`backend/functions/payments/logs.ts`](file:///home/bealthguy/Public/bordershop/backend/functions/payments/logs.ts)
-8. [Updated `src/lib/api-client.ts`](file:///home/bealthguy/Public/bordershop/src/lib/api-client.ts)
+1. [`backend/migrations/20260203-create-settings.js`](file:///home/bealthguy/Public/nulia/backend/migrations/20260203-create-settings.js)
+2. [`backend/migrations/20260203-create-payment-logs.js`](file:///home/bealthguy/Public/nulia/backend/migrations/20260203-create-payment-logs.js)
+3. [`backend/models/Setting.ts`](file:///home/bealthguy/Public/nulia/backend/models/Setting.ts)
+4. [`backend/models/PaymentLog.ts`](file:///home/bealthguy/Public/nulia/backend/models/PaymentLog.ts)
+5. [`backend/services/settings-service.ts`](file:///home/bealthguy/Public/nulia/backend/services/settings-service.ts)
+6. [`backend/functions/settings/manage.ts`](file:///home/bealthguy/Public/nulia/backend/functions/settings/manage.ts)
+7. [`backend/functions/payments/logs.ts`](file:///home/bealthguy/Public/nulia/backend/functions/payments/logs.ts)
+8. [Updated `src/lib/api-client.ts`](file:///home/bealthguy/Public/nulia/src/lib/api-client.ts)
 
 ---
 

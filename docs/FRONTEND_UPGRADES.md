@@ -19,31 +19,31 @@
 
 ### 3. **New Features**
 
-#### **AuthContext** ([`src/contexts/AuthContext.tsx`](file:///home/bealthguy/Public/bordershop/src/contexts/AuthContext.tsx))
+#### **AuthContext** ([`src/contexts/AuthContext.tsx`](file:///home/bealthguy/Public/nulia/src/contexts/AuthContext.tsx))
 - Modern React Context for authentication state
 - Hooks: `useAuth()` for accessing auth in any component
 - Automatic token management
 - Role-based routing after login
 
-#### **Validation Schemas** ([`src/lib/validations.ts`](file:///home/bealthguy/Public/bordershop/src/lib/validations.ts))
+#### **Validation Schemas** ([`src/lib/validations.ts`](file:///home/bealthguy/Public/nulia/src/lib/validations.ts))
 - Zod-based type-safe validation
 - Schemas for: Login, User Creation, Products, Sales
 - Runtime type checking
 - Better error messages
 
-#### **Middleware** ([`src/middleware.ts`](file:///home/bealthguy/Public/bordershop/src/middleware.ts))
+#### **Middleware** ([`src/middleware.ts`](file:///home/bealthguy/Public/nulia/src/middleware.ts))
 - Route protection
 - Automatic redirect to login for unauthenticated users
 - Preserves intended destination
 
-### 4. **Enhanced Metadata** ([`src/app/layout.tsx`](file:///home/bealthguy/Public/bordershop/src/app/layout.tsx))
+### 4. **Enhanced Metadata** ([`src/app/layout.tsx`](file:///home/bealthguy/Public/nulia/src/app/layout.tsx))
 - Open Graph tags for social sharing
 - Twitter Card support
-- Template-based titles (`%s | BorderShop POS`)
+- Template-based titles (`%s | Nulia POS`)
 - SEO improvements
 - Robots meta tags
 
-### 5. **Next.js Config** ([`next.config.ts`](file:///home/bealthguy/Public/bordershop/next.config.ts))
+### 5. **Next.js Config** ([`next.config.ts`](file:///home/bealthguy/Public/nulia/next.config.ts))
 - React Compiler enabled
 - PPR (Partial Pre-Rendering) incremental mode
 - Image optimization for Cloudinary
@@ -151,12 +151,12 @@ All changes are backwards compatible. The system will work with or without:
 
 ## Files Modified
 
-1. [`package.json`](file:///home/bealthguy/Public/bordershop/package.json) - Dependencies upgraded
-2. [`next.config.ts`](file:///home/bealthguy/Public/bordershop/next.config.ts) - Enhanced config
-3. [`src/app/layout.tsx`](file:///home/bealthguy/Public/bordershop/src/app/layout.tsx) - Metadata + AuthProvider
-4. [`src/contexts/AuthContext.tsx`](file:///home/bealthguy/Public/bordershop/src/contexts/AuthContext.tsx) - **NEW**
-5. [`src/lib/validations.ts`](file:///home/bealthguy/Public/bordershop/src/lib/validations.ts) - **NEW**
-6. [`src/middleware.ts`](file:///home/bealthguy/Public/bordershop/src/middleware.ts) - **NEW**
+1. [`package.json`](file:///home/bealthguy/Public/nulia/package.json) - Dependencies upgraded
+2. [`next.config.ts`](file:///home/bealthguy/Public/nulia/next.config.ts) - Enhanced config
+3. [`src/app/layout.tsx`](file:///home/bealthguy/Public/nulia/src/app/layout.tsx) - Metadata + AuthProvider
+4. [`src/contexts/AuthContext.tsx`](file:///home/bealthguy/Public/nulia/src/contexts/AuthContext.tsx) - **NEW**
+5. [`src/lib/validations.ts`](file:///home/bealthguy/Public/nulia/src/lib/validations.ts) - **NEW**
+6. [`src/middleware.ts`](file:///home/bealthguy/Public/nulia/src/middleware.ts) - **NEW**
 
 ## Testing the Upgrades
 

@@ -5,11 +5,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: bordershop-backend
+    container_name: nulia-backend
     ports:
       - "${PORT:-5000}:3000"
     env_file:
-      - backend-nextjs/.env.local
+      - server/.env.local
     environment:
       - NODE_ENV=production
       - PORT=3000
@@ -20,32 +20,32 @@ services:
       - backend_tmp:/app/.next/cache
     restart: unless-stopped
     networks:
-      - bordershop
+      - nulia
 
   db:
     image: postgres:16-alpine
-    container_name: bordershop-db
+    container_name: nulia-db
     environment:
-      POSTGRES_DB: ${DB_NAME:-bordershop}
-      POSTGRES_USER: ${DB_USER:-bordershop}
+      POSTGRES_DB: ${DB_NAME:-nulia}
+      POSTGRES_USER: ${DB_USER:-nulia}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bordershop} -d ${DB_NAME:-bordershop}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-nulia} -d ${DB_NAME:-nulia}"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
     networks:
-      - bordershop
+      - nulia
 
 volumes:
   pgdata:
   backend_tmp:
 
 networks:
-  bordershop:
+  nulia:
     driver: bridge

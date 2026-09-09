@@ -1,4 +1,4 @@
-# BorderShop Enterprise Roadmap
+# Nulia Enterprise Roadmap
 
 ## Guiding Principles
 
@@ -39,7 +39,7 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: bordershop
+      POSTGRES_DB: nulia
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
@@ -550,9 +550,9 @@ Implementation approach:
 - Org gets a unique slug (e.g. `acme-corp`) used in subdomain routing
 
 ### 5.5 URL / Subdomain Strategy
-- Multi-tenant uses subdomain: `acme.api.bordershop.app`
+- Multi-tenant uses subdomain: `acme.api.nulia.app`
 - Single-tenant (existing) stays on current domain
-- Nginx/Caddy routes `*.api.bordershop.app` → extract subdomain → set `X-Organization` header
+- Nginx/Caddy routes `*.api.nulia.app` → extract subdomain → set `X-Organization` header
 
 ### 5.6 Migration Path for Existing Users
 Existing installations auto-create a single `Organization` record:
@@ -571,7 +571,7 @@ Existing installations auto-create a single `Organization` record:
 - **Health endpoint enhancement** — add memory, uptime, version, DB pool stats
 - **Load testing** — k6 scripts for critical paths (POS transaction, analytics query)
 - **Performance** — Redis caching for analytics queries, product listings, settings
-- **Official API client** — npm package `@bordershop/api-client` for third-party devs
+- **Official API client** — npm package `@nulia/api-client` for third-party devs
 
 ---
 

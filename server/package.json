@@ -1,7 +1,7 @@
 {
-    "name": "bordershop-backend-nextjs",
+    "name": "nulia-server",
     "version": "1.12.0",
-    "description": "BorderShop POS backend ported to Next.js App Router API routes for Vercel hosting",
+    "description": "Nulia POS backend ported to Next.js App Router API routes for Vercel hosting",
     "private": true,
     "type": "module",
     "scripts": {

@@ -95,10 +95,10 @@ CLOUDINARY_API_SECRET="..."
 
 ## Files Updated
 
-1. ✅ [`backend/.env.example`](file:///home/bealthguy/Public/bordershop/backend/.env.example) - Clean, minimal template
-2. ✅ [`.env.example`](file:///home/bealthguy/Public/bordershop/.env.example) - Frontend template updated
-3. ✅ [`ENV_SETUP.md`](file:///home/bealthguy/Public/bordershop/ENV_SETUP.md) - Complete environment guide
-4. ✅ [`UI_SETTINGS_REFERENCE.md`](file:///home/bealthguy/Public/bordershop/UI_SETTINGS_REFERENCE.md) - All UI-managed settings documented
+1. ✅ [`backend/.env.example`](file:///home/bealthguy/Public/nulia/backend/.env.example) - Clean, minimal template
+2. ✅ [`.env.example`](file:///home/bealthguy/Public/nulia/.env.example) - Frontend template updated
+3. ✅ [`ENV_SETUP.md`](file:///home/bealthguy/Public/nulia/ENV_SETUP.md) - Complete environment guide
+4. ✅ [`UI_SETTINGS_REFERENCE.md`](file:///home/bealthguy/Public/nulia/UI_SETTINGS_REFERENCE.md) - All UI-managed settings documented
 
 ---
 
@@ -107,7 +107,7 @@ CLOUDINARY_API_SECRET="..."
 ### 1. Create your `.env`
 
 ```bash
-cd /home/bealthguy/Public/bordershop
+cd /home/bealthguy/Public/nulia
 
 # Copy template
 cp .env.example .env
@@ -202,9 +202,9 @@ MPESA_CONSUMER_KEY="abc123"
 
 | Document | Purpose |
 |----------|---------|
-| [ENV_SETUP.md](file:///home/bealthguy/Public/bordershop/ENV_SETUP.md) | Complete environment variables guide |
-| [UI_SETTINGS_REFERENCE.md](file:///home/bealthguy/Public/bordershop/UI_SETTINGS_REFERENCE.md) | All UI-managed settings reference |
-| [SETTINGS_AND_PAYMENTS.md](file:///home/bealthguy/Public/bordershop/SETTINGS_AND_PAYMENTS.md) | Technical documentation |
+| [ENV_SETUP.md](file:///home/bealthguy/Public/nulia/ENV_SETUP.md) | Complete environment variables guide |
+| [UI_SETTINGS_REFERENCE.md](file:///home/bealthguy/Public/nulia/UI_SETTINGS_REFERENCE.md) | All UI-managed settings reference |
+| [SETTINGS_AND_PAYMENTS.md](file:///home/bealthguy/Public/nulia/SETTINGS_AND_PAYMENTS.md) | Technical documentation |
 
 ---
 

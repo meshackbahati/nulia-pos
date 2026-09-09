@@ -136,7 +136,7 @@
 ### 1. Sign up for Neon
 1. Go to [neon.tech](https://neon.tech)
 2. Sign up (GitHub or email)
-3. Create project: `bordershop-pos`
+3. Create project: `nulia-pos`
 4. Select region closest to you
 
 ### 2. Get Connection String
@@ -144,7 +144,7 @@
 Format: postgresql://user:pass@ep-xxx.region.aws.neon.tech/database?sslmode=require
 
 Example:
-postgresql://bordershop_user:AbC123XyZ@ep-cool-term-123456.us-east-2.aws.neon.tech/bordershop?sslmode=require
+postgresql://nulia_user:AbC123XyZ@ep-cool-term-123456.us-east-2.aws.neon.tech/nulia?sslmode=require
 ```
 
 ### 3. Update `.env`
@@ -153,7 +153,7 @@ postgresql://bordershop_user:AbC123XyZ@ep-cool-term-123456.us-east-2.aws.neon.te
 ***REMOVED***="mysql://user:pass@host.connect.psdb.cloud/db?ssl=..."
 
 # After (Neon PostgreSQL)
-***REMOVED***="postgresql://user:pass@ep-xxx.region.aws.neon.tech/bordershop?sslmode=require"
+***REMOVED***="postgresql://user:pass@ep-xxx.region.aws.neon.tech/nulia?sslmode=require"
 ```
 
 ### 4. Run Migrations

@@ -1,10 +1,10 @@
 # RetailPro — Full Feature Audit & Wiring Plan (v1.12)
 
-**Date:** 2026-09-02  **Scope:** `ui/` + `backend-nextjs/` (Express deleted, single Next.js API). **Method:** code read + runtime build check.
+**Date:** 2026-09-02  **Scope:** `ui/` + `server/` (Express deleted, single Next.js API). **Method:** code read + runtime build check.
 
 ## 1. What exists — 26 UI pages + 26 API route groups + 30 models
 
-| Domain | UI Pages | API Routes (`backend-nextjs/src/routes`) | Models | Intended Business Job | How Wired Today | Gap / Usability |
+| Domain | UI Pages | API Routes (`server/src/routes`) | Models | Intended Business Job | How Wired Today | Gap / Usability |
 |---|---|---|---|---|---|---|
 | **Auth & Branch Context** | `LoginPage`, `Forgot/Reset`, `InstallPage`, `BranchSelector` | `auth` (login/me/forgot/reset/switch-branch), `branches` (list/me/create/update), `users` | `User`, `Branch` | Store-isolated logins, role hierarchy admin>manager>head_of_sales>salesperson, branch switch | `AuthContext` reads localStorage+cookie, `branchChanged` event, `POST /branches/update` handles mpesa fields (now patched) | Branch switch not obvious to cashier; no onboarding tour |
 | **Products (Inventory Catalogue)** | `ProductsPage`, `ProductModal` (732 LOC) | `products` (list/create/update/delete/import-csv/upload-image/search/barcode) | `Product`, `ProductVariant`, `Inventory` | SKU/barcode, discrete vs measurable (kg, L), fractional, UOM, low-stock threshold | `ProductsPage:125` limit 200 (no pagination), CSV import via `branches` hub picker, `ProductModal` handles `measurementType` | Modal >500 LOC should split; search vs category filter ignores category when searching (intentional but not documented); `isActive` soft-delete hidden |
@@ -73,4 +73,4 @@
 - Seed 2 demo branches (KES hub + UGX hub) with distinct gateways, demo sale split KES+UGX to showcase daily rates
 - Add to `POSPage` header: tiny `Branch: Nairobi • KES` + `Change` → `BranchSelector` modal (already exists) + toast “Switched to Kampala — prices now in UGX”
 
-All changes keep `ui` and `backend-nextjs` builds green (`tsc -b && vite build` 85.58k CSS, `next build` 5/5, `db:migrate` up to date).
+All changes keep `ui` and `server` builds green (`tsc -b && vite build` 85.58k CSS, `next build` 5/5, `db:migrate` up to date).

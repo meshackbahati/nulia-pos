@@ -81,10 +81,10 @@ All settings are managed through the Dashboard UI under **Settings** page.
 #### Global Settings (branchId = null)
 | Setting Key | Description | Type | Example |
 |------------|-------------|------|---------|
-| `company_name` | Legal company name | Text | "BorderShop Inc." |
+| `company_name` | Legal company name | Text | "Nulia Inc." |
 | `company_address` | Registered address | Text | "123 Main St" |
 | `company_phone` | Support phone | Text | "+254712345678" |
-| `company_email` | Support email | Text | "support@bordershop.com" |
+| `company_email` | Support email | Text | "support@nulia.com" |
 | `default_currency` | System-wide currency | Text | `KES` or `KES` |
 | `enable_multi_currency` | Support multiple currencies | Boolean | `true` |
 
@@ -173,8 +173,8 @@ const emailConfig = await getEmailSettings();
 console.log(emailConfig);
 // {
 //   apiKey: "decrypted_brevo_key",
-//   senderEmail: "noreply@bordershop.com",
-//   senderName: "BorderShop POS"
+//   senderEmail: "noreply@nulia.com",
+//   senderName: "Nulia POS"
 // }
 
 // Send email
@@ -356,4 +356,4 @@ Dashboard → Settings
 
 ---
 
-**Complete documentation**: [SETTINGS_AND_PAYMENTS.md](file:///home/bealthguy/Public/bordershop/SETTINGS_AND_PAYMENTS.md)
+**Complete documentation**: [SETTINGS_AND_PAYMENTS.md](file:///home/bealthguy/Public/nulia/SETTINGS_AND_PAYMENTS.md)

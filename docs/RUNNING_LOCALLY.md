@@ -1,10 +1,10 @@
-# 🚀 Running BorderShop POS Locally
+# 🚀 Running Nulia POS Locally
 
 ## Quick Start (2 Terminals)
 
 ### Terminal 1: Backend (Netlify Functions on port 8888)
 ```bash
-cd /home/bealthguy/Public/bordershop/backend
+cd /home/bealthguy/Public/nulia/backend
 npm run dev
 ```
 **Expected output**:
@@ -14,7 +14,7 @@ npm run dev
 
 ### Terminal 2: Frontend (Next.js on port 3000)
 ```bash
-cd /home/bealthguy/Public/bordershop
+cd /home/bealthguy/Public/nulia
 npm run dev
 ```
 **Expected output**:
@@ -61,7 +61,7 @@ lsof -ti:3000 | xargs kill -9
 **Solution**:
 ```bash
 # Frontend
-cd /home/bealthguy/Public/bordershop
+cd /home/bealthguy/Public/nulia
 rm -rf node_modules package-lock.json
 npm install
 
@@ -110,14 +110,14 @@ Check `.env` file has correct `***REMOVED***` from Neon:
 
 **Terminal 1** (Backend):
 ```bash
-cd /home/bealthguy/Public/bordershop/backend
+cd /home/bealthguy/Public/nulia/backend
 npm run dev
 # Wait for: "Server now ready on http://localhost:8888"
 ```
 
 **Terminal 2** (Frontend):
 ```bash
-cd /home/bealthguy/Public/bordershop
+cd /home/bealthguy/Public/nulia
 npm run dev
 # Wait for: "Ready in X.Xs"
 ```
@@ -126,11 +126,11 @@ npm run dev
 
 ```bash
 # Wrong! Don't run netlify dev from root
-cd /home/bealthguy/Public/bordershop
+cd /home/bealthguy/Public/nulia
 netlify dev  # ❌ This causes the error!
 
 # Wrong! Don't run next dev from backend
-cd /home/bealthguy/Public/bordershop/backend
+cd /home/bealthguy/Public/nulia/backend
 npm run dev  # This should work, but only if netlify.toml is fixed
 ```
 

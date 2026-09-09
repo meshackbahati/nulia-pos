@@ -9,7 +9,7 @@ This guide covers the setup and build process for the RetailPro ecosystem.
 
 ## 2. Backend Setup (Next.js — single source)
 ```bash
-cd backend-nextjs
+cd server
 npm install
 # Create .env.local from .env.example (***REMOVED***, ***REMOVED***, BREVO_*, etc)
 npm run db:migrate
