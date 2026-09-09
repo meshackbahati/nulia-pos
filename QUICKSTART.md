@@ -1,6 +1,6 @@
-# Quickstart Guide: RetailPro Deployment
+# Quickstart Guide: Nulia Deployment
 
-This guide covers the setup and build process for the RetailPro ecosystem.
+This guide covers the setup and build process for the Nulia ecosystem.
 
 ## 1. Prerequisites
 *   Node.js (v18+)
@@ -55,8 +55,8 @@ cd android
 The APK will be generated in `ui/android/app/build/outputs/apk/`.
 
 ## 4. Key Deployment URLs
-*   **Primary API:** `https://api2.g24sec.space/api`
-*   **Fallback API:** `https://api2.g24sec.com/api`
+*   **Local API:** `http://localhost:3000/api`
+*   **Production:** `https://your-nulia.vercel.app/api` - set `VITE_API_URL` and `DATABASE_URL` in Vercel env
 
 ## 5. Hardware Configuration
 *   **Thermal Printer (Desktop):** Ensure your printer name includes the word "Thermal" or set it in `localStorage.setItem('defaultPrinter', 'Your_Printer_Name')`.

@@ -21,7 +21,7 @@ Navigate to the **System Nucleus (Settings Page)** in the RetailPro dashboard.
 ## 3. Webhook Configuration (Optional but Recommended)
 For real-time payment status updates, configure your Paystack Webhook URL:
 
-*   **Webhook URL**: `https://api2.g24sec.space/api/payments/paystack/webhook`
+*   **Webhook URL**: `https://your-nulia.vercel.app/api/payments/paystack/webhook`
 *   **Events to Listen for**: `charge.success`, `transfer.success`.
 
 ## 4. Operational Nuances

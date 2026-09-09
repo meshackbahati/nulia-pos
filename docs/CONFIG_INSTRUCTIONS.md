@@ -15,8 +15,8 @@ RetailPro uses environment variables and dynamic database settings to manage its
 
 RetailPro implements a **Primary + Fallback** strategy for maximum uptime:
 
-1.  **Primary:** `https://api2.g24sec.space/api`
-2.  **Fallback:** `https://api2.g24sec.com/api`
+1.  **Primary:** `https://your-nulia.vercel.app/api`
+2.  **Fallback:** `https://your-nulia.vercel.app/api`
 
 The system automatically switches to the fallback if the primary node is unreachable.
 
