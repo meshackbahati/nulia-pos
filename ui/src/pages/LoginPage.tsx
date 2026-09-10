@@ -47,7 +47,9 @@ export default function LoginPage() {
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="w-full max-w-[360px]">
             <div className="text-center mb-8">
-              <img src="/logo.svg" alt="Nulia" className="w-14 h-14 rounded-2xl object-contain mx-auto bg-white p-1" />
+              <div className="w-14 h-14 rounded-2xl bg-white grid place-items-center mx-auto shadow-lg">
+                <span className="font-black text-xl tracking-tighter text-zinc-900">N</span>
+              </div>
               <h1 className="text-2xl font-black tracking-tighter mt-4">Welcome back</h1>
               <p className="text-sm text-zinc-400 mt-1">Sign in to continue</p>
             </div>
@@ -56,16 +58,18 @@ export default function LoginPage() {
               <div>
                 <label className="text-[11px] font-black uppercase tracking-widest text-zinc-400">Email or phone</label>
                 <div className="relative mt-2">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                  <input type="text" placeholder="admin@nulia.test" value={email} onChange={e=>setEmail(e.target.value)} required className="w-full h-[48px] pl-11 pr-3 rounded-xl border border-zinc-700 focus:border-white focus:ring-4 focus:ring-white/10 outline-none text-sm font-medium bg-zinc-800 text-white placeholder:text-zinc-500 transition" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+                  <input type="text" placeholder="admin@nulia.test" value={email} onChange={e=>setEmail(e.target.value)} required className="w-full h-[48px] pl-11 pr-3 rounded-xl border border-zinc-700 focus:border-white focus:ring-4 focus:ring-white/10 outline-none text-sm font-medium bg-zinc-800 text-white placeholder:text-zinc-500 caret-white transition" autoComplete="email" autoCapitalize="off" />
                 </div>
               </div>
               <div>
                 <label className="text-[11px] font-black uppercase tracking-widest text-zinc-400">Password</label>
                 <div className="relative mt-2">
-                  <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                  <input type={showPass ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} required className="w-full h-[48px] pl-11 pr-11 rounded-xl border border-zinc-700 focus:border-white focus:ring-4 focus:ring-white/10 outline-none text-sm font-medium bg-zinc-800 text-white placeholder:text-zinc-500 transition" />
-                  <button type="button" onClick={()=>setShowPass(!showPass)} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-zinc-500 hover:text-white">{showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
+                  <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+                  <input type={showPass ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} required className="w-full h-[48px] pl-11 pr-12 rounded-xl border border-zinc-700 focus:border-white focus:ring-4 focus:ring-white/10 outline-none text-sm font-medium bg-zinc-800 text-white placeholder:text-zinc-500 caret-white transition" autoComplete="current-password" />
+                  <button type="button" onClick={()=>setShowPass(!showPass)} className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg bg-zinc-700 text-zinc-300 hover:bg-zinc-600 hover:text-white transition">
+                    {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
               <button type="submit" disabled={loading} className="w-full h-[48px] bg-white text-zinc-900 rounded-full font-black text-sm inline-flex items-center justify-center gap-2 hover:bg-zinc-100 disabled:opacity-50">
